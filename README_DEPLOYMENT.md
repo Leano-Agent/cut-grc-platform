@@ -38,18 +38,21 @@
 #### 2. **Create Web Service**
 - Go to Dashboard → "New +" → "Web Service"
 - Connect to `Leano-Agent/cut-grc-platform` repository
-- Use configuration from `render.yaml`
+- Render will automatically detect `render.yaml` configuration
+- **Important**: The configuration has been simplified for free tier compatibility
 
-#### 3. **Add PostgreSQL Database**
-- "New +" → "PostgreSQL"
-- Name: `cut-grc-db`
+#### 3. **Add PostgreSQL Database (After Web Service is created)**
+- In your Render dashboard, click "New +" → "PostgreSQL"
+- Name: `cut-grc-database`
 - Database: `cut_grc`
 - User: `cut_grc_user`
 - Region: Frankfurt (EU Central)
+- **Note**: Free tier has limited database hours
 
 #### 4. **Add Redis (Optional but Recommended)**
-- Use Upstash Redis: https://upstash.com
-- Or Render Redis if available
+- Use Upstash Redis (free tier available): https://upstash.com
+- Or create Redis instance in Render if available
+- **Note**: Render's free tier doesn't include Redis, use Upstash instead
 
 #### 5. **Set Environment Variables**
 Copy from `.env.example` and update:
@@ -94,19 +97,32 @@ vercel --prod
 
 ### Troubleshooting:
 
+#### Blueprint File Error ("unknown type 'pgsql'"):
+- **Issue**: Render.com doesn't recognize `type: pgsql`
+- **Solution**: Use manual service creation instead of blueprint
+- **Fixed**: Updated `render.yaml` to use simplified configuration
+
 #### Build Failures:
 - Check `npm install --only=production` command
 - Verify Node.js version (20.x required)
 - Check TypeScript compilation
+- **Note**: Build command is `cd src/backend && npm install --only=production`
 
 #### Database Connection Issues:
-- Verify `DATABASE_URL` environment variable
-- Check PostgreSQL is running
+- Verify `DATABASE_URL` environment variable is set in Render dashboard
+- Check PostgreSQL is running (free tier spins down after inactivity)
 - Test connection from Render shell
+- **Manual Setup**: Add PostgreSQL database separately, then set `DATABASE_URL`
 
 #### Redis Connection Issues:
-- Verify `REDIS_URL` environment variable
+- Verify `REDIS_URL` environment variable is set
+- Use Upstash Redis (free tier) instead of Render Redis
 - Check Redis service is running
+
+#### Port Configuration:
+- Backend runs on port 10000 (configured in `render.yaml`)
+- Health check at `/health` (not `/api/v1/health`)
+- Update CORS_ORIGIN if deploying frontend separately
 
 ### Monitoring:
 - **Render Dashboard**: View logs and metrics
