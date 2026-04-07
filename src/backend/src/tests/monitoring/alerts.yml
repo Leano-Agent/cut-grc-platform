@@ -1,0 +1,313 @@
+# Test Monitoring and Alerting Configuration
+# This file defines alert rules for test failures and performance degradation
+
+alerts:
+  # Test Failure Alerts
+  test_failures:
+    - name: "critical_test_failure"
+      description: "Critical test failure affecting core functionality"
+      condition: "test_failures > 0 AND test_severity = 'critical'"
+      severity: "critical"
+      channels: ["slack", "email", "pagerduty"]
+      threshold: 1
+      cooldown: "5m"
+      
+    - name: "high_test_failure_rate"
+      description: "High rate of test failures (>10%)"
+      condition: "(failed_tests / total_tests) > 0.1"
+      severity: "high"
+      channels: ["slack", "email"]
+      threshold: 0.1
+      cooldown: "15m"
+      
+    - name: "regression_detected"
+      description: "Test regression detected (previously passing tests now failing)"
+      condition: "regression_count > 0"
+      severity: "high"
+      channels: ["slack", "email"]
+      threshold: 1
+      cooldown: "30m"
+
+  # Performance Alert Rules
+  performance:
+    - name: "slow_api_response"
+      description: "API response time exceeds threshold"
+      condition: "api_response_time_p95 > 1000"  # 1 second
+      severity: "medium"
+      channels: ["slack"]
+      threshold: 1000
+      cooldown: "10m"
+      
+    - name: "high_error_rate"
+      description: "API error rate exceeds threshold"
+      condition: "api_error_rate > 0.05"  # 5%
+      severity: "high"
+      channels: ["slack", "email"]
+      threshold: 0.05
+      cooldown: "5m"
+      
+    - name: "database_slow_queries"
+      description: "Slow database queries detected"
+      condition: "slow_queries > 10"
+      severity: "medium"
+      channels: ["slack"]
+      threshold: 10
+      cooldown: "15m"
+
+  # Coverage Alert Rules
+  coverage:
+    - name: "coverage_drop"
+      description: "Test coverage dropped significantly (>5%)"
+      condition: "coverage_change < -0.05"
+      severity: "medium"
+      channels: ["slack"]
+      threshold: -0.05
+      cooldown: "1h"
+      
+    - name: "low_coverage"
+      description: "Test coverage below target (95%)"
+      condition: "coverage < 0.95"
+      severity: "low"
+      channels: ["slack"]
+      threshold: 0.95
+      cooldown: "24h"
+
+  # Security Alert Rules
+  security:
+    - name: "critical_vulnerability"
+      description: "Critical security vulnerability detected"
+      condition: "critical_vulns > 0"
+      severity: "critical"
+      channels: ["slack", "email", "pagerduty"]
+      threshold: 1
+      cooldown: "0m"  # Immediate
+      
+    - name: "high_vulnerability"
+      description: "High severity security vulnerability detected"
+      condition: "high_vulns > 0"
+      severity: "high"
+      channels: ["slack", "email"]
+      threshold: 1
+      cooldown: "5m"
+      
+    - name: "dependency_vulnerability"
+      description: "Vulnerable dependencies detected"
+      condition: "vulnerable_deps > 0"
+      severity: "medium"
+      channels: ["slack"]
+      threshold: 1
+      cooldown: "1h"
+
+  # Resource Alert Rules
+  resources:
+    - name: "high_cpu_usage"
+      description: "High CPU usage during tests"
+      condition: "cpu_usage > 0.8"  # 80%
+      severity: "medium"
+      channels: ["slack"]
+      threshold: 0.8
+      cooldown: "10m"
+      
+    - name: "high_memory_usage"
+      description: "High memory usage during tests"
+      condition: "memory_usage > 0.9"  # 90%
+      severity: "medium"
+      channels: ["slack"]
+      threshold: 0.9
+      cooldown: "10m"
+      
+    - name: "disk_space_low"
+      description: "Low disk space on test server"
+      condition: "disk_free_percent < 0.1"  # 10%
+      severity: "high"
+      channels: ["slack", "email"]
+      threshold: 0.1
+      cooldown: "30m"
+
+  # Integration Alert Rules
+  integration:
+    - name: "external_service_down"
+      description: "External service dependency is down"
+      condition: "external_service_status = 'down'"
+      severity: "high"
+      channels: ["slack", "email"]
+      threshold: 1
+      cooldown: "5m"
+      
+    - name: "api_rate_limit"
+      description: "API rate limit approaching"
+      condition: "rate_limit_usage > 0.8"  # 80%
+      severity: "medium"
+      channels: ["slack"]
+      threshold: 0.8
+      cooldown: "15m"
+
+# Alert Channels Configuration
+channels:
+  slack:
+    webhook_url: "${SLACK_WEBHOOK_URL}"
+    channel: "#alerts-testing"
+    username: "Test Monitor"
+    icon_emoji: ":warning:"
+    
+  email:
+    smtp_host: "${SMTP_HOST}"
+    smtp_port: "${SMTP_PORT}"
+    from: "test-alerts@cut.ac.za"
+    to: ["qa-team@cut.ac.za", "dev-team@cut.ac.za"]
+    
+  pagerduty:
+    integration_key: "${PAGERDUTY_INTEGRATION_KEY}"
+    service_id: "${PAGERDUTY_SERVICE_ID}"
+
+# Alert Templates
+templates:
+  critical_alert:
+    title: "🚨 CRITICAL ALERT: {alert_name}"
+    message: |
+      *Alert:* {alert_description}
+      *Severity:* {severity}
+      *Time:* {timestamp}
+      *Details:* {details}
+      *Impact:* {impact}
+      *Action Required:* {action}
+      
+  high_alert:
+    title: "⚠️ HIGH ALERT: {alert_name}"
+    message: |
+      *Alert:* {alert_description}
+      *Severity:* {severity}
+      *Time:* {timestamp}
+      *Details:* {details}
+      *Impact:* {impact}
+      
+  medium_alert:
+    title: "🔶 MEDIUM ALERT: {alert_name}"
+    message: |
+      *Alert:* {alert_description}
+      *Severity:* {severity}
+      *Time:* {timestamp}
+      *Details:* {details}
+      
+  low_alert:
+    title: "🔷 LOW ALERT: {alert_name}"
+    message: |
+      *Alert:* {alert_description}
+      *Severity:* {severity}
+      *Time:* {timestamp}
+      *Details:* {details}
+
+# Monitoring Schedule
+schedule:
+  unit_tests:
+    frequency: "on_push"  # Run on every push
+    timeout: "10m"
+    
+  integration_tests:
+    frequency: "hourly"
+    timeout: "30m"
+    
+  security_tests:
+    frequency: "daily"
+    timeout: "1h"
+    
+  performance_tests:
+    frequency: "weekly"
+    timeout: "2h"
+    
+  full_suite:
+    frequency: "nightly"
+    timeout: "3h"
+
+# Retention Policy
+retention:
+  test_results: "30d"
+  performance_metrics: "90d"
+  security_scans: "180d"
+  alert_history: "365d"
+
+# Escalation Policy
+escalation:
+  level1:
+    duration: "15m"
+    channels: ["slack"]
+    
+  level2:
+    duration: "30m"
+    channels: ["slack", "email"]
+    
+  level3:
+    duration: "1h"
+    channels: ["slack", "email", "pagerduty"]
+    
+  level4:
+    duration: "2h"
+    channels: ["slack", "email", "pagerduty", "sms"]
+
+# Test Categories for Alert Grouping
+categories:
+  authentication:
+    - "auth_login_test"
+    - "auth_register_test"
+    - "auth_token_test"
+    
+  user_management:
+    - "user_create_test"
+    - "user_update_test"
+    - "user_delete_test"
+    
+  risk_management:
+    - "risk_create_test"
+    - "risk_assessment_test"
+    - "risk_treatment_test"
+    
+  compliance:
+    - "compliance_record_test"
+    - "compliance_framework_test"
+    - "compliance_requirement_test"
+    
+  internal_controls:
+    - "control_create_test"
+    - "control_test_test"
+    - "control_remediation_test"
+
+# Performance Baselines
+baselines:
+  api_response_time:
+    p50: 100    # 100ms
+    p95: 500    # 500ms
+    p99: 1000   # 1s
+    
+  test_execution_time:
+    unit_tests: "2m"
+    integration_tests: "10m"
+    e2e_tests: "30m"
+    
+  resource_usage:
+    cpu_max: "70%"
+    memory_max: "80%"
+    disk_max: "85%"
+
+# Notification Preferences
+notifications:
+  working_hours: "08:00-18:00"
+  timezone: "Africa/Johannesburg"
+  weekends: false
+  holidays: false
+  
+  teams:
+    development:
+      channels: ["slack", "email"]
+      escalation_level: 2
+      
+    quality_assurance:
+      channels: ["slack", "email", "pagerduty"]
+      escalation_level: 1
+      
+    operations:
+      channels: ["pagerduty", "sms"]
+      escalation_level: 3
+      
+    management:
+      channels: ["email"]
+      escalation_level: 4

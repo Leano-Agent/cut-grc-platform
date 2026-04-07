@@ -1,0 +1,107 @@
+{
+  "$schema": "https://railway.app/railway.schema.json",
+  "build": {
+    "builder": "NIXPACKS",
+    "buildCommand": "npm ci --only=production"
+  },
+  "deploy": {
+    "startCommand": "node src/server.js",
+    "healthcheckPath": "/api/v1/health",
+    "restartPolicyType": "ON_FAILURE",
+    "restartPolicyMaxRetries": 3
+  },
+  "environments": {
+    "production": {
+      "region": "eu-west-1",
+      "autoDeploy": true,
+      "prune": {
+        "enabled": true,
+        "retain": 5
+      }
+    },
+    "staging": {
+      "region": "eu-west-1",
+      "autoDeploy": true,
+      "prune": {
+        "enabled": true,
+        "retain": 3
+      }
+    }
+  },
+  "services": [
+    {
+      "name": "cut-grc-backend",
+      "source": {
+        "type": "image",
+        "image": "node:20-alpine"
+      },
+      "env": {
+        "NODE_ENV": "production",
+        "PORT": "3000",
+        "API_PREFIX": "/api/v1",
+        "LOG_LEVEL": "info",
+        "AWS_REGION": "af-south-1",
+        "TZ": "Africa/Johannesburg"
+      },
+      "healthcheck": {
+        "path": "/api/v1/health",
+        "interval": 30,
+        "timeout": 5,
+        "threshold": 3
+      },
+      "resources": {
+        "cpu": 0.5,
+        "memory": 512
+      },
+      "scale": {
+        "min": 1,
+        "max": 3,
+        "targetCpuUtilization": 70
+      }
+    }
+  ],
+  "plugins": [
+    {
+      "name": "postgresql",
+      "type": "postgresql",
+      "version": "15",
+      "env": {
+        "DATABASE_URL": {
+          "fromPlugin": true
+        }
+      }
+    },
+    {
+      "name": "redis",
+      "type": "redis",
+      "version": "7",
+      "env": {
+        "REDIS_URL": {
+          "fromPlugin": true
+        }
+      }
+    }
+  ],
+  "variables": {
+    "JWT_SECRET": {
+      "description": "JWT secret for authentication",
+      "generate": true
+    },
+    "CORS_ORIGIN": {
+      "description": "CORS origin for frontend",
+      "value": "https://cut-grc-frontend.railway.app"
+    },
+    "SENTRY_DSN": {
+      "description": "Sentry DSN for error tracking",
+      "optional": true
+    }
+  ],
+  "checks": {
+    "alive": {
+      "type": "http",
+      "path": "/api/v1/health",
+      "interval": 30,
+      "timeout": 5
+    }
+  }
+}

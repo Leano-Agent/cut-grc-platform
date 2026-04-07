@@ -1,0 +1,88 @@
+# Render.com Deployment Configuration
+# African Sovereignty: Configured for optimal performance in African regions
+
+services:
+  # Backend Service
+  - type: web
+    name: cut-grc-backend
+    env: node
+    region: frankfurt  # Closest to Africa with good connectivity
+    buildCommand: npm ci --only=production
+    startCommand: node src/server.js
+    healthCheckPath: /api/v1/health
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3000
+      - key: JWT_SECRET
+        generateValue: true
+      - key: CORS_ORIGIN
+        value: ${FRONTEND_URL}
+      - key: API_PREFIX
+        value: /api/v1
+      - key: LOG_LEVEL
+        value: info
+      - key: AWS_REGION
+        value: af-south-1
+    disk:
+      name: data
+      mountPath: /data
+      sizeGB: 1
+
+  # PostgreSQL Database
+  - type: pgsql
+    name: cut-grc-database
+    region: frankfurt
+    ipAllowList: []
+    plan: starter
+    databaseName: cut_grc
+    user: cut_grc_user
+
+  # Redis Instance
+  - type: redis
+    name: cut-grc-redis
+    region: frankfurt
+    ipAllowList: []
+    plan: starter
+    maxmemoryPolicy: allkeys-lru
+
+  # Frontend Service (Optional)
+  # - type: web
+  #   name: cut-grc-frontend
+  #   env: static
+  #   region: frankfurt
+  #   buildCommand: npm run build
+  #   staticPublishPath: ./dist
+  #   routes:
+  #     - type: rewrite
+  #       source: /*
+  #       destination: /index.html
+  #   envVars:
+  #     - key: VITE_API_URL
+  #       value: ${BACKEND_URL}
+
+# Environment Variables (Link services)
+envVars:
+  - key: DATABASE_URL
+    fromService:
+      type: pgsql
+      name: cut-grc-database
+      property: connectionString
+  - key: REDIS_URL
+    fromService:
+      type: redis
+      name: cut-grc-redis
+      property: connectionString
+  - key: FRONTEND_URL
+    value: https://cut-grc-frontend.onrender.com
+  - key: BACKEND_URL
+    value: https://cut-grc-backend.onrender.com
+
+# Cron Jobs (African timezone aware)
+# cronJobs:
+#   - name: daily-backup
+#     schedule: "0 2 * * *"  # 2 AM UTC (4 AM SAST)
+#     command: node scripts/backup.js
+#     service: cut-grc-backend

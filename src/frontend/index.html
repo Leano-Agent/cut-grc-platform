@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    
+    <!-- Primary Meta Tags -->
+    <title>CUT GRC Platform - Governance, Risk & Compliance Management</title>
+    <meta name="title" content="CUT GRC Platform - Governance, Risk & Compliance Management">
+    <meta name="description" content="Enterprise GRC platform built with African design principles and sovereignty in mind. Manage risks, compliance, audits, and controls in one unified system.">
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://cutgrc.co.za/">
+    <meta property="og:title" content="CUT GRC Platform - Governance, Risk & Compliance Management">
+    <meta property="og:description" content="Enterprise GRC platform built with African design principles and sovereignty in mind.">
+    <meta property="og:image" content="https://cutgrc.co.za/og-image.png">
+    
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image">
+    <meta property="twitter:url" content="https://cutgrc.co.za/">
+    <meta property="twitter:title" content="CUT GRC Platform - Governance, Risk & Compliance Management">
+    <meta property="twitter:description" content="Enterprise GRC platform built with African design principles and sovereignty in mind.">
+    <meta property="twitter:image" content="https://cutgrc.co.za/og-image.png">
+    
+    <!-- PWA Configuration -->
+    <meta name="theme-color" content="#4B0082">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+    <link rel="manifest" href="/manifest.json">
+    
+    <!-- Security Headers (will be added by server) -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' http://localhost:3000 https://api.cutgrc.co.za;">
+    <meta http-equiv="X-Content-Type-Options" content="nosniff">
+    <meta http-equiv="X-Frame-Options" content="SAMEORIGIN">
+    <meta http-equiv="X-XSS-Protection" content="1; mode=block">
+    <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+    
+    <!-- Preconnect to critical origins -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    
+    <!-- Preload critical resources -->
+    <link rel="preload" href="/src/main.tsx" as="script">
+    <link rel="preload" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" as="style">
+    
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- African Design Theme -->
+    <style>
+      :root {
+        --primary-color: #4B0082; /* Indigo - represents wisdom and royalty */
+        --secondary-color: #CC7722; /* Ochre - represents earth and tradition */
+        --success-color: #228B22; /* Baobab green */
+        --warning-color: #DAA520; /* Acacia gold */
+        --error-color: #8B0000; /* Adinkra red */
+        --background-color: #FAF9F6; /* Light sand */
+        --text-color: #2C3E50; /* Dark blue-grey */
+      }
+      
+      /* Loading animation with African pattern */
+      #loading {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: var(--background-color);
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        z-index: 9999;
+      }
+      
+      .loading-spinner {
+        width: 50px;
+        height: 50px;
+        border: 3px solid var(--primary-color);
+        border-top-color: transparent;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+      }
+      
+      .loading-text {
+        margin-top: 20px;
+        color: var(--text-color);
+        font-family: 'Inter', sans-serif;
+        font-size: 14px;
+      }
+      
+      @keyframes spin {
+        to { transform: rotate(360deg); }
+      }
+      
+      /* African pattern background */
+      .african-pattern {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        opacity: 0.1;
+        background-image: 
+          radial-gradient(var(--primary-color) 1px, transparent 1px),
+          radial-gradient(var(--secondary-color) 1px, transparent 1px);
+        background-size: 40px 40px;
+        background-position: 0 0, 20px 20px;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Loading screen -->
+    <div id="loading">
+      <div class="african-pattern"></div>
+      <div class="loading-spinner"></div>
+      <div class="loading-text">Loading CUT GRC Platform...</div>
+    </div>
+    
+    <!-- Root element for React -->
+    <div id="root"></div>
+    
+    <!-- Script to hide loading screen when app loads -->
+    <script>
+      window.addEventListener('load', function() {
+        setTimeout(function() {
+          const loading = document.getElementById('loading');
+          if (loading) {
+            loading.style.opacity = '0';
+            loading.style.transition = 'opacity 0.3s';
+            setTimeout(function() {
+              loading.style.display = 'none';
+            }, 300);
+          }
+        }, 500);
+      });
+      
+      // Service Worker registration for PWA
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js').then(
+            (registration) => {
+              console.log('ServiceWorker registration successful');
+            },
+            (err) => {
+              console.log('ServiceWorker registration failed: ', err);
+            }
+          );
+        });
+      }
+    </script>
+    
+    <!-- Vite entry point -->
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

@@ -1,0 +1,416 @@
+# Bug Tracking and Regression Testing Configuration
+# This file defines bug tracking workflows and regression test suites
+
+# Bug Severity Definitions
+severity_levels:
+  critical:
+    description: "System crash, data loss, security vulnerability, or complete feature failure"
+    sla: "4 hours"
+    priority: "P0"
+    auto_assign: "development-lead"
+    
+  high:
+    description: "Major feature broken, significant performance degradation, or data corruption risk"
+    sla: "24 hours"
+    priority: "P1"
+    auto_assign: "senior-developer"
+    
+  medium:
+    description: "Minor feature issue, UI problem, or non-critical performance issue"
+    sla: "3 days"
+    priority: "P2"
+    auto_assign: "developer"
+    
+  low:
+    description: "Cosmetic issue, minor UI glitch, or enhancement request"
+    sla: "7 days"
+    priority: "P3"
+    auto_assign: "junior-developer"
+
+# Bug Categories
+categories:
+  authentication:
+    - "login-failure"
+    - "registration-issue"
+    - "token-expiry"
+    - "password-reset"
+    
+  user_management:
+    - "user-creation"
+    - "profile-update"
+    - "role-assignment"
+    - "permission-issue"
+    
+  risk_management:
+    - "risk-creation"
+    - "risk-assessment"
+    - "risk-treatment"
+    - "risk-reporting"
+    
+  compliance:
+    - "compliance-record"
+    - "framework-issue"
+    - "requirement-tracking"
+    - "audit-trail"
+    
+  internal_controls:
+    - "control-creation"
+    - "control-testing"
+    - "remediation-tracking"
+    - "control-effectiveness"
+    
+  performance:
+    - "slow-api"
+    - "high-memory"
+    - "database-slow"
+    - "cache-issue"
+    
+  security:
+    - "vulnerability"
+    - "access-control"
+    - "data-leakage"
+    - "encryption-issue"
+    
+  ui_ux:
+    - "layout-issue"
+    - "responsive-design"
+    - "accessibility"
+    - "usability"
+
+# Regression Test Suites
+regression_suites:
+  authentication_regression:
+    description: "Regression tests for authentication module"
+    tests:
+      - "auth_login.test.ts"
+      - "auth_register.test.ts"
+      - "auth_token.test.ts"
+      - "auth_password.test.ts"
+    frequency: "on_auth_change"
+    timeout: "5m"
+    
+  user_management_regression:
+    description: "Regression tests for user management module"
+    tests:
+      - "user_create.test.ts"
+      - "user_update.test.ts"
+      - "user_delete.test.ts"
+      - "user_roles.test.ts"
+    frequency: "on_user_management_change"
+    timeout: "10m"
+    
+  risk_management_regression:
+    description: "Regression tests for risk management module"
+    tests:
+      - "risk_create.test.ts"
+      - "risk_assess.test.ts"
+      - "risk_treat.test.ts"
+      - "risk_report.test.ts"
+    frequency: "on_risk_management_change"
+    timeout: "15m"
+    
+  compliance_regression:
+    description: "Regression tests for compliance module"
+    tests:
+      - "compliance_record.test.ts"
+      - "compliance_framework.test.ts"
+      - "compliance_requirement.test.ts"
+      - "compliance_audit.test.ts"
+    frequency: "on_compliance_change"
+    timeout: "15m"
+    
+  controls_regression:
+    description: "Regression tests for internal controls module"
+    tests:
+      - "control_create.test.ts"
+      - "control_test.test.ts"
+      - "control_remediate.test.ts"
+      - "control_report.test.ts"
+    frequency: "on_controls_change"
+    timeout: "10m"
+    
+  api_regression:
+    description: "Regression tests for all API endpoints"
+    tests:
+      - "api_auth.test.ts"
+      - "api_users.test.ts"
+      - "api_risks.test.ts"
+      - "api_compliance.test.ts"
+      - "api_controls.test.ts"
+    frequency: "daily"
+    timeout: "30m"
+    
+  security_regression:
+    description: "Regression tests for security features"
+    tests:
+      - "security_auth.test.ts"
+      - "security_authorization.test.ts"
+      - "security_data.test.ts"
+      - "security_api.test.ts"
+    frequency: "weekly"
+    timeout: "20m"
+    
+  performance_regression:
+    description: "Regression tests for performance"
+    tests:
+      - "performance_api.test.ts"
+      - "performance_db.test.ts"
+      - "performance_load.test.ts"
+    frequency: "weekly"
+    timeout: "1h"
+
+# Bug Workflow States
+workflow_states:
+  new:
+    description: "Bug reported but not yet reviewed"
+    next_states: ["triaged", "duplicate", "invalid"]
+    
+  triaged:
+    description: "Bug reviewed and confirmed"
+    next_states: ["assigned", "needs_info"]
+    
+  assigned:
+    description: "Bug assigned to developer"
+    next_states: ["in_progress", "blocked"]
+    
+  in_progress:
+    description: "Developer working on fix"
+    next_states: ["code_review", "testing"]
+    
+  code_review:
+    description: "Fix submitted for code review"
+    next_states: ["approved", "changes_requested"]
+    
+  testing:
+    description: "Fix being tested by QA"
+    next_states: ["passed", "failed"]
+    
+  passed:
+    description: "Fix passed all tests"
+    next_states: ["ready_for_deploy"]
+    
+  ready_for_deploy:
+    description: "Fix ready for deployment"
+    next_states: ["deployed"]
+    
+  deployed:
+    description: "Fix deployed to production"
+    next_states: ["verified", "reopened"]
+    
+  verified:
+    description: "Fix verified in production"
+    next_states: ["closed"]
+    
+  closed:
+    description: "Bug completely resolved"
+    next_states: []
+    
+  reopened:
+    description: "Bug reappeared after fix"
+    next_states: ["assigned", "triaged"]
+    
+  duplicate:
+    description: "Duplicate of existing bug"
+    next_states: ["closed"]
+    
+  invalid:
+    description: "Not a bug or cannot reproduce"
+    next_states: ["closed"]
+    
+  blocked:
+    description: "Blocked by external dependency"
+    next_states: ["assigned", "triaged"]
+    
+  needs_info:
+    description: "More information needed from reporter"
+    next_states: ["triaged", "closed"]
+
+# Bug Assignment Rules
+assignment_rules:
+  by_severity:
+    critical: ["development-lead", "senior-developer"]
+    high: ["senior-developer", "developer"]
+    medium: ["developer", "junior-developer"]
+    low: ["junior-developer", "intern"]
+    
+  by_category:
+    authentication: ["auth-team"]
+    user_management: ["user-team"]
+    risk_management: ["risk-team"]
+    compliance: ["compliance-team"]
+    internal_controls: ["controls-team"]
+    performance: ["performance-team"]
+    security: ["security-team"]
+    ui_ux: ["frontend-team"]
+    
+  by_component:
+    backend: ["backend-team"]
+    frontend: ["frontend-team"]
+    database: ["database-team"]
+    infrastructure: ["devops-team"]
+
+# Regression Test Triggers
+triggers:
+  code_change:
+    description: "Run regression tests on code changes"
+    conditions:
+      - "files_changed.includes('src/modules/auth/')"
+      - "files_changed.includes('src/modules/users/')"
+      - "files_changed.includes('src/modules/risks/')"
+      - "files_changed.includes('src/modules/compliance/')"
+      - "files_changed.includes('src/modules/controls/')"
+    suites: ["authentication_regression", "user_management_regression", "risk_management_regression", "compliance_regression", "controls_regression"]
+    
+  dependency_update:
+    description: "Run regression tests on dependency updates"
+    conditions:
+      - "package_json_changed"
+      - "dockerfile_changed"
+    suites: ["api_regression", "security_regression"]
+    
+  deployment:
+    description: "Run regression tests before deployment"
+    conditions:
+      - "deployment_environment = 'staging'"
+      - "deployment_environment = 'production'"
+    suites: ["api_regression", "security_regression", "performance_regression"]
+    
+  scheduled:
+    description: "Run regression tests on schedule"
+    conditions:
+      - "time = 'daily'"
+      - "time = 'weekly'"
+    suites: ["api_regression", "security_regression", "performance_regression"]
+
+# Bug Metrics and Reporting
+metrics:
+  mttd:  # Mean Time To Detection
+    target: "1h"
+    warning: "4h"
+    critical: "24h"
+    
+  mttr:  # Mean Time To Resolution
+    target: "4h"
+    warning: "24h"
+    critical: "72h"
+    
+  bug_escape_rate:
+    target: "< 5%"
+    warning: "5-10%"
+    critical: "> 10%"
+    
+  regression_rate:
+    target: "< 2%"
+    warning: "2-5%"
+    critical: "> 5%"
+    
+  test_coverage:
+    target: "> 95%"
+    warning: "90-95%"
+    critical: "< 90%"
+
+# Bug Templates
+templates:
+  bug_report:
+    title: "[{severity}] {module}: {short_description}"
+    description: |
+      ## Description
+      {detailed_description}
+      
+      ## Steps to Reproduce
+      1. {step1}
+      2. {step2}
+      3. {step3}
+      
+      ## Expected Behavior
+      {expected_behavior}
+      
+      ## Actual Behavior
+      {actual_behavior}
+      
+      ## Environment
+      - **OS:** {os}
+      - **Browser:** {browser}
+      - **Version:** {version}
+      - **URL:** {url}
+      
+      ## Screenshots/Logs
+      {attachments}
+      
+      ## Additional Context
+      {additional_context}
+    
+  regression_report:
+    title: "Regression: {bug_id} - {description}"
+    description: |
+      ## Regression Details
+      - **Original Bug:** {bug_id}
+      - **Fixed Version:** {fixed_version}
+      - **Regression Version:** {regression_version}
+      - **Severity:** {severity}
+      
+      ## Impact Assessment
+      {impact_assessment}
+      
+      ## Root Cause Analysis
+      {root_cause}
+      
+      ## Fix Required
+      {fix_required}
+
+# Integration with External Systems
+integrations:
+  jira:
+    enabled: true
+    project_key: "GRC"
+    issue_type: "Bug"
+    fields_mapping:
+      summary: "title"
+      description: "description"
+      priority: "priority"
+      labels: "categories"
+      
+  slack:
+    enabled: true
+    channel: "#bugs"
+    notifications:
+      new_bug: true
+      bug_assigned: true
+      bug_resolved: true
+      critical_bug: true
+      
+  email:
+    enabled: true
+    recipients:
+      new_bug: ["qa-team@cut.ac.za"]
+      critical_bug: ["dev-team@cut.ac.za", "management@cut.ac.za"]
+      bug_resolved: ["reporter@cut.ac.za", "qa-team@cut.ac.za"]
+
+# Automated Bug Detection
+automated_detection:
+  test_failures:
+    enabled: true
+    severity_mapping:
+      unit_test_failure: "medium"
+      integration_test_failure: "high"
+      e2e_test_failure: "high"
+      security_test_failure: "critical"
+      
+  performance_regression:
+    enabled: true
+    thresholds:
+      response_time_increase: "50%"  # >50% increase triggers bug
+      error_rate_increase: "10%"     # >10% increase triggers bug
+      
+  error_logs:
+    enabled: true
+    patterns:
+      - "ERROR.*authentication"
+      - "ERROR.*database"
+      - "ERROR.*security"
+      - "FATAL.*"
+    severity_mapping:
+      authentication_error: "high"
+      database_error: "critical"
+      security_error: "critical"
+      fatal_error: "critical"
