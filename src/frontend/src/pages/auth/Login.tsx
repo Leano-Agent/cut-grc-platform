@@ -87,9 +87,9 @@ const Login = () => {
   // Demo credentials for testing
   const handleDemoLogin = (role: 'admin' | 'manager' | 'user') => {
     const credentials = {
-      admin: { email: 'admin@cutgrc.co.za', password: 'Admin@123' },
-      manager: { email: 'manager@cutgrc.co.za', password: 'Manager@123' },
-      user: { email: 'user@cutgrc.co.za', password: 'User@123' },
+      admin: { email: 'admin@cutgrc.co.za', password: 'Admin123!' },
+      manager: { email: 'manager@cutgrc.co.za', password: 'Admin123!' },
+      user: { email: 'user@cutgrc.co.za', password: 'Admin123!' },
     }
 
     const { email, password } = credentials[role]
@@ -104,7 +104,7 @@ const Login = () => {
     
     // This would need to be handled differently in a real app
     // For now, we'll just show a message
-    showInfo(`Demo login for ${role}: ${email} / ${password}`)
+    showInfo(`Demo login for ${role}: ${email} / ${password}\n\nNote: All demo accounts use password: Admin123!`)
   }
 
   const showInfo = (message: string) => {
@@ -271,8 +271,9 @@ const Login = () => {
         icon={false}
       >
         <Typography variant="caption">
-          <strong>Security Notice:</strong> This is a demo application. For production use, ensure
-          proper security measures including HTTPS, secure password policies, and regular security audits.
+          <strong>Demo Notice:</strong> This free-tier version uses an in-memory database. 
+          User data is lost when the service restarts. All demo accounts use password: <strong>Admin123!</strong>
+          For production use, upgrade to PostgreSQL and implement proper user management.
         </Typography>
       </Alert>
     </Box>
