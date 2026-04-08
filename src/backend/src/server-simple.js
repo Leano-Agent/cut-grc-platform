@@ -49,6 +49,25 @@ app.use(helmet());
 app.use(cors({ origin: process.env.CORS_ORIGIN || '*' }));
 app.use(express.json());
 
+// Root endpoint
+app.get('/', (req, res) => {
+  res.json({
+    message: 'CUT GRC Platform API',
+    version: '1.0.0',
+    status: 'operational',
+    mode: 'free-tier-simple',
+    endpoints: {
+      health: '/health',
+      login: '/api/v1/auth/login',
+      risks: '/api/v1/risks',
+      users: '/api/v1/users',
+      dashboard: '/api/v1/dashboard/stats'
+    },
+    documentation: 'https://github.com/Leano-Agent/cut-grc-platform',
+    timestamp: new Date().toISOString()
+  });
+});
+
 // Health check endpoint
 app.get('/health', (req, res) => {
   res.json({
