@@ -1,15 +1,23 @@
-# Render.com Deployment Configuration
-# African Sovereignty: Configured for optimal performance in African regions
-# Simple configuration for free tier deployment
+# Render.com FREE TIER Configuration - ZERO EXTERNAL DEPENDENCIES
+# CUT GRC Platform - Free Tier Deployment
+# Uses SQLite (no PostgreSQL/Redis required) - 100% free
+
+# FREE TIER FEATURES:
+# - 750 hours/month (enough for continuous operation)
+# - SQLite database (persistent storage)
+# - No external database required
+# - Simple authentication
+# - Basic GRC functionality
 
 services:
-  # Backend Service (Web Service)
+  # Backend Service (100% Free Tier - No External Dependencies)
   - type: web
-    name: cut-grc-backend
+    name: cut-grc-free
     env: node
-    region: frankfurt  # Frankfurt region for best African connectivity
+    region: frankfurt  # Best connectivity to Africa
+    plan: free  # FREE TIER - NO PAYMENT REQUIRED
     buildCommand: cd src/backend && npm install --only=production
-    startCommand: cd src/backend && npm start
+    startCommand: cd src/backend && node src/server-free-tier.js
     healthCheckPath: /health
     autoDeploy: true
     envVars:
@@ -17,22 +25,30 @@ services:
         value: production
       - key: PORT
         value: 10000
-      - key: JWT_SECRET
-        generateValue: true
       - key: CORS_ORIGIN
-        value: "*"  # Allow all origins for development
-      - key: API_PREFIX
-        value: /api/v1
-      - key: LOG_LEVEL
-        value: info
-      - key: AWS_REGION
-        value: af-south-1
+        value: "*"  # Allow all origins for free tier
+      - key: SQLITE_PATH
+        value: /data/cut-grc.sqlite  # Persistent storage path
 
-# Note: For free tier, add PostgreSQL and Redis manually via Render dashboard
-# 1. Add PostgreSQL database from Render dashboard
-# 2. Add Redis (Upstash Redis recommended for free tier)
-# 3. Set DATABASE_URL and REDIS_URL environment variables manually
+# NO EXTERNAL DATABASE REQUIRED!
+# This configuration uses SQLite which is included with the application
+# Data is stored in /data directory which persists across deployments
 
-# Environment Variables to set manually in Render dashboard:
-# DATABASE_URL=postgresql://username:password@host:port/database
-# REDIS_URL=redis://username:password@host:port
+# Default Admin Credentials (created automatically):
+# Email: admin@cut.ac.za
+# Password: Admin123!
+
+# API Endpoints Available:
+# - GET /health - Health check
+# - POST /api/v1/auth/login - Authentication
+# - GET /api/v1/risks - List risks
+# - POST /api/v1/risks - Create risk
+# - GET /api/v1/users - List users
+# - GET /api/v1/dashboard/stats - Dashboard statistics
+
+# Deployment Instructions:
+# 1. Click "Deploy" - NO PAYMENT REQUIRED
+# 2. Wait for build to complete (~5 minutes)
+# 3. Access your API at: https://cut-grc-free.onrender.com
+# 4. Test with: https://cut-grc-free.onrender.com/health
+# 5. Login with admin@cut.ac.za / Admin123!

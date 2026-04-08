@@ -1,33 +1,33 @@
 # CUT GRC Platform - Render.com Deployment Guide
 
-## 🚀 Quick Deploy to Render.com
+## 🚀 FREE TIER Deploy to Render.com - NO PAYMENT REQUIRED
 
 [![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/Leano-Agent/cut-grc-platform)
 
-### One-Click Deployment:
+### One-Click FREE TIER Deployment:
 1. **Click the "Deploy to Render" button above**
 2. **Connect your GitHub account** (Leano-Agent/cut-grc-platform)
-3. **Configure deployment:**
-   - **Name**: `cut-grc-platform` (or your preferred name)
-   - **Environment**: `Node`
-   - **Build Command**: `npm install --only=production`
-   - **Start Command**: `npm start`
-   - **Region**: `Frankfurt (EU Central)` (recommended for African access)
-4. **Add PostgreSQL Database:**
-   - Click "Add Database"
-   - Choose "PostgreSQL"
-   - Name: `cut-grc-db`
-5. **Add Redis Cache:**
-   - Click "Add Redis" or use Upstash Redis
-6. **Set Environment Variables** (from `.env.example`):
-   ```
-   NODE_ENV=production
-   DATABASE_URL=<Render PostgreSQL Internal URL>
-   REDIS_URL=<Render Redis or Upstash URL>
-   JWT_SECRET=<generate_a_secure_random_string>
-   CORS_ORIGIN=https://your-frontend-url.vercel.app
-   ```
-7. **Click "Deploy"**
+3. **Render will auto-configure** from `render.yaml`:
+   - **Name**: `cut-grc-free` (automatically set)
+   - **Plan**: `Free` (no payment required)
+   - **Region**: `Frankfurt (EU Central)` (best for African access)
+   - **Build Command**: `cd src/backend && npm install --only=production`
+   - **Start Command**: `cd src/backend && node src/server-free-tier.js`
+4. **NO DATABASE SETUP REQUIRED** - Uses built-in SQLite
+5. **NO REDIS REQUIRED** - Simplified authentication
+6. **Click "Deploy"** - No payment information needed!
+
+### Default Admin Credentials (auto-created):
+- **Email**: `admin@cut.ac.za`
+- **Password**: `Admin123!`
+
+### Free Tier Features:
+- ✅ **750 free hours/month** (enough for continuous operation)
+- ✅ **SQLite database** (no external PostgreSQL required)
+- ✅ **Persistent storage** in `/data` directory
+- ✅ **Basic GRC functionality** (risks, users, dashboard)
+- ✅ **Health monitoring** at `/health` endpoint
+- ✅ **African sovereignty** optimized for African access
 
 ### Manual Deployment Steps:
 

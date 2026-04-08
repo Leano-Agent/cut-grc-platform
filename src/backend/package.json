@@ -56,7 +56,8 @@
     "express-rate-limit": "^6.10.0",
     "express-slow-down": "^1.5.0",
     "swagger-ui-express": "^4.6.3",
-    "express-openapi-validator": "^5.0.0"
+    "express-openapi-validator": "^5.0.0",
+    "sqlite3": "^5.1.6"
   },
   "devDependencies": {
     "@types/node": "^20.3.1",
