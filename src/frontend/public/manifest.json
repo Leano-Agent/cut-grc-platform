@@ -1,0 +1,9 @@
+{
+  "name": "CUT GRC Platform",
+  "short_name": "CUT GRC",
+  "description": "Governance, Risk & Compliance Management",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#FAF9F6",
+  "theme_color": "#4B0082"
+}
