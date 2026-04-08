@@ -6,7 +6,7 @@
   "type": "module",
   "scripts": {
     "diagnostics": "echo \"Open http://localhost:5173/diagnostic-tools/ in your browser\"",
-    "postbuild": "node copy-diagnostic-tools.js",
+    "postbuild": "echo 'Diagnostic tools copy disabled for build fix'",
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
