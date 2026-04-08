@@ -224,15 +224,21 @@ export class SecurityMiddleware {
    */
   static corsConfig = () => {
     return (req: Request, res: Response, next: NextFunction): void => {
-      // Allow specific origins
+      // Allow specific origins - SECURITY FIX: Never allow wildcard in production
       const allowedOrigins = config.corsOrigin.split(',').map(origin => origin.trim());
       const origin = req.headers.origin;
       
+      // SECURITY FIX: Only allow specific origins, never wildcard
       if (origin && allowedOrigins.includes(origin)) {
         res.setHeader('Access-Control-Allow-Origin', origin);
       } else if (config.isDevelopment && origin) {
-        // In development, allow any origin for testing
+        // In development, allow any origin for testing but log it
+        console.warn(`⚠️ DEVELOPMENT MODE: Allowing CORS for origin: ${origin}`);
         res.setHeader('Access-Control-Allow-Origin', origin);
+      } else if (origin) {
+        // In production, reject unauthorized origins
+        console.warn(`🚨 BLOCKED CORS REQUEST from origin: ${origin}`);
+        // Don't set Access-Control-Allow-Origin header for unauthorized origins
       }
       
       // Set CORS headers

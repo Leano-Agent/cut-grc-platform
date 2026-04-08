@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CUT GRC - Diagnostic Tools</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; background: #f5f5f5; }
+        .container { max-width: 1200px; margin: 0 auto; }
+        header { background: linear-gradient(135deg, #2563eb, #7c3aed); color: white; padding: 2rem; border-radius: 12px; margin-bottom: 2rem; }
+        h1 { margin: 0; }
+        .tools-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; }
+        .tool-card { background: white; padding: 1.5rem; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .btn { display: inline-block; padding: 0.5rem 1rem; background: #2563eb; color: white; text-decoration: none; border-radius: 4px; margin: 0.5rem 0; }
+        .btn:hover { background: #1d4ed8; }
+        pre { background: #1e293b; color: white; padding: 1rem; border-radius: 4px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🛠️ CUT GRC Diagnostic Tools</h1>
+            <p>Comprehensive monitoring, debugging, and testing tools</p>
+        </header>
+        
+        <div class="tools-grid">
+            <div class="tool-card">
+                <h2>📊 Diagnostic Dashboard</h2>
+                <p>Real-time monitoring of console errors, network requests, and performance metrics.</p>
+                <a href="diagnostics.html" class="btn">Open Dashboard</a>
+            </div>
+            
+            <div class="tool-card">
+                <h2>🧪 Test Suite</h2>
+                <p>Automated testing framework for platform functionality and integration.</p>
+                <button class="btn" onclick="runTestSuite()">Run Tests</button>
+            </div>
+            
+            <div class="tool-card">
+                <h2>⚛️ React Debugger</h2>
+                <p>Component tree visualization and debugging for React applications.</p>
+                <button class="btn" onclick="enableReactDebugger()">Enable Debugger</button>
+            </div>
+            
+            <div class="tool-card">
+                <h2>🚀 Deployment Verification</h2>
+                <p>Validate deployment health, configuration, and performance.</p>
+                <button class="btn" onclick="runDeploymentVerification()">Verify Deployment</button>
+            </div>
+        </div>
+        
+        <div class="tool-card" style="margin-top: 2rem;">
+            <h2>🔧 Console Commands</h2>
+            <p>Access diagnostic tools directly from browser console:</p>
+            <pre>
+// Run test suite
+const testSuite = new CUTGRCTestSuite();
+testSuite.runAllTests();
+
+// Enable React debugger
+__reactDebug.enable();
+
+// Run deployment verification
+runDeploymentVerification();
+
+// Get component tree
+__reactDebug.getTree();
+            </pre>
+        </div>
+        
+        <div class="tool-card" style="margin-top: 2rem;">
+            <h2>📚 Documentation</h2>
+            <p>Complete documentation and integration guide:</p>
+            <a href="DIAGNOSTIC_TOOLS_README.md" class="btn">View Documentation</a>
+        </div>
+    </div>
+    
+    <script src="diagnostic-tools.js"></script>
+    <script src="test-suite.js"></script>
+    <script src="react-debugger.js"></script>
+    <script src="deployment-verification.js"></script>
+    
+    <script>
+        function runTestSuite() {
+            if (window.CUTGRCTestSuite) {
+                const suite = new CUTGRCTestSuite();
+                suite.runAllTests();
+                alert('Test suite started. Check console for results.');
+            } else {
+                alert('Test suite not loaded. Refresh the page.');
+            }
+        }
+        
+        function enableReactDebugger() {
+            if (window.__reactDebug) {
+                __reactDebug.enable();
+                alert('React debugger enabled. Check console for commands.');
+            } else {
+                alert('React debugger not loaded. Refresh the page.');
+            }
+        }
+        
+        function runDeploymentVerification() {
+            if (window.runDeploymentVerification) {
+                runDeploymentVerification().then(report => {
+                    alert(`Deployment verification complete: ${report.summary.passed}/${report.summary.total} checks passed`);
+                });
+            } else {
+                alert('Deployment verification not loaded. Refresh the page.');
+            }
+        }
+        
+        // Auto-load tools
+        window.addEventListener('load', () => {
+            console.log('🔧 Diagnostic tools loaded. Available commands:');
+            console.log('  - CUTGRCTestSuite');
+            console.log('  - __reactDebug');
+            console.log('  - runDeploymentVerification()');
+        });
+    </script>
+</body>
+</html>

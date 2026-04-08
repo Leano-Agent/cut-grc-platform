@@ -18,7 +18,7 @@
     }
   ],
   "env": {
-    "VITE_API_BASE_URL": "https://cut-grc-free.onrender.com",
+    "VITE_API_BASE_URL": "https://cut-grc-free.onrender.com/api/v1",
     "VITE_APP_ENVIRONMENT": "production",
     "VITE_ENABLE_DEBUG": "false",
     "VITE_ENABLE_MOCK_API": "false"

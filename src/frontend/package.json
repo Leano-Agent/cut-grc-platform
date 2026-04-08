@@ -5,6 +5,8 @@
   "description": "CUT GRC Platform Frontend Application",
   "type": "module",
   "scripts": {
+    "diagnostics": "echo "Open http://localhost:5173/diagnostic-tools/ in your browser"",
+    "postbuild": "node copy-diagnostic-tools.js",
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
