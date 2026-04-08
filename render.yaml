@@ -17,7 +17,7 @@ services:
     region: frankfurt  # Best connectivity to Africa
     plan: free  # FREE TIER - NO PAYMENT REQUIRED
     buildCommand: cd src/backend && npm install --only=production
-    startCommand: cd src/backend && node src/server-free-tier.js
+    startCommand: cd src/backend && node src/server-simple.js
     healthCheckPath: /health
     autoDeploy: true
     envVars:
