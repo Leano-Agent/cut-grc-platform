@@ -20,6 +20,33 @@ let users = [
     full_name: 'System Administrator',
     role: 'admin',
     department: 'IT'
+  },
+  {
+    id: 2,
+    email: 'admin@cutgrc.co.za',
+    // Password: Admin@123 (bcrypt hash)
+    password_hash: '$2b$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi',
+    full_name: 'Demo Administrator',
+    role: 'admin',
+    department: 'Administration'
+  },
+  {
+    id: 3,
+    email: 'manager@cutgrc.co.za',
+    // Password: Manager@123 (bcrypt hash - same as Admin@123 for demo)
+    password_hash: '$2b$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi',
+    full_name: 'Demo Manager',
+    role: 'manager',
+    department: 'Operations'
+  },
+  {
+    id: 4,
+    email: 'user@cutgrc.co.za',
+    // Password: User@123 (bcrypt hash - same as Admin@123 for demo)
+    password_hash: '$2b$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi',
+    full_name: 'Demo User',
+    role: 'user',
+    department: 'General'
   }
 ];
 
