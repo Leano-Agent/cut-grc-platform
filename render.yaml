@@ -26,7 +26,7 @@ services:
       - key: PORT
         value: 10000
       - key: CORS_ORIGIN
-        value: "https://cut-grc-frontend.vercel.app,https://cut-grc-emergency.vercel.app"  # SECURITY: Only allow specific origins
+        value: "https://cut-grc-frontend.vercel.app,https://cut-grc-emergency.vercel.app,https://cut-grc-emergency-v2.vercel.app"  # SECURITY: Only allow specific origins
       - key: SQLITE_PATH
         value: /data/cut-grc.sqlite  # Persistent storage path
 
