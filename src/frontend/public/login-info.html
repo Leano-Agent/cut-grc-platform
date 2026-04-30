@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GRC Platform - Login Information</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        }
+        
+        h1 {
+            color: #4B0082;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .alert {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            color: #856404;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        
+        .login-card {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            background: #f8f9fa;
+        }
+        
+        .login-card.admin {
+            border-left: 5px solid #4B0082;
+        }
+        
+        .login-card.manager {
+            border-left: 5px solid #CC7722;
+        }
+        
+        .login-card.user {
+            border-left: 5px solid #228B22;
+        }
+        
+        .credentials {
+            background: white;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+            font-family: monospace;
+        }
+        
+        .test-button {
+            display: inline-block;
+            background: #4B0082;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 5px;
+            text-decoration: none;
+            margin-top: 10px;
+            cursor: pointer;
+            border: none;
+            font-size: 16px;
+        }
+        
+        .test-button:hover {
+            background: #5A0092;
+        }
+        
+        .status {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 5px;
+        }
+        
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🦁 CUT GRC Platform - Login Information</h1>
+        
+        <div class="alert">
+            <strong>⚠️ Important:</strong> The backend uses an in-memory database. All demo accounts use the same password: <strong>Admin123!</strong>
+        </div>
+        
+        <div class="login-card admin">
+            <h3>👑 Administrator Accounts</h3>
+            <div class="credentials">
+                <strong>Primary Admin:</strong><br>
+                Email: admin@cut.ac.za<br>
+                Password: Admin123!
+            </div>
+            <div class="credentials">
+                <strong>Demo Admin:</strong><br>
+                Email: admin@cutgrc.co.za<br>
+                Password: Admin123!
+            </div>
+            <button class="test-button" onclick="testLogin('admin@cut.ac.za', 'Admin123!', 'admin-result')">Test Primary Admin</button>
+            <button class="test-button" onclick="testLogin('admin@cutgrc.co.za', 'Admin123!', 'admin-result')">Test Demo Admin</button>
+            <div id="admin-result" class="status"></div>
+        </div>
+        
+        <div class="login-card manager">
+            <h3>📊 Manager Account</h3>
+            <div class="credentials">
+                <strong>Demo Manager:</strong><br>
+                Email: manager@cutgrc.co.za<br>
+                Password: Admin123!
+            </div>
+            <button class="test-button" onclick="testLogin('manager@cutgrc.co.za', 'Admin123!', 'manager-result')">Test Manager</button>
+            <div id="manager-result" class="status"></div>
+        </div>
+        
+        <div class="login-card user">
+            <h3>👤 User Account</h3>
+            <div class="credentials">
+                <strong>Demo User:</strong><br>
+                Email: user@cutgrc.co.za<br>
+                Password: Admin123!
+            </div>
+            <button class="test-button" onclick="testLogin('user@cutgrc.co.za', 'Admin123!', 'user-result')">Test User</button>
+            <div id="user-result" class="status"></div>
+        </div>
+        
+        <div style="margin-top: 30px; text-align: center;">
+            <a href="https://cut-grc-frontend.vercel.app/login" target="_blank" class="test-button">Open GRC Login Page</a>
+            <a href="https://cut-grc-emergency.vercel.app" target="_blank" class="test-button" style="background: #CC7722;">Open Emergency Frontend</a>
+        </div>
+        
+        <div style="margin-top: 30px; font-size: 14px; color: #666;">
+            <p><strong>Note:</strong> The backend database is in-memory and resets when the service restarts. For persistent storage, upgrade to a paid Render plan with PostgreSQL.</p>
+        </div>
+    </div>
+
+    <script>
+        async function testLogin(email, password, resultId) {
+            const result = document.getElementById(resultId);
+            result.innerHTML = 'Testing login...';
+            result.className = 'status';
+            
+            try {
+                const response = await fetch('https://cut-grc-free.onrender.com/api/v1/auth/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Origin': window.location.origin
+                    },
+                    body: JSON.stringify({ email, password })
+                });
+                
+                const data = await response.json();
+                
+                if (data.token) {
+                    result.innerHTML = `
+                        ✅ <strong>Login Successful!</strong><br>
+                        User: ${data.user?.full_name || email}<br>
+                        Role: ${data.user?.role || 'unknown'}<br>
+                        Department: ${data.user?.department || 'unknown'}<br>
+                        <small>Token: ${data.token.substring(0, 20)}...</small>
+                    `;
+                    result.className = 'status success';
+                } else {
+                    result.innerHTML = `❌ <strong>Login Failed:</strong> ${data.message || 'Unknown error'}`;
+                    result.className = 'status error';
+                }
+            } catch (error) {
+                result.innerHTML = `❌ <strong>Error:</strong> ${error.message}`;
+                result.className = 'status error';
+            }
+        }
+        
+        // Test backend connection on load
+        window.onload = async function() {
+            try {
+                const response = await fetch('https://cut-grc-free.onrender.com/health');
+                const data = await response.json();
+                console.log('Backend health:', data);
+            } catch (error) {
+                console.error('Backend health check failed:', error);
+            }
+        };
+    </script>
+</body>
+</html>

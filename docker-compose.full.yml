@@ -1,0 +1,293 @@
+# Municipal EDRMS - Full Stack Docker Compose
+# Complete integration of all components for development and testing
+
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: municipal-edrms-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: municipal_edrms
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: securepassword123
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --lc-collate=C --lc-ctype=C"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "5432:5432"
+    networks:
+      - municipal-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U admin -d municipal_edrms"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: municipal-edrms-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes --requirepass redispassword123
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+    networks:
+      - municipal-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "redispassword123", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Backend API Service
+  backend:
+    build:
+      context: ./src/backend
+      dockerfile: Dockerfile
+    container_name: municipal-edrms-backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      - NODE_ENV=development
+      - PORT=3000
+      - DATABASE_URL=postgresql://admin:securepassword123@postgres:5432/municipal_edrms
+      - REDIS_URL=redis://:redispassword123@redis:6379
+      - JWT_SECRET=development_jwt_secret_change_in_production_123
+      - CORS_ORIGIN=http://localhost:5173,http://localhost:3001
+      - API_PREFIX=/api/v1
+      - LOG_LEVEL=debug
+      - FILE_UPLOAD_PATH=/app/uploads
+      - MAX_FILE_SIZE=10485760
+      - ALLOWED_FILE_TYPES=pdf,doc,docx,xls,xlsx,jpg,jpeg,png
+    volumes:
+      - ./src/backend:/app
+      - uploads_data:/app/uploads
+      - /app/node_modules
+    ports:
+      - "3000:3000"
+    networks:
+      - municipal-network
+    develop:
+      watch:
+        - action: sync
+          path: ./src/backend/src
+          target: /app/src
+          ignore:
+            - node_modules/
+
+  # Frontend Web Application
+  frontend:
+    build:
+      context: ./src/frontend
+      dockerfile: Dockerfile
+    container_name: municipal-edrms-frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    environment:
+      - VITE_API_BASE_URL=http://localhost:3000/api/v1
+      - VITE_APP_NAME=Municipal EDRMS
+      - VITE_APP_VERSION=1.0.0
+    volumes:
+      - ./src/frontend:/app
+      - /app/node_modules
+    ports:
+      - "5173:5173"
+    networks:
+      - municipal-network
+    develop:
+      watch:
+        - action: sync
+          path: ./src/frontend/src
+          target: /app/src
+          ignore:
+            - node_modules/
+
+  # Mobile App Development Server (React Native)
+  mobile-dev:
+    image: node:20-alpine
+    container_name: municipal-edrms-mobile-dev
+    restart: unless-stopped
+    working_dir: /app
+    volumes:
+      - ./src/mobile:/app
+      - /app/node_modules
+    ports:
+      - "19000:19000"
+      - "19001:19001"
+      - "19002:19002"
+    networks:
+      - municipal-network
+    command: >
+      sh -c "
+      if [ ! -d node_modules ]; then
+        npm install
+      fi &&
+      npx expo start --web
+      "
+    # Note: For full React Native development, you'll need to run this separately
+    # with Expo Go on your mobile device or emulator
+
+  # Nginx Reverse Proxy (Production)
+  nginx:
+    image: nginx:alpine
+    container_name: municipal-edrms-nginx
+    restart: unless-stopped
+    depends_on:
+      - backend
+      - frontend
+    volumes:
+      - ./docker/nginx/nginx.conf:/etc/nginx/nginx.conf
+      - ./docker/nginx/ssl:/etc/nginx/ssl
+    ports:
+      - "80:80"
+      - "443:443"
+    networks:
+      - municipal-network
+
+  # Adminer - Database Management
+  adminer:
+    image: adminer
+    container_name: municipal-edrms-adminer
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    networks:
+      - municipal-network
+    depends_on:
+      - postgres
+
+  # Redis Commander - Redis Management
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: municipal-edrms-redis-commander
+    restart: unless-stopped
+    environment:
+      - REDIS_HOSTS=local:redis:6379:0:redispassword123
+    ports:
+      - "8081:8081"
+    networks:
+      - municipal-network
+    depends_on:
+      - redis
+
+  # MailHog - Email Testing
+  mailhog:
+    image: mailhog/mailhog:latest
+    container_name: municipal-edrms-mailhog
+    restart: unless-stopped
+    ports:
+      - "8025:8025" # Web UI
+      - "1025:1025" # SMTP server
+    networks:
+      - municipal-network
+
+  # Elasticsearch - Search Engine
+  elasticsearch:
+    image: elasticsearch:8.11.0
+    container_name: municipal-edrms-elasticsearch
+    restart: unless-stopped
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    volumes:
+      - elasticsearch_data:/usr/share/elasticsearch/data
+    ports:
+      - "9200:9200"
+    networks:
+      - municipal-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9200"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Kibana - Elasticsearch Dashboard
+  kibana:
+    image: kibana:8.11.0
+    container_name: municipal-edrms-kibana
+    restart: unless-stopped
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    environment:
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+    ports:
+      - "5601:5601"
+    networks:
+      - municipal-network
+
+  # MinIO - Object Storage (S3 compatible)
+  minio:
+    image: minio/minio:latest
+    container_name: municipal-edrms-minio
+    restart: unless-stopped
+    environment:
+      - MINIO_ROOT_USER=minioadmin
+      - MINIO_ROOT_PASSWORD=minioadmin123
+    command: server /data --console-address ":9001"
+    volumes:
+      - minio_data:/data
+    ports:
+      - "9000:9000" # API
+      - "9001:9001" # Console
+    networks:
+      - municipal-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  uploads_data:
+    driver: local
+  elasticsearch_data:
+    driver: local
+  minio_data:
+    driver: local
+
+networks:
+  municipal-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.22.0.0/16
+
+# Development Commands:
+# 1. Start all services: docker-compose -f docker-compose.full.yml up -d
+# 2. Start core services only: docker-compose -f docker-compose.full.yml up -d postgres redis backend frontend
+# 3. View logs: docker-compose -f docker-compose.full.yml logs -f
+# 4. Stop all services: docker-compose -f docker-compose.full.yml down
+# 5. Stop and remove volumes: docker-compose -f docker-compose.full.yml down -v
+
+# Access URLs:
+# - Frontend: http://localhost:5173
+# - Backend API: http://localhost:3000
+# - API Docs: http://localhost:3000/api-docs
+# - Adminer (DB): http://localhost:8080
+# - Redis Commander: http://localhost:8081
+# - MailHog: http://localhost:8025
+# - Elasticsearch: http://localhost:9200
+# - Kibana: http://localhost:5601
+# - MinIO Console: http://localhost:9001
+
+# Environment Configuration:
+# Copy .env.example files and update with your configuration
+# - Backend: cp src/backend/.env.example src/backend/.env
+# - Frontend: cp src/frontend/.env.example src/frontend/.env.local

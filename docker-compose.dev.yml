@@ -1,0 +1,139 @@
+# Municipal EDRMS - Development Docker Compose
+# Simplified version for quick development and testing
+
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: municipal-edrms-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: municipal_edrms
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: admin123
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --lc-collate=C --lc-ctype=C"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    networks:
+      - municipal-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U admin -d municipal_edrms"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: municipal-edrms-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+    networks:
+      - municipal-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Backend API Service
+  backend:
+    build:
+      context: ./src/backend
+      dockerfile: Dockerfile.dev
+    container_name: municipal-edrms-backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      - NODE_ENV=development
+      - PORT=3000
+      - DATABASE_URL=postgresql://admin:admin123@postgres:5432/municipal_edrms
+      - REDIS_URL=redis://redis:6379
+      - JWT_SECRET=dev_jwt_secret_123
+      - CORS_ORIGIN=http://localhost:5173
+      - API_PREFIX=/api/v1
+      - LOG_LEVEL=info
+    volumes:
+      - ./src/backend:/app
+      - /app/node_modules
+    ports:
+      - "3000:3000"
+    networks:
+      - municipal-network
+    command: npm run dev
+
+  # Frontend Web Application
+  frontend:
+    build:
+      context: ./src/frontend
+      dockerfile: Dockerfile.dev
+    container_name: municipal-edrms-frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    environment:
+      - VITE_API_BASE_URL=http://localhost:3000/api/v1
+      - VITE_APP_NAME=Municipal EDRMS Dev
+    volumes:
+      - ./src/frontend:/app
+      - /app/node_modules
+    ports:
+      - "5173:5173"
+    networks:
+      - municipal-network
+    command: npm run dev
+
+  # Adminer - Database Management
+  adminer:
+    image: adminer
+    container_name: municipal-edrms-adminer
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    networks:
+      - municipal-network
+    depends_on:
+      - postgres
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+
+networks:
+  municipal-network:
+    driver: bridge
+
+# Quick Start Commands:
+# 1. Start services: docker-compose -f docker-compose.dev.yml up -d
+# 2. View logs: docker-compose -f docker-compose.dev.yml logs -f
+# 3. Stop services: docker-compose -f docker-compose.dev.yml down
+# 4. Rebuild: docker-compose -f docker-compose.dev.yml up -d --build
+
+# Access URLs:
+# - Frontend: http://localhost:5173
+# - Backend API: http://localhost:3000
+# - API Docs: http://localhost:3000/api-docs
+# - Adminer (DB): http://localhost:8080
+#   - System: PostgreSQL
+#   - Server: postgres
+#   - Username: admin
+#   - Password: admin123
+#   - Database: municipal_edrms
+
+# Default Test Credentials:
+# - Email: admin@municipal.gov
+# - Password: Admin123!

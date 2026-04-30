@@ -198,10 +198,10 @@ export class ValidationMiddleware {
     return (req: Request, res: Response, next: NextFunction): void => {
       try {
         // Check if files exist
-        if (!req.files || (Array.isArray(req.files) && req.files.length === 0)) {
-          if (req.file) {
+        if (!(req as any).files || (Array.isArray((req as any).files) && (req as any).files.length === 0)) {
+          if ((req as any).file) {
             // Single file upload
-            const file = req.file;
+            const file = (req as any).file;
             
             // Check file size
             if (options.maxSize && file.size > options.maxSize) {
@@ -231,9 +231,9 @@ export class ValidationMiddleware {
             });
             return;
           }
-        } else if (Array.isArray(req.files)) {
+        } else if (Array.isArray((req as any).files)) {
           // Multiple files upload
-          const files = req.files;
+          const files = (req as any).files;
           
           // Check number of files
           if (options.maxFiles && files.length > options.maxFiles) {

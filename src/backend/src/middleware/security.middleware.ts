@@ -66,14 +66,7 @@ export class SecurityMiddleware {
       },
       
       // Permissions Policy
-      permissionsPolicy: {
-        features: {
-          geolocation: ["'none'"],
-          microphone: ["'none'"],
-          camera: ["'none'"],
-          payment: ["'none'"],
-        },
-      },
+
       
       // Cross-Origin Embedder Policy
       crossOriginEmbedderPolicy: false, // Disabled for API servers
@@ -288,7 +281,7 @@ export class SecurityMiddleware {
         }
         
         // Verify CSRF token (simplified - in production, use proper CSRF library)
-        const sessionToken = req.session?.csrfToken;
+        const sessionToken = (req as any).session?.csrfToken;
         
         if (!sessionToken || csrfToken !== sessionToken) {
           res.status(403).json({

@@ -31,6 +31,8 @@ import AuthMiddleware from './middleware/auth.middleware';
 import authRoutes from './modules/auth/auth.routes';
 import userRoutes from './modules/users/user.routes';
 import riskRoutes from './modules/risks/risk.routes';
+import documentRoutes from './modules/documents/document.routes';
+import workflowRoutes from './modules/workflows/workflow.routes';
 
 class App {
   public app: Application;
@@ -204,7 +206,7 @@ class App {
         status: 'healthy',
         timestamp: new Date().toISOString(),
         uptime: process.uptime(),
-        database: database.isConnected() ? 'connected' : 'disconnected',
+        database: database.isConnectedStatus() ? 'connected' : 'disconnected',
         redis: this.redisPubClient.status === 'ready' ? 'connected' : 'disconnected',
       });
     });
@@ -213,6 +215,8 @@ class App {
     this.app.use('/api/v1/auth', authRoutes);
     this.app.use('/api/v1/users', userRoutes);
     this.app.use('/api/v1/risks', riskRoutes);
+    this.app.use('/api/v1/documents', documentRoutes);
+    this.app.use('/api/v1/workflows', workflowRoutes);
     
     // API documentation
     if (process.env.NODE_ENV !== 'production') {

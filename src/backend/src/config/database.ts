@@ -127,7 +127,7 @@ class Database {
    */
   async startTransaction(isolationLevel?: string): Promise<any> {
     try {
-      const transaction = await this.sequelize.transaction({
+      const transaction = await (this.sequelize.transaction as any)({
         isolationLevel: isolationLevel || 'READ COMMITTED',
       });
       
@@ -192,7 +192,7 @@ class Database {
       return {
         status: 'unhealthy',
         details: {
-          error: error.message,
+          error: error?.message ?? "",
           database: config.database.name,
           host: config.database.host,
         },

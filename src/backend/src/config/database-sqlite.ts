@@ -3,8 +3,8 @@
  * Uses SQLite instead of PostgreSQL for zero-cost deployment
  */
 
-import { Database } from './database';
-import sqlite3 from 'sqlite3';
+import Database from './database';
+// import sqlite3 from 'sqlite3'; // removed - not installed
 import { open, Database as SQLiteDatabase } from 'sqlite';
 import path from 'path';
 import fs from 'fs';
@@ -114,7 +114,7 @@ export class SQLiteDatabaseService implements Database {
         status: 'unhealthy',
         details: {
           provider: 'SQLite',
-          error: error.message,
+          error: error?.message ?? "",
           path: this.dbPath
         }
       };

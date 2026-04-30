@@ -40,6 +40,36 @@ const envSchema = z.object({
   SMTP_PASSWORD: z.string().optional(),
   EMAIL_FROM: z.string().optional(),
   
+  // Active Directory
+  AD_ENABLED: z.string().transform(val => val === 'true').default('false'),
+  AD_URL: z.string().default('ldap://localhost:389'),
+  AD_TLS_ENABLED: z.string().transform(val => val === 'true').default('false'),
+  AD_BIND_DN: z.string().default(''),
+  AD_BIND_CREDENTIALS: z.string().default(''),
+  AD_SEARCH_BASE: z.string().default('DC=domain,DC=com'),
+  AD_SEARCH_FILTER: z.string().default('(objectClass=user)'),
+  AD_USERNAME_ATTRIBUTE: z.string().default('sAMAccountName'),
+  AD_EMAIL_ATTRIBUTE: z.string().default('mail'),
+  AD_GROUP_SEARCH_FILTER: z.string().default('(objectClass=group)'),
+  AD_ROLE_MAPPINGS: z.string().default('{}'),
+  AD_SYNC_DEPARTMENTS: z.string().transform(val => val === 'true').default('true'),
+  AD_DEPARTMENT_ATTRIBUTE: z.string().default('department'),
+  AD_AUTO_SYNC_ENABLED: z.string().transform(val => val === 'true').default('true'),
+  AD_AUTO_SYNC_SCHEDULE: z.string().default('0 2 * * *'),
+  AD_SYNC_ON_LOGIN: z.string().transform(val => val === 'true').default('true'),
+  AD_TIMEOUT: z.string().transform(val => parseInt(val, 10)).default('5000'),
+  AD_CONNECT_TIMEOUT: z.string().transform(val => parseInt(val, 10)).default('5000'),
+  AD_IDLE_TIMEOUT: z.string().transform(val => parseInt(val, 10)).default('30000'),
+  AD_RECONNECT: z.string().transform(val => val === 'true').default('true'),
+  AD_STRICT_DN: z.string().transform(val => val === 'true').default('true'),
+  AD_SIZE_LIMIT: z.string().transform(val => parseInt(val, 10)).default('1000'),
+  AD_TIME_LIMIT: z.string().transform(val => parseInt(val, 10)).default('30'),
+  AD_FALLBACK_TO_LOCAL_AUTH: z.string().transform(val => val === 'true').default('true'),
+  AD_ALLOW_MIXED_AUTH: z.string().transform(val => val === 'true').default('false'),
+  AD_LOG_AUTH_ATTEMPTS: z.string().transform(val => val === 'true').default('true'),
+  AD_LOG_SYNC_OPERATIONS: z.string().transform(val => val === 'true').default('true'),
+  AD_LOG_LEVEL: z.enum(['error', 'warn', 'info', 'debug']).default('info'),
+  
   // File upload
   AWS_ACCESS_KEY_ID: z.string().optional(),
   AWS_SECRET_ACCESS_KEY: z.string().optional(),
@@ -149,6 +179,45 @@ const config = {
   socketIO: {
     pingInterval: 25000,
     pingTimeout: 60000,
+  },
+  
+  // Active Directory
+  ad: {
+    enabled: env.AD_ENABLED,
+    url: env.AD_URL,
+    tlsEnabled: env.AD_TLS_ENABLED,
+    bindDN: env.AD_BIND_DN,
+    bindCredentials: env.AD_BIND_CREDENTIALS,
+    searchBase: env.AD_SEARCH_BASE,
+    searchFilter: env.AD_SEARCH_FILTER,
+    usernameAttribute: env.AD_USERNAME_ATTRIBUTE,
+    emailAttribute: env.AD_EMAIL_ATTRIBUTE,
+    groupSearchFilter: env.AD_GROUP_SEARCH_FILTER,
+    roleMappings: (() => {
+      try {
+        return JSON.parse(env.AD_ROLE_MAPPINGS);
+      } catch {
+        return {};
+      }
+    })(),
+    syncDepartments: env.AD_SYNC_DEPARTMENTS,
+    departmentAttribute: env.AD_DEPARTMENT_ATTRIBUTE,
+    autoSyncEnabled: env.AD_AUTO_SYNC_ENABLED,
+    autoSyncSchedule: env.AD_AUTO_SYNC_SCHEDULE,
+    syncOnLogin: env.AD_SYNC_ON_LOGIN,
+    timeout: env.AD_TIMEOUT,
+    connectTimeout: env.AD_CONNECT_TIMEOUT,
+    idleTimeout: env.AD_IDLE_TIMEOUT,
+    reconnect: env.AD_RECONNECT,
+    strictDN: env.AD_STRICT_DN,
+    sizeLimit: env.AD_SIZE_LIMIT,
+    timeLimit: env.AD_TIME_LIMIT,
+    fallbackToLocalAuth: env.AD_FALLBACK_TO_LOCAL_AUTH,
+    allowMixedAuth: env.AD_ALLOW_MIXED_AUTH,
+    logAuthAttempts: env.AD_LOG_AUTH_ATTEMPTS,
+    logSyncOperations: env.AD_LOG_SYNC_OPERATIONS,
+    logLevel: env.AD_LOG_LEVEL,
+    tlsOptions: env.AD_TLS_ENABLED ? { rejectUnauthorized: false } : undefined,
   },
 };
 
