@@ -33,6 +33,8 @@ import userRoutes from './modules/users/user.routes';
 import riskRoutes from './modules/risks/risk.routes';
 import documentRoutes from './modules/documents/document.routes';
 import workflowRoutes from './modules/workflows/workflow.routes';
+import executiveRoutes from './modules/executive/executive.routes';
+import ExecutiveAutomationService from './services/executive-automation.service';
 
 class App {
   public app: Application;
@@ -217,6 +219,16 @@ class App {
     this.app.use('/api/v1/risks', riskRoutes);
     this.app.use('/api/v1/documents', documentRoutes);
     this.app.use('/api/v1/workflows', workflowRoutes);
+    this.app.use('/api/v1/executive', executiveRoutes);
+    
+    // Initialize executive automation on startup
+    try {
+      const execService = ExecutiveAutomationService.getInstance();
+      execService.startCronScheduler();
+      logger.info('Executive automation service initialized');
+    } catch (error) {
+      logger.error('Failed to initialize executive automation', { error });
+    }
     
     // API documentation
     if (process.env.NODE_ENV !== 'production') {
