@@ -1,21 +1,12 @@
-# Render.com FREE TIER Configuration - ZERO EXTERNAL DEPENDENCIES
+# Render BLUEPRINT Configuration
 # CUT GRC Platform - Free Tier Deployment
-# Uses SQLite (no PostgreSQL/Redis required) - 100% free
-
-# FREE TIER FEATURES:
-# - 750 hours/month (enough for continuous operation)
-# - SQLite database (persistent storage)
-# - No external database required
-# - Simple authentication
-# - Basic GRC functionality
 
 services:
-  # Backend Service (100% Free Tier - No External Dependencies)
   - type: web
     name: cut-grc-free
     env: node
-    region: frankfurt  # Best connectivity to Africa
-    plan: free  # FREE TIER - NO PAYMENT REQUIRED
+    region: frankfurt
+    plan: free
     buildCommand: cd src/backend && npm install --only=production
     startCommand: cd src/backend && node dist/server.js
     healthCheckPath: /health
@@ -28,8 +19,8 @@ services:
       - key: CORS_ORIGINS
         value: "https://cut-grc-frontend.vercel.app"
       - key: JWT_SECRET
-        value: "a426a12e7a9335a630c5bffb1ad1c05f59472426fdce36db0d1745bc2e5d987e"
+        generateValue: true
       - key: JWT_REFRESH_SECRET
-        value: "deefe149d2cc0edd640deee7b6e9a39c22fbcd97c2b0b4fe6b2f9a945cbfdfbe"
+        generateValue: true
       - key: SQLITE_PATH
         value: /data/cut-grc.sqlite
