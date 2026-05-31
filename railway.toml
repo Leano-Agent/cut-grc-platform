@@ -1,18 +1,23 @@
 # Railway Configuration — CUT GRC Platform
-# https://railway.app/project/fdf323a7-5500-4c0c-827f-504c680dfb44
+# Project: https://railway.app/project/fdf323a7-5500-4c0c-827f-504c680dfb44
 
 [build]
   builder = "nixpacks"
+  buildCommand = "cd src/backend && npm install && npm run build"
 
 [deploy]
+  startCommand = "cd src/backend && node dist/server.js"
   healthcheckPath = "/health"
   restartPolicyType = "always"
 
 [service]
   name = "cut-grc-backend"
-  repo = "Leano-Agent/cut-grc-platform"
 
 [env]
   NODE_ENV = "production"
+  PORT = "3000"
   CORS_ORIGINS = "https://cut-grc-frontend.vercel.app"
-  # DATABASE_URL and JWT_SECRET automatically injected by Railway from PostgreSQL service
+  # DATABASE_URL and JWT_SECRET set via Railway dashboard
+  # DATABASE_URL = ${{PostgreSQL.DATABASE_URL}}
+  # JWT_SECRET = (set in dashboard → Variables)
+  # JWT_REFRESH_SECRET = (set in dashboard → Variables)
