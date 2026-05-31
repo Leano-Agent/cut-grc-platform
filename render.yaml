@@ -17,7 +17,7 @@ services:
     region: frankfurt  # Best connectivity to Africa
     plan: free  # FREE TIER - NO PAYMENT REQUIRED
     buildCommand: cd src/backend && npm install --only=production
-    startCommand: cd src/backend && node src/server-simple.js
+    startCommand: cd src/backend && node dist/server.js
     healthCheckPath: /health
     autoDeploy: true
     envVars:
@@ -25,30 +25,11 @@ services:
         value: production
       - key: PORT
         value: 10000
-      - key: CORS_ORIGIN
-        value: "https://cut-grc-frontend.vercel.app,https://cut-grc-emergency.vercel.app,https://cut-grc-emergency-v2.vercel.app"  # SECURITY: Only allow specific origins
+      - key: CORS_ORIGINS
+        value: "https://cut-grc-frontend.vercel.app"
+      - key: JWT_SECRET
+        value: "a426a12e7a9335a630c5bffb1ad1c05f59472426fdce36db0d1745bc2e5d987e"
+      - key: JWT_REFRESH_SECRET
+        value: "deefe149d2cc0edd640deee7b6e9a39c22fbcd97c2b0b4fe6b2f9a945cbfdfbe"
       - key: SQLITE_PATH
-        value: /data/cut-grc.sqlite  # Persistent storage path
-
-# NO EXTERNAL DATABASE REQUIRED!
-# This configuration uses SQLite which is included with the application
-# Data is stored in /data directory which persists across deployments
-
-# Default Admin Credentials (created automatically):
-# Email: admin@cut.ac.za
-# Password: Admin123!
-
-# API Endpoints Available:
-# - GET /health - Health check
-# - POST /api/v1/auth/login - Authentication
-# - GET /api/v1/risks - List risks
-# - POST /api/v1/risks - Create risk
-# - GET /api/v1/users - List users
-# - GET /api/v1/dashboard/stats - Dashboard statistics
-
-# Deployment Instructions:
-# 1. Click "Deploy" - NO PAYMENT REQUIRED
-# 2. Wait for build to complete (~5 minutes)
-# 3. Access your API at: https://cut-grc-free.onrender.com
-# 4. Test with: https://cut-grc-free.onrender.com/health
-# 5. Login with admin@cut.ac.za / Admin123!
+        value: /data/cut-grc.sqlite

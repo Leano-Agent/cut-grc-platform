@@ -36,10 +36,8 @@
     "**/security-test.ts",
     "**/health/**",
     "**/municipal/**",
-    "**/documents/**",
     "**/ad-integration/**",
-    "**/validation.middleware.ts",
-    "**/security.middleware.ts",
+    "**/documents/**",
     "**/database-sqlite.ts"
   ]
 }

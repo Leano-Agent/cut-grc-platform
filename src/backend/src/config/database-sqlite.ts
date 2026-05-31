@@ -179,15 +179,8 @@ export class SQLiteDatabaseService implements Database {
       return;
     }
 
-    // Create default admin user (password: Admin123!)
-    const adminPasswordHash = '$2b$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi'; // bcrypt hash for "Admin123!"
-    
-    await this.execute(
-      'INSERT INTO users (email, password_hash, full_name, role, department, is_active) VALUES (?, ?, ?, ?, ?, ?)',
-      ['admin@cut.ac.za', adminPasswordHash, 'System Administrator', 'admin', 'IT', true]
-    );
-
-    console.log('Default admin user created: admin@cut.ac.za / Admin123!');
+    // Admin creation should happen via seed command, not hardcoded in production code
+    console.log('No existing data found. Use the seed command to create admin users.');
   }
 }
 
