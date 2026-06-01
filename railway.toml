@@ -6,7 +6,7 @@
   buildCommand = "cd src/backend && npm install && npm run build"
 
 [deploy]
-  startCommand = "cd src/backend && node dist/server.js"
+  startCommand = "cd src/backend && node src/database/migrations/prod-migrate.js && node dist/server.js"
   healthcheckPath = "/health"
   restartPolicyType = "always"
 

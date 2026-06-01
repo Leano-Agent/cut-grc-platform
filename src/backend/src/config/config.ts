@@ -12,11 +12,12 @@ const envSchema = z.object({
   API_VERSION: z.string().default('v1'),
   
   // Database
+  DATABASE_URL: z.string().optional(),
   DB_HOST: z.string().default('localhost'),
   DB_PORT: z.string().transform(Number).default('5432'),
-  DB_NAME: z.string(),
-  DB_USER: z.string(),
-  DB_PASSWORD: z.string(),
+  DB_NAME: z.string().default('cut_grc'),
+  DB_USER: z.string().default('postgres'),
+  DB_PASSWORD: z.string().default('postgres'),
   DB_SSL: z.string().transform(val => val === 'true').default('false'),
   
   // Redis
@@ -94,20 +95,35 @@ const config = {
   isTest: env.NODE_ENV === 'test',
   
   // Database
-  database: {
-    host: env.DB_HOST,
-    port: env.DB_PORT,
-    name: env.DB_NAME,
-    user: env.DB_USER,
-    password: env.DB_PASSWORD,
-    ssl: env.DB_SSL,
-    pool: {
-      max: 20,
-      min: 5,
-      acquire: 30000,
-      idle: 10000,
-    },
-  },
+  database: (() => {
+    // Parse DATABASE_URL if provided (Railway auto-injects this)
+    const url = env.DATABASE_URL;
+    if (url) {
+      try {
+        const parsed = new URL(url);
+        return {
+          host: parsed.hostname,
+          port: parseInt(parsed.port || '5432'),
+          name: parsed.pathname.replace(/^\//, ''),
+          user: decodeURIComponent(parsed.username),
+          password: decodeURIComponent(parsed.password),
+          ssl: true,
+          pool: { max: 20, min: 5, acquire: 30000, idle: 10000 },
+        };
+      } catch {
+        // fall through to individual variables
+      }
+    }
+    return {
+      host: env.DB_HOST,
+      port: env.DB_PORT,
+      name: env.DB_NAME,
+      user: env.DB_USER,
+      password: env.DB_PASSWORD,
+      ssl: env.DB_SSL,
+      pool: { max: 20, min: 5, acquire: 30000, idle: 10000 },
+    };
+  })(),
   
   // Redis
   redis: {
