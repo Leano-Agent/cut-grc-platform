@@ -112,24 +112,32 @@ class App {
   }
 
   private initializeRedis(): void {
-    this.redisPubClient = new Redis(config.redis);
-    this.redisSubClient = this.redisPubClient.duplicate();
-    
-    this.redisPubClient.on('connect', () => {
-      logger.info('Redis Pub client connected');
-    });
-    
-    this.redisPubClient.on('error', (error) => {
-      logger.error('Redis Pub client error:', error);
-    });
-    
-    this.redisSubClient.on('connect', () => {
-      logger.info('Redis Sub client connected');
-    });
-    
-    this.redisSubClient.on('error', (error) => {
-      logger.error('Redis Sub client error:', error);
-    });
+    if (!config.redis?.host || config.redis.host === 'localhost') {
+      logger.warn('Redis not configured — running without Redis cache. Socket.IO will use in-memory adapter.');
+      return;
+    }
+    try {
+      this.redisPubClient = new Redis(config.redis);
+      this.redisSubClient = this.redisPubClient.duplicate();
+      
+      this.redisPubClient.on('connect', () => {
+        logger.info('Redis Pub client connected');
+      });
+      
+      this.redisPubClient.on('error', (error) => {
+        logger.warn('Redis Pub client error (non-fatal):', error.message);
+      });
+      
+      this.redisSubClient.on('connect', () => {
+        logger.info('Redis Sub client connected');
+      });
+      
+      this.redisSubClient.on('error', (error) => {
+        logger.warn('Redis Sub client error (non-fatal):', error.message);
+      });
+    } catch (error) {
+      logger.warn('Redis initialization failed — running without Redis cache:', (error as Error).message);
+    }
   }
 
   private initializeSocketIO(): void {
@@ -138,8 +146,15 @@ class App {
         origin: config.corsOrigin,
         credentials: true,
       },
-      adapter: createAdapter(this.redisPubClient, this.redisSubClient),
     });
+    // Only use Redis adapter if Redis is available
+    if (this.redisPubClient && this.redisSubClient) {
+      try {
+        this.io.adapter(createAdapter(this.redisPubClient, this.redisSubClient));
+      } catch (error) {
+        logger.warn('Redis adapter not available — using in-memory Socket.IO adapter');
+      }
+    }
     
     // Socket.IO middleware for authentication
     this.io.use(async (socket, next) => {
