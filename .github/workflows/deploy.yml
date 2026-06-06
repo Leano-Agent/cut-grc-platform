@@ -50,27 +50,54 @@ jobs:
       uses: actions/setup-node@v4
       with:
         node-version: ${{ matrix.node-version }}
-        cache: 'npm'
 
-    - name: Install dependencies
-      run: npm ci
+    - name: Install root dependencies
+      run: npm install --workspaces --include-workspace-root
 
-    - name: Run linting
+    - name: Run linting (Backend)
+      working-directory: ./src/backend
       run: npm run lint --if-present
 
-    - name: Run tests
+    - name: Run linting (Frontend)
+      working-directory: ./src/frontend
+      run: npm run lint --if-present
+
+    - name: Run type checking (Backend)
+      working-directory: ./src/backend
+      run: npm run type-check --if-present
+
+    - name: Run type checking (Frontend)
+      working-directory: ./src/frontend
+      run: npm run type-check --if-present
+
+    - name: Run tests (Backend)
+      working-directory: ./src/backend
       run: npm test --if-present
 
-    - name: Build application
-      run: npm run build --if-present
+    - name: Run tests (Frontend)
+      working-directory: ./src/frontend
+      run: npm test --if-present
 
-    - name: Upload build artifacts
+    - name: Build backend
+      working-directory: ./src/backend
+      run: npm run build
+
+    - name: Build frontend
+      working-directory: ./src/frontend
+      run: npm run build
+
+    - name: Upload backend build
       uses: actions/upload-artifact@v4
       with:
-        name: build-artifacts
-        path: |
-          dist/
-          build/
+        name: backend-dist
+        path: src/backend/dist/
+        retention-days: 7
+
+    - name: Upload frontend build
+      uses: actions/upload-artifact@v4
+      with:
+        name: frontend-dist
+        path: src/frontend/dist/
         retention-days: 7
 
   # Docker Build and Push
@@ -99,21 +126,17 @@ jobs:
         images: ${{ secrets.DOCKER_USERNAME }}/cut-grc-backend
         tags: |
           type=ref,event=branch
-          type=ref,event=pr
-          type=semver,pattern={{version}}
-          type=semver,pattern={{major}}.{{minor}}
-          type=sha,prefix={{branch}}-
+          type=sha,prefix=
 
     - name: Build and push Docker image
       uses: docker/build-push-action@v5
       with:
         context: .
-        push: ${{ github.event_name != 'pull_request' }}
+        push: true
         tags: ${{ steps.meta.outputs.tags }}
         labels: ${{ steps.meta.outputs.labels }}
         cache-from: type=gha
         cache-to: type=gha,mode=max
-        platforms: linux/amd64,linux/arm64
 
   # Deploy to Staging
   deploy-staging:
@@ -126,25 +149,12 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
 
-    - name: Deploy to Render (Staging)
-      uses: johnbeynon/render-deploy-action@v0.0.8
-      with:
-        service-id: ${{ secrets.RENDER_STAGING_SERVICE_ID }}
-        api-key: ${{ secrets.RENDER_API_KEY }}
-
     - name: Deploy to Railway (Staging)
       uses: railwayapp/action@v1.2.2
       with:
         railway-token: ${{ secrets.RAILWAY_STAGING_TOKEN }}
         service: cut-grc-backend
         environment: staging
-
-    - name: Run database migrations
-      run: |
-        curl -X POST https://api.render.com/v1/services/${{ secrets.RENDER_STAGING_SERVICE_ID }}/deploys \
-          -H "Authorization: Bearer ${{ secrets.RENDER_API_KEY }}" \
-          -H "Content-Type: application/json" \
-          -d '{"clearCache": false}'
 
   # Deploy to Production
   deploy-production:
@@ -157,12 +167,6 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
 
-    - name: Deploy to Render (Production)
-      uses: johnbeynon/render-deploy-action@v0.0.8
-      with:
-        service-id: ${{ secrets.RENDER_PRODUCTION_SERVICE_ID }}
-        api-key: ${{ secrets.RENDER_API_KEY }}
-
     - name: Deploy to Railway (Production)
       uses: railwayapp/action@v1.2.2
       with:
@@ -170,18 +174,9 @@ jobs:
         service: cut-grc-backend
         environment: production
 
-    - name: Run database migrations
-      run: |
-        curl -X POST https://api.render.com/v1/services/${{ secrets.RENDER_PRODUCTION_SERVICE_ID }}/deploys \
-          -H "Authorization: Bearer ${{ secrets.RENDER_API_KEY }}" \
-          -H "Content-Type: application/json" \
-          -d '{"clearCache": false}'
-
     - name: Notify deployment success
       run: |
-        curl -X POST ${{ secrets.SLACK_WEBHOOK_URL }} \
-          -H 'Content-type: application/json' \
-          -d '{"text": "✅ GRC System deployed to production successfully!"}'
+        echo "✅ GRC System deployed to production successfully!"
 
   # Health Check
   health-check:

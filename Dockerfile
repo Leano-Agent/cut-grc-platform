@@ -4,18 +4,24 @@
 # Stage 1: Build
 FROM node:20-alpine AS builder
 
-# Set working directory
 WORKDIR /app
 
-# Install dependencies first (cached layer)
+# Copy root workspace config
 COPY package*.json ./
-RUN npm ci --only=production
 
-# Copy source code
+# Copy backend package files  
+COPY src/backend/package*.json src/backend/
+COPY src/shared/package*.json src/shared/ 2>/dev/null || true
+
+# Install all workspace dependencies
+RUN npm ci --workspaces --include-workspace-root || npm install --workspaces
+
+# Copy full source
 COPY . .
 
-# Build the application (if needed)
-# RUN npm run build
+# Build backend
+WORKDIR /app/src/backend
+RUN npm run build
 
 # Stage 2: Production
 FROM node:20-alpine
@@ -31,11 +37,15 @@ RUN apk add --no-cache \
 RUN addgroup -g 1001 -S nodejs \
     && adduser -S nodejs -u 1001
 
-# Set working directory
 WORKDIR /app
 
-# Copy built application from builder stage
-COPY --from=builder --chown=nodejs:nodejs /app ./
+# Copy workspace config and built backend
+COPY --from=builder --chown=nodejs:nodejs /app/package*.json ./
+COPY --from=builder --chown=nodejs:nodejs /app/src/backend/package*.json src/backend/
+COPY --from=builder --chown=nodejs:nodejs /app/src/backend/dist src/backend/dist
+COPY --from=builder --chown=nodejs:nodejs /app/src/backend/node_modules src/backend/node_modules
+COPY --from=builder --chown=nodejs:nodejs /app/src/shared src/shared 2>/dev/null || true
+COPY --from=builder --chown=nodejs:nodejs /app/node_modules node_modules 2>/dev/null || true
 
 # Switch to non-root user
 USER nodejs
@@ -44,8 +54,7 @@ USER nodejs
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
     CMD curl -f http://localhost:${PORT:-3000}/api/v1/health || exit 1
 
-# Expose port
 EXPOSE 3000
 
-# Start the application
-CMD ["node", "src/server.js"]
+WORKDIR /app/src/backend
+CMD ["node", "dist/server.js"]

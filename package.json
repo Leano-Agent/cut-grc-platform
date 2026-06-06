@@ -1,0 +1,31 @@
+{
+  "name": "cut-grc-platform",
+  "version": "2.0.0",
+  "private": true,
+  "description": "CUT GRC Platform — Governance, Risk & Compliance System",
+  "workspaces": [
+    "src/backend",
+    "src/frontend",
+    "src/shared",
+    "src/mobile-app",
+    "src/public-portal"
+  ],
+  "scripts": {
+    "install:all": "npm install --workspaces",
+    "build:backend": "npm run build --workspace=src/backend",
+    "build:frontend": "npm run build --workspace=src/frontend",
+    "build": "npm run build:backend && npm run build:frontend",
+    "test:backend": "npm test --workspace=src/backend --if-present",
+    "test:frontend": "npm test --workspace=src/frontend --if-present",
+    "test": "npm run test:backend && npm run test:frontend",
+    "lint:backend": "npm run lint --workspace=src/backend --if-present",
+    "lint:frontend": "npm run lint --workspace=src/frontend --if-present",
+    "lint": "npm run lint:backend && npm run lint:frontend",
+    "type-check:backend": "npm run type-check --workspace=src/backend --if-present",
+    "type-check:frontend": "npm run type-check --workspace=src/frontend --if-present",
+    "check": "npm run lint && npm run type-check:backend && npm run type-check:frontend && npm run test"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}
