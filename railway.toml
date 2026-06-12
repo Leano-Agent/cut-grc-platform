@@ -3,7 +3,7 @@
 
 [build]
   builder = "nixpacks"
-  buildCommand = "cd src/backend && npm install && npm run build"
+  buildCommand = "cd src/backend && npm install --legacy-peer-deps && npm run build"
 
 [deploy]
   startCommand = "cd src/backend && node src/database/migrations/prod-migrate.js && node dist/server.js"
@@ -16,8 +16,7 @@
 [env]
   NODE_ENV = "production"
   PORT = "3000"
-  CORS_ORIGINS = "https://cut-grc-frontend.vercel.app"
-  # DATABASE_URL and JWT_SECRET set via Railway dashboard
-  # DATABASE_URL = ${{PostgreSQL.DATABASE_URL}}
-  # JWT_SECRET = (set in dashboard → Variables)
-  # JWT_REFRESH_SECRET = (set in dashboard → Variables)
+  CORS_ORIGIN = "https://cut-grc-frontend.vercel.app"
+  # DATABASE_URL set via Railway dashboard — ref the PostgreSQL service
+  # JWT_SECRET set via Railway dashboard
+  # JWT_REFRESH_SECRET set via Railway dashboard
