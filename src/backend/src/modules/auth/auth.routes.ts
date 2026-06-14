@@ -292,8 +292,8 @@ router.post(
  */
 router.post(
   '/logout',
-  authMiddleware.verifyToken,
-  authMiddleware.logout,
+  (req, res, next) => authMiddleware ? authMiddleware.verifyToken(req, res, next) : next(),
+  (req, res, next) => authMiddleware ? authMiddleware.logout(req, res, next) : next(),
   asyncHandler(async (req, res) => {
     sendSuccess(res, null, 'Logged out successfully');
   })
@@ -306,7 +306,7 @@ router.post(
  */
 router.post(
   '/logout-all',
-  authMiddleware.verifyToken,
+  (req, res, next) => authMiddleware ? authMiddleware.verifyToken(req, res, next) : next(),
   asyncHandler(async (req, res) => {
     if (!req.user) {
       sendError(res, 401, 'Authentication required', 'NO_AUTH');
@@ -341,7 +341,7 @@ router.post(
  */
 router.post(
   '/change-password',
-  authMiddleware.verifyToken,
+  (req, res, next) => authMiddleware ? authMiddleware.verifyToken(req, res, next) : next(),
   ValidationMiddleware.validateBody(changePasswordSchema),
   asyncHandler(async (req, res) => {
     if (!req.user) {
@@ -418,7 +418,7 @@ router.post(
  */
 router.get(
   '/me',
-  authMiddleware.verifyToken,
+  (req, res, next) => authMiddleware ? authMiddleware.verifyToken(req, res, next) : next(),
   asyncHandler(async (req, res) => {
     if (!req.user) {
       sendError(res, 401, 'Authentication required', 'NO_AUTH');
