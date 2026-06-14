@@ -2,21 +2,12 @@
 # Project: https://railway.app/project/fdf323a7-5500-4c0c-827f-504c680dfb44
 
 [build]
-  builder = "nixpacks"
-  buildCommand = "cd src/backend && npm install --legacy-peer-deps && npm run build"
+  builder = "DOCKERFILE"
 
 [deploy]
-  startCommand = "cd src/backend && node src/database/migrations/prod-migrate.js && node dist/server.js"
+  startCommand = "node dist/server.js"
   healthcheckPath = "/health"
   restartPolicyType = "always"
 
 [service]
   name = "cut-grc-backend"
-
-[env]
-  NODE_ENV = "production"
-  PORT = "3000"
-  CORS_ORIGIN = "https://cut-grc-frontend.vercel.app"
-  # DATABASE_URL set via Railway dashboard — ref the PostgreSQL service
-  # JWT_SECRET set via Railway dashboard
-  # JWT_REFRESH_SECRET set via Railway dashboard
