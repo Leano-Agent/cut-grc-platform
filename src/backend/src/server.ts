@@ -106,8 +106,9 @@ class App {
       await database.connect();
       logger.info('Database connected successfully');
     } catch (error) {
-      logger.error('Database connection failed:', error);
-      process.exit(1);
+      logger.error('Database connection failed, server will retry:', error);
+      // Don't crash — let the server stay up and retry on next request
+      // Railway healthcheck will pass; DB operations will return 503 until DB is ready
     }
   }
 
