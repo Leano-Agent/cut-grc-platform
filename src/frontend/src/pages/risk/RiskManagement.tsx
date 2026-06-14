@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import {
   Box,
   Typography,
@@ -24,6 +24,7 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
+  ListItemIcon,
 } from '@mui/material'
 import {
   Add as AddIcon,
@@ -38,76 +39,32 @@ import {
   Visibility as VisibilityIcon,
 } from '@mui/icons-material'
 
+import { riskService, Risk } from '../../services/riskService'
+
 const RiskManagement = () => {
   const [page, setPage] = useState(0)
   const [rowsPerPage, setRowsPerPage] = useState(10)
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null)
   const [selectedRisk, setSelectedRisk] = useState<string | null>(null)
   const [openDialog, setOpenDialog] = useState(false)
+  const [risks, setRisks] = useState<Risk[]>([])
+  const [loading, setLoading] = useState(true)
+  const [searchQuery, setSearchQuery] = useState('')
 
-  // Mock data
-  const risks = [
-    {
-      id: '1',
-      title: 'Data Breach Risk',
-      category: 'Cybersecurity',
-      severity: 'High',
-      probability: 'Medium',
-      impact: 'High',
-      status: 'Open',
-      owner: 'John Doe',
-      lastUpdated: '2024-03-15',
-      mitigation: 'In Progress',
-    },
-    {
-      id: '2',
-      title: 'Regulatory Non-compliance',
-      category: 'Compliance',
-      severity: 'High',
-      probability: 'High',
-      impact: 'High',
-      status: 'Open',
-      owner: 'Sarah Smith',
-      lastUpdated: '2024-03-14',
-      mitigation: 'Planned',
-    },
-    {
-      id: '3',
-      title: 'Supply Chain Disruption',
-      category: 'Operational',
-      severity: 'Medium',
-      probability: 'Medium',
-      impact: 'High',
-      status: 'In Review',
-      owner: 'Mike Johnson',
-      lastUpdated: '2024-03-13',
-      mitigation: 'Completed',
-    },
-    {
-      id: '4',
-      title: 'Employee Turnover',
-      category: 'Human Resources',
-      severity: 'Medium',
-      probability: 'High',
-      impact: 'Medium',
-      status: 'Closed',
-      owner: 'Lisa Brown',
-      lastUpdated: '2024-03-12',
-      mitigation: 'Completed',
-    },
-    {
-      id: '5',
-      title: 'Technology Failure',
-      category: 'IT Infrastructure',
-      severity: 'High',
-      probability: 'Low',
-      impact: 'High',
-      status: 'Open',
-      owner: 'David Wilson',
-      lastUpdated: '2024-03-11',
-      mitigation: 'In Progress',
-    },
-  ]
+  // Fetch risks on mount
+  useEffect(() => {
+    const fetchRisks = async () => {
+      try {
+        const data = await riskService.getRisks()
+        setRisks(data)
+      } catch {
+        // Keep empty state if API fails
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchRisks()
+  }, [])
 
   const handleChangePage = (event: unknown, newPage: number) => {
     setPage(newPage)
@@ -145,21 +102,42 @@ const RiskManagement = () => {
   }
 
   const getSeverityColor = (severity: string) => {
-    switch (severity) {
-      case 'High': return '#F44336'
-      case 'Medium': return '#FF9800'
-      case 'Low': return '#4CAF50'
+    switch (severity.toLowerCase()) {
+      case 'critical': return '#B71C1C'
+      case 'high': return '#F44336'
+      case 'medium': return '#FF9800'
+      case 'low': return '#4CAF50'
       default: return '#9E9E9E'
     }
   }
 
   const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'Open': return '#F44336'
-      case 'In Review': return '#FF9800'
-      case 'Closed': return '#4CAF50'
+    switch (status.toLowerCase()) {
+      case 'open': return '#F44336'
+      case 'in_progress':
+      case 'in review': return '#FF9800'
+      case 'closed':
+      case 'mitigated': return '#4CAF50'
       default: return '#9E9E9E'
     }
+  }
+
+  // Filter risks based on search query
+  const filteredRisks = searchQuery
+    ? risks.filter(r =>
+        r.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        r.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        r.owner?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        r.department?.toLowerCase().includes(searchQuery.toLowerCase())
+      )
+    : risks
+
+  if (loading) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
+        <Typography>Loading risks...</Typography>
+      </Box>
+    )
   }
 
   return (
@@ -264,6 +242,8 @@ const RiskManagement = () => {
         <TextField
           placeholder="Search risks..."
           fullWidth
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
           InputProps={{
             startAdornment: (
               <InputAdornment position="start">
@@ -295,7 +275,7 @@ const RiskManagement = () => {
                 </TableRow>
               </TableHead>
               <TableBody>
-                {risks.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map((risk) => (
+                {filteredRisks.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map((risk) => (
                   <TableRow key={risk.id} hover>
                     <TableCell>
                       <Typography variant="body2" sx={{ fontWeight: 600 }}>
@@ -348,7 +328,7 @@ const RiskManagement = () => {
           <TablePagination
             rowsPerPageOptions={[5, 10, 25]}
             component="div"
-            count={risks.length}
+            count={filteredRisks.length}
             rowsPerPage={rowsPerPage}
             page={page}
             onPageChange={handleChangePage}

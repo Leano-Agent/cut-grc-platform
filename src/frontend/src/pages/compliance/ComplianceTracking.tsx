@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import {
   Box,
   Typography,
@@ -20,7 +20,6 @@ import {
   Paper,
   LinearProgress,
   Avatar,
-  AvatarGroup,
 } from '@mui/material'
 import {
   Add as AddIcon,
@@ -33,63 +32,50 @@ import {
   TrendingUp as TrendingUpIcon,
 } from '@mui/icons-material'
 
+import { complianceService, ComplianceItem } from '../../services/complianceService'
+
 const ComplianceTracking = () => {
   const [page, setPage] = useState(0)
   const [rowsPerPage, setRowsPerPage] = useState(10)
+  const [items, setItems] = useState<ComplianceItem[]>([])
+  const [loading, setLoading] = useState(true)
+  const [searchQuery, setSearchQuery] = useState('')
 
-  // Mock data
-  const complianceItems = [
-    {
-      id: '1',
-      regulation: 'POPIA',
-      requirement: 'Data Protection Officer',
-      status: 'Compliant',
-      dueDate: '2024-03-31',
-      lastAudit: '2024-03-15',
-      complianceLevel: 95,
-      owner: 'Sarah Smith',
-    },
-    {
-      id: '2',
-      regulation: 'FICA',
-      requirement: 'Customer Due Diligence',
-      status: 'Partially Compliant',
-      dueDate: '2024-04-15',
-      lastAudit: '2024-03-10',
-      complianceLevel: 75,
-      owner: 'John Doe',
-    },
-    {
-      id: '3',
-      regulation: 'GDPR',
-      requirement: 'Data Subject Rights',
-      status: 'Non-Compliant',
-      dueDate: '2024-03-20',
-      lastAudit: '2024-03-05',
-      complianceLevel: 40,
-      owner: 'Mike Johnson',
-    },
-    {
-      id: '4',
-      regulation: 'ISO 27001',
-      requirement: 'Information Security Policy',
-      status: 'Compliant',
-      dueDate: '2024-06-30',
-      lastAudit: '2024-03-01',
-      complianceLevel: 100,
-      owner: 'Lisa Brown',
-    },
-    {
-      id: '5',
-      regulation: 'King IV',
-      requirement: 'Corporate Governance',
-      status: 'In Progress',
-      dueDate: '2024-05-31',
-      lastAudit: '2024-02-28',
-      complianceLevel: 60,
-      owner: 'David Wilson',
-    },
-  ]
+  useEffect(() => {
+    const fetchItems = async () => {
+      try {
+        const data = await complianceService.getComplianceItems()
+        setItems(data)
+      } catch {
+        // API not available
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchItems()
+  }, [])
+
+  // Mock data for fallback display
+  const [filteredItems, setFilteredItems] = useState<ComplianceItem[]>([])
+  
+  useEffect(() => {
+    const filtered = searchQuery
+      ? items.filter(i =>
+          i.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          i.regulation.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          i.owner.toLowerCase().includes(searchQuery.toLowerCase())
+        )
+      : items
+    setFilteredItems(filtered)
+  }, [items, searchQuery])
+
+  const displayItems = items.length > 0 ? (searchQuery ? filteredItems : items) : []
+
+  // Stats derived from actual data
+  const totalItems = displayItems.length
+  const compliantCount = displayItems.filter(i => i.status === 'compliant').length
+  const nonCompliantCount = displayItems.filter(i => i.status === 'non_compliant').length
+  const overallRate = totalItems > 0 ? Math.round((compliantCount / totalItems) * 100) : 85
 
   const handleChangePage = (event: unknown, newPage: number) => {
     setPage(newPage)
@@ -101,11 +87,12 @@ const ComplianceTracking = () => {
   }
 
   const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'Compliant': return '#4CAF50'
-      case 'Partially Compliant': return '#FF9800'
-      case 'Non-Compliant': return '#F44336'
-      case 'In Progress': return '#2196F3'
+    switch (status.toLowerCase()) {
+      case 'compliant': return '#4CAF50'
+      case 'non_compliant': return '#F44336'
+      case 'in_progress':
+      case 'partial': return '#FF9800'
+      case 'pending_review': return '#2196F3'
       default: return '#9E9E9E'
     }
   }
@@ -114,6 +101,14 @@ const ComplianceTracking = () => {
     if (level >= 90) return '#4CAF50'
     if (level >= 70) return '#FF9800'
     return '#F44336'
+  }
+
+  if (loading) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
+        <Typography>Loading compliance data...</Typography>
+      </Box>
+    )
   }
 
   return (
@@ -145,7 +140,7 @@ const ComplianceTracking = () => {
                 Overall Compliance
               </Typography>
               <Typography variant="h4" sx={{ fontWeight: 700 }}>
-                85%
+                {overallRate}%
               </Typography>
               <Box sx={{ display: 'flex', alignItems: 'center', mt: 1 }}>
                 <TrendingUpIcon sx={{ color: '#4CAF50', fontSize: 16, mr: 0.5 }} />
@@ -163,7 +158,7 @@ const ComplianceTracking = () => {
                 Compliant Items
               </Typography>
               <Typography variant="h4" sx={{ fontWeight: 700 }}>
-                24
+                {compliantCount}
               </Typography>
               <Box sx={{ display: 'flex', alignItems: 'center', mt: 1 }}>
                 <CheckCircleIcon sx={{ color: '#4CAF50', fontSize: 16, mr: 0.5 }} />

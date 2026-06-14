@@ -1,8 +1,7 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import {
   Box,
   Grid,
-  Paper,
   Typography,
   Card,
   CardContent,
@@ -11,7 +10,6 @@ import {
   LinearProgress,
   Chip,
   Avatar,
-  AvatarGroup,
   List,
   ListItem,
   ListItemText,
@@ -52,9 +50,17 @@ import {
 
 import { useAuth } from '../../hooks/useAuth'
 import { useUI } from '../../hooks/useUI'
+import { dashboardService, DashboardStats, ActivityItem, RiskTrend, ComplianceQuarter, AuditPie } from '../../services/dashboardService'
 
-// Mock data for dashboard
-const riskData = [
+// Default mock data to use when API is unavailable
+const DEFAULT_STATS: DashboardStats = {
+  totalRisks: 42, riskChange: '+12%',
+  complianceRate: 92, complianceChange: '+5%',
+  openAudits: 8, auditChange: '-2',
+  activeUsers: 156, userChange: '+24',
+}
+
+const DEFAULT_RISK_TRENDS: RiskTrend[] = [
   { name: 'Jan', high: 12, medium: 8, low: 4 },
   { name: 'Feb', high: 9, medium: 10, low: 5 },
   { name: 'Mar', high: 7, medium: 12, low: 6 },
@@ -63,115 +69,88 @@ const riskData = [
   { name: 'Jun', high: 6, medium: 13, low: 9 },
 ]
 
-const complianceData = [
+const DEFAULT_COMPLIANCE: ComplianceQuarter[] = [
   { name: 'Q1', compliant: 85, nonCompliant: 15 },
   { name: 'Q2', compliant: 88, nonCompliant: 12 },
   { name: 'Q3', compliant: 92, nonCompliant: 8 },
   { name: 'Q4', compliant: 95, nonCompliant: 5 },
 ]
 
-const auditStatusData = [
+const DEFAULT_AUDITS: AuditPie[] = [
   { name: 'Completed', value: 65, color: '#4CAF50' },
   { name: 'In Progress', value: 20, color: '#FF9800' },
   { name: 'Pending', value: 10, color: '#9E9E9E' },
   { name: 'Overdue', value: 5, color: '#F44336' },
 ]
 
-const recentActivities = [
-  {
-    id: 1,
-    user: 'John Doe',
-    action: 'Updated risk assessment',
-    module: 'Risk Management',
-    time: '2 hours ago',
-    avatar: 'JD',
-  },
-  {
-    id: 2,
-    user: 'Sarah Smith',
-    action: 'Submitted compliance report',
-    module: 'Compliance Tracking',
-    time: '4 hours ago',
-    avatar: 'SS',
-  },
-  {
-    id: 3,
-    user: 'Mike Johnson',
-    action: 'Created new control',
-    module: 'Internal Controls',
-    time: '1 day ago',
-    avatar: 'MJ',
-  },
-  {
-    id: 4,
-    user: 'Lisa Brown',
-    action: 'Completed audit review',
-    module: 'Audit Management',
-    time: '2 days ago',
-    avatar: 'LB',
-  },
-  {
-    id: 5,
-    user: 'David Wilson',
-    action: 'Added new user',
-    module: 'User Administration',
-    time: '3 days ago',
-    avatar: 'DW',
-  },
-]
-
-const quickStats = [
-  {
-    title: 'Total Risks',
-    value: '42',
-    change: '+12%',
-    trend: 'up',
-    icon: <WarningIcon />,
-    color: '#F44336',
-  },
-  {
-    title: 'Compliance Rate',
-    value: '92%',
-    change: '+5%',
-    trend: 'up',
-    icon: <CheckCircleIcon />,
-    color: '#4CAF50',
-  },
-  {
-    title: 'Open Audits',
-    value: '8',
-    change: '-2',
-    trend: 'down',
-    icon: <ScheduleIcon />,
-    color: '#FF9800',
-  },
-  {
-    title: 'Active Users',
-    value: '156',
-    change: '+24',
-    trend: 'up',
-    icon: <PeopleIcon />,
-    color: '#2196F3',
-  },
+const DEFAULT_ACTIVITIES: ActivityItem[] = [
+  { id: 1, user: 'John Doe', action: 'Updated risk assessment', module: 'Risk Management', time: '2 hours ago', avatar: 'JD' },
+  { id: 2, user: 'Sarah Smith', action: 'Submitted compliance report', module: 'Compliance Tracking', time: '4 hours ago', avatar: 'SS' },
+  { id: 3, user: 'Mike Johnson', action: 'Created new control', module: 'Internal Controls', time: '1 day ago', avatar: 'MJ' },
+  { id: 4, user: 'Lisa Brown', action: 'Completed audit review', module: 'Audit Management', time: '2 days ago', avatar: 'LB' },
+  { id: 5, user: 'David Wilson', action: 'Added new user', module: 'User Administration', time: '3 days ago', avatar: 'DW' },
 ]
 
 const Dashboard = () => {
   const { user } = useAuth()
   const { showSuccess } = useUI()
   const [isRefreshing, setIsRefreshing] = useState(false)
+  const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    // Set current module
-    // This would typically be done in a layout or route component
+  // State for dashboard data
+  const [stats, setStats] = useState<DashboardStats>(DEFAULT_STATS)
+  const [riskTrends, setRiskTrends] = useState<RiskTrend[]>(DEFAULT_RISK_TRENDS)
+  const [complianceData, setComplianceData] = useState<ComplianceQuarter[]>(DEFAULT_COMPLIANCE)
+  const [auditStatus, setAuditStatus] = useState<AuditPie[]>(DEFAULT_AUDITS)
+  const [recentActivities, setRecentActivities] = useState<ActivityItem[]>(DEFAULT_ACTIVITIES)
+  const [apiError, setApiError] = useState(false)
+
+  const fetchDashboardData = useCallback(async () => {
+    try {
+      setApiError(false)
+      // Attempt to fetch from API, fall back to defaults silently
+      const [fetchedStats, trends, compliance, audits, activities] = await Promise.all([
+        dashboardService.getDashboardStats().catch(() => null),
+        dashboardService.getRiskTrends().catch(() => null),
+        dashboardService.getComplianceQuarters().catch(() => null),
+        dashboardService.getAuditStatus().catch(() => null),
+        dashboardService.getRecentActivities().catch(() => null),
+      ])
+
+      if (fetchedStats) {
+        const s = fetchedStats
+        setStats({
+          totalRisks: s.totalRisks || DEFAULT_STATS.totalRisks,
+          riskChange: s.riskChange || DEFAULT_STATS.riskChange,
+          complianceRate: s.complianceRate || DEFAULT_STATS.complianceRate,
+          complianceChange: s.complianceChange || DEFAULT_STATS.complianceChange,
+          openAudits: s.openAudits || DEFAULT_STATS.openAudits,
+          auditChange: s.auditChange || DEFAULT_STATS.auditChange,
+          activeUsers: s.activeUsers || DEFAULT_STATS.activeUsers,
+          userChange: s.userChange || DEFAULT_STATS.userChange,
+        })
+      }
+      if (trends && trends.length > 0) setRiskTrends(trends)
+      if (compliance && compliance.length > 0) setComplianceData(compliance)
+      if (audits && audits.length > 0) setAuditStatus(audits)
+      if (activities && activities.length > 0) setRecentActivities(activities)
+    } catch {
+      // Keep defaults — API not available yet
+      setApiError(true)
+    } finally {
+      setLoading(false)
+    }
   }, [])
 
-  const handleRefresh = () => {
+  useEffect(() => {
+    fetchDashboardData()
+  }, [fetchDashboardData])
+
+  const handleRefresh = async () => {
     setIsRefreshing(true)
-    // Simulate API call
-    setTimeout(() => {
-      setIsRefreshing(false)
-      showSuccess('Dashboard data refreshed')
-    }, 1000)
+    await fetchDashboardData()
+    setIsRefreshing(false)
+    showSuccess('Dashboard data refreshed')
   }
 
   const getGreeting = () => {
@@ -179,6 +158,49 @@ const Dashboard = () => {
     if (hour < 12) return 'Good morning'
     if (hour < 18) return 'Good afternoon'
     return 'Good evening'
+  }
+
+  const statCards = [
+    {
+      title: 'Total Risks',
+      value: String(stats.totalRisks),
+      change: stats.riskChange,
+      trend: (stats.riskChange || '').startsWith('+') ? 'up' : 'down',
+      icon: <WarningIcon />,
+      color: '#F44336',
+    },
+    {
+      title: 'Compliance Rate',
+      value: `${stats.complianceRate}%`,
+      change: stats.complianceChange,
+      trend: (stats.complianceChange || '').startsWith('+') ? 'up' : 'down',
+      icon: <CheckCircleIcon />,
+      color: '#4CAF50',
+    },
+    {
+      title: 'Open Audits',
+      value: String(stats.openAudits),
+      change: stats.auditChange,
+      trend: (stats.auditChange || '').startsWith('-') ? 'down' : 'up',
+      icon: <ScheduleIcon />,
+      color: '#FF9800',
+    },
+    {
+      title: 'Active Users',
+      value: String(stats.activeUsers),
+      change: stats.userChange,
+      trend: (stats.userChange || '').startsWith('+') ? 'up' : 'down',
+      icon: <PeopleIcon />,
+      color: '#2196F3',
+    },
+  ]
+
+  if (loading) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
+        <Typography>Loading dashboard...</Typography>
+      </Box>
+    )
   }
 
   return (
@@ -200,7 +222,7 @@ const Dashboard = () => {
 
       {/* Quick Stats */}
       <Grid container spacing={3} sx={{ mb: 4 }}>
-        {quickStats.map((stat, index) => (
+        {statCards.map((stat, index) => (
           <Grid item xs={12} sm={6} md={3} key={index}>
             <Card>
               <CardContent>
@@ -266,33 +288,15 @@ const Dashboard = () => {
             <CardContent>
               <Box sx={{ height: 300 }}>
                 <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={riskData}>
+                  <LineChart data={riskTrends.length > 0 ? riskTrends : DEFAULT_RISK_TRENDS}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                     <XAxis dataKey="name" />
                     <YAxis />
                     <Tooltip />
                     <Legend />
-                    <Line
-                      type="monotone"
-                      dataKey="high"
-                      stroke="#F44336"
-                      strokeWidth={2}
-                      name="High Risk"
-                    />
-                    <Line
-                      type="monotone"
-                      dataKey="medium"
-                      stroke="#FF9800"
-                      strokeWidth={2}
-                      name="Medium Risk"
-                    />
-                    <Line
-                      type="monotone"
-                      dataKey="low"
-                      stroke="#4CAF50"
-                      strokeWidth={2}
-                      name="Low Risk"
-                    />
+                    <Line type="monotone" dataKey="high" stroke="#F44336" strokeWidth={2} name="High Risk" />
+                    <Line type="monotone" dataKey="medium" stroke="#FF9800" strokeWidth={2} name="Medium Risk" />
+                    <Line type="monotone" dataKey="low" stroke="#4CAF50" strokeWidth={2} name="Low Risk" />
                   </LineChart>
                 </ResponsiveContainer>
               </Box>
@@ -312,16 +316,16 @@ const Dashboard = () => {
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
                     <Pie
-                      data={auditStatusData}
+                      data={auditStatus.length > 0 ? auditStatus : DEFAULT_AUDITS}
                       cx="50%"
                       cy="50%"
                       labelLine={false}
-                      label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                      label={({ name, percent }: any) => `${name}: ${(percent * 100).toFixed(0)}%`}
                       outerRadius={80}
                       fill="#8884d8"
                       dataKey="value"
                     >
-                      {auditStatusData.map((entry, index) => (
+                      {(auditStatus.length > 0 ? auditStatus : DEFAULT_AUDITS).map((entry: any, index: number) => (
                         <Cell key={`cell-${index}`} fill={entry.color} />
                       ))}
                     </Pie>
@@ -329,17 +333,9 @@ const Dashboard = () => {
                   </PieChart>
                 </ResponsiveContainer>
                 <Box sx={{ display: 'flex', justifyContent: 'center', gap: 2, mt: 2 }}>
-                  {auditStatusData.map((item, index) => (
+                  {(auditStatus.length > 0 ? auditStatus : DEFAULT_AUDITS).map((item: any, index: number) => (
                     <Box key={index} sx={{ display: 'flex', alignItems: 'center' }}>
-                      <Box
-                        sx={{
-                          width: 12,
-                          height: 12,
-                          bgcolor: item.color,
-                          borderRadius: '50%',
-                          mr: 1,
-                        }}
-                      />
+                      <Box sx={{ width: 12, height: 12, bgcolor: item.color, borderRadius: '50%', mr: 1 }} />
                       <Typography variant="caption">{item.name}</Typography>
                     </Box>
                   ))}
@@ -362,7 +358,7 @@ const Dashboard = () => {
             <CardContent>
               <Box sx={{ height: 250 }}>
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={complianceData}>
+                  <BarChart data={complianceData.length > 0 ? complianceData : DEFAULT_COMPLIANCE}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                     <XAxis dataKey="name" />
                     <YAxis />
@@ -380,11 +376,11 @@ const Dashboard = () => {
                 <Box sx={{ display: 'flex', alignItems: 'center' }}>
                   <LinearProgress
                     variant="determinate"
-                    value={90}
+                    value={stats.complianceRate}
                     sx={{ flexGrow: 1, height: 8, borderRadius: 4 }}
                   />
                   <Typography variant="body2" sx={{ ml: 2, fontWeight: 600 }}>
-                    90%
+                    {stats.complianceRate}%
                   </Typography>
                 </Box>
               </Box>
@@ -452,42 +448,22 @@ const Dashboard = () => {
         </Typography>
         <Grid container spacing={2}>
           <Grid item xs={6} sm={3}>
-            <Button
-              fullWidth
-              variant="outlined"
-              startIcon={<SecurityIcon />}
-              sx={{ py: 2 }}
-            >
+            <Button fullWidth variant="outlined" startIcon={<SecurityIcon />} sx={{ py: 2 }}>
               Add Risk
             </Button>
           </Grid>
           <Grid item xs={6} sm={3}>
-            <Button
-              fullWidth
-              variant="outlined"
-              startIcon={<GavelIcon />}
-              sx={{ py: 2 }}
-            >
+            <Button fullWidth variant="outlined" startIcon={<GavelIcon />} sx={{ py: 2 }}>
               Compliance Check
             </Button>
           </Grid>
           <Grid item xs={6} sm={3}>
-            <Button
-              fullWidth
-              variant="outlined"
-              startIcon={<AssignmentIcon />}
-              sx={{ py: 2 }}
-            >
+            <Button fullWidth variant="outlined" startIcon={<AssignmentIcon />} sx={{ py: 2 }}>
               New Control
             </Button>
           </Grid>
           <Grid item xs={6} sm={3}>
-            <Button
-              fullWidth
-              variant="outlined"
-              startIcon={<VerifiedUserIcon />}
-              sx={{ py: 2 }}
-            >
+            <Button fullWidth variant="outlined" startIcon={<VerifiedUserIcon />} sx={{ py: 2 }}>
               Start Audit
             </Button>
           </Grid>

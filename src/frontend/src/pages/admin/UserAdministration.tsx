@@ -1,119 +1,53 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import {
-  Box,
-  Typography,
-  Button,
-  Card,
-  CardContent,
-  Grid,
-  TextField,
-  InputAdornment,
-  IconButton,
-  Chip,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  TablePagination,
-  Paper,
-  Avatar,
-  Switch,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Menu,
-  MenuItem,
-  ListItemIcon,
-  ListItemText,
-  FormControlLabel,
-  LinearProgress,
+  Box, Typography, Button, Card, CardContent, Grid, TextField,
+  InputAdornment, IconButton, Chip, Table, TableBody, TableCell,
+  TableContainer, TableHead, TableRow, TablePagination, Paper,
+  Avatar, Switch, Dialog, DialogTitle, DialogContent, DialogActions,
+  Menu, MenuItem, ListItemIcon, ListItemText, FormControlLabel, LinearProgress,
 } from '@mui/material'
 import {
-  Add as AddIcon,
-  Search as SearchIcon,
-  FilterList as FilterIcon,
-  People as PeopleIcon,
-  Edit as EditIcon,
-  Delete as DeleteIcon,
-  MoreVert as MoreVertIcon,
-  Lock as LockIcon,
-  LockOpen as LockOpenIcon,
-  Email as EmailIcon,
-  Person as PersonIcon,
-  AdminPanelSettings as AdminPanelSettingsIcon,
-  ManageAccounts as ManageAccountsIcon,
-  Badge as BadgeIcon,
+  Add as AddIcon, Search as SearchIcon, FilterList as FilterIcon,
+  People as PeopleIcon, Edit as EditIcon, Delete as DeleteIcon,
+  MoreVert as MoreVertIcon, Lock as LockIcon, LockOpen as LockOpenIcon,
+  Person as PersonIcon, AdminPanelSettings as AdminPanelSettingsIcon,
 } from '@mui/icons-material'
+import { userService, SystemUser } from '../../services/userService'
 
 const UserAdministration = () => {
   const [page, setPage] = useState(0)
   const [rowsPerPage, setRowsPerPage] = useState(10)
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null)
-  const [selectedUser, setSelectedUser] = useState<string | null>(null)
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null)
   const [openDialog, setOpenDialog] = useState(false)
   const [dialogMode, setDialogMode] = useState<'add' | 'edit'>('add')
+  const [users, setUsers] = useState<SystemUser[]>([])
+  const [loading, setLoading] = useState(true)
+  const [searchQuery, setSearchQuery] = useState('')
 
-  // Mock data
-  const users = [
-    {
-      id: '1',
-      name: 'John Doe',
-      email: 'john.doe@cutgrc.co.za',
-      role: 'Admin',
-      department: 'IT',
-      status: 'Active',
-      lastLogin: '2024-03-15 14:30',
-      avatar: 'JD',
-      twoFactor: true,
-    },
-    {
-      id: '2',
-      name: 'Sarah Smith',
-      email: 'sarah.smith@cutgrc.co.za',
-      role: 'Manager',
-      department: 'Compliance',
-      status: 'Active',
-      lastLogin: '2024-03-15 10:15',
-      avatar: 'SS',
-      twoFactor: false,
-    },
-    {
-      id: '3',
-      name: 'Mike Johnson',
-      email: 'mike.johnson@cutgrc.co.za',
-      role: 'User',
-      department: 'Finance',
-      status: 'Active',
-      lastLogin: '2024-03-14 16:45',
-      avatar: 'MJ',
-      twoFactor: true,
-    },
-    {
-      id: '4',
-      name: 'Lisa Brown',
-      email: 'lisa.brown@cutgrc.co.za',
-      role: 'Manager',
-      department: 'Risk',
-      status: 'Inactive',
-      lastLogin: '2024-03-10 09:20',
-      avatar: 'LB',
-      twoFactor: false,
-    },
-    {
-      id: '5',
-      name: 'David Wilson',
-      email: 'david.wilson@cutgrc.co.za',
-      role: 'User',
-      department: 'Operations',
-      status: 'Active',
-      lastLogin: '2024-03-15 08:45',
-      avatar: 'DW',
-      twoFactor: true,
-    },
-  ]
+  useEffect(() => {
+    const fetchData = async () => {
+      try { const data = await userService.getUsers(); setUsers(data) }
+      catch { /* API not available */ }
+      finally { setLoading(false) }
+    }
+    fetchData()
+  }, [])
+
+  // Stats
+  const totalUsers = users.length
+  const activeUsers = users.filter(u => u.isActive).length
+  const adminUsers = users.filter(u => u.role === 'admin').length
+  const activeRate = totalUsers > 0 ? Math.round((activeUsers / totalUsers) * 100) : 0
+
+  // Filter
+  const filteredUsers = searchQuery
+    ? users.filter(u =>
+        `${u.firstName} ${u.lastName}`.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        u.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        u.department.toLowerCase().includes(searchQuery.toLowerCase())
+      )
+    : users
 
   const handleChangePage = (event: unknown, newPage: number) => {
     setPage(newPage)

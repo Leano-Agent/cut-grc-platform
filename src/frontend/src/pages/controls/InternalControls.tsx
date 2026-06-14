@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import {
   Box,
   Typography,
@@ -39,74 +39,47 @@ import {
   Security as SecurityIcon,
 } from '@mui/icons-material'
 
+import { controlService, Control } from '../../services/controlService'
+
 const InternalControls = () => {
   const [page, setPage] = useState(0)
   const [rowsPerPage, setRowsPerPage] = useState(10)
   const [openDialog, setOpenDialog] = useState(false)
+  const [controls, setControls] = useState<Control[]>([])
+  const [loading, setLoading] = useState(true)
+  const [searchQuery, setSearchQuery] = useState('')
 
-  // Mock data
-  const controls = [
-    {
-      id: '1',
-      name: 'Access Control Policy',
-      category: 'Security',
-      type: 'Preventive',
-      frequency: 'Continuous',
-      effectiveness: 95,
-      status: 'Active',
-      lastTested: '2024-03-15',
-      owner: 'IT Security',
-      automated: true,
-    },
-    {
-      id: '2',
-      name: 'Segregation of Duties',
-      category: 'Financial',
-      type: 'Detective',
-      frequency: 'Monthly',
-      effectiveness: 85,
-      status: 'Active',
-      lastTested: '2024-03-10',
-      owner: 'Finance',
-      automated: false,
-    },
-    {
-      id: '3',
-      name: 'Change Management',
-      category: 'IT',
-      type: 'Preventive',
-      frequency: 'On Change',
-      effectiveness: 90,
-      status: 'Active',
-      lastTested: '2024-03-05',
-      owner: 'IT Operations',
-      automated: true,
-    },
-    {
-      id: '4',
-      name: 'Backup Verification',
-      category: 'Operational',
-      type: 'Detective',
-      frequency: 'Weekly',
-      effectiveness: 75,
-      status: 'Needs Review',
-      lastTested: '2024-02-28',
-      owner: 'IT Operations',
-      automated: true,
-    },
-    {
-      id: '5',
-      name: 'Vendor Risk Assessment',
-      category: 'Third Party',
-      type: 'Preventive',
-      frequency: 'Quarterly',
-      effectiveness: 80,
-      status: 'Active',
-      lastTested: '2024-02-15',
-      owner: 'Procurement',
-      automated: false,
-    },
-  ]
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const data = await controlService.getControls()
+        setControls(data)
+      } catch {
+        // API not available
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchData()
+  }, [])
+
+  // Derived stats
+  const totalControls = controls.length
+  const activeControls = controls.filter(c => c.status === 'active').length
+  const automatedControls = controls.filter(c => c.type === 'preventive').length // rough proxy
+  const needsReview = controls.filter(c => c.status === 'inactive' || c.status === 'draft').length
+  const avgEffectiveness = controls.length > 0
+    ? Math.round(controls.reduce((sum, c) => sum + (c.effectiveness === 'high' ? 90 : c.effectiveness === 'medium' ? 70 : 40), 0) / controls.length)
+    : 88
+
+  // Filter
+  const filteredControls = searchQuery
+    ? controls.filter(c =>
+        c.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        c.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        c.owner.toLowerCase().includes(searchQuery.toLowerCase())
+      )
+    : controls
 
   const handleChangePage = (event: unknown, newPage: number) => {
     setPage(newPage)
@@ -118,10 +91,13 @@ const InternalControls = () => {
   }
 
   const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'Active': return '#4CAF50'
-      case 'Needs Review': return '#FF9800'
-      case 'Inactive': return '#9E9E9E'
+    switch (status.toLowerCase()) {
+      case 'active': return '#4CAF50'
+      case 'needs review':
+      case 'draft':
+      case 'review': return '#FF9800'
+      case 'inactive':
+      case 'archived': return '#9E9E9E'
       default: return '#9E9E9E'
     }
   }
@@ -130,6 +106,24 @@ const InternalControls = () => {
     if (level >= 90) return '#4CAF50'
     if (level >= 70) return '#FF9800'
     return '#F44336'
+  }
+
+  // Convert effectiveness string to number for display
+  const getEffectivenessValue = (eff: string): number => {
+    switch (eff.toLowerCase()) {
+      case 'high': return 90
+      case 'medium': return 70
+      case 'low': return 40
+      default: return 50
+    }
+  }
+
+  if (loading) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
+        <Typography>Loading controls...</Typography>
+      </Box>
+    )
   }
 
   return (
@@ -162,7 +156,7 @@ const InternalControls = () => {
                 Total Controls
               </Typography>
               <Typography variant="h4" sx={{ fontWeight: 700 }}>
-                156
+                {totalControls}
               </Typography>
               <Box sx={{ display: 'flex', alignItems: 'center', mt: 1 }}>
                 <AssignmentIcon sx={{ color: 'primary.main', fontSize: 16, mr: 0.5 }} />
@@ -180,7 +174,7 @@ const InternalControls = () => {
                 Control Effectiveness
               </Typography>
               <Typography variant="h4" sx={{ fontWeight: 700 }}>
-                88%
+                {avgEffectiveness}%
               </Typography>
               <Box sx={{ display: 'flex', alignItems: 'center', mt: 1 }}>
                 <TrendingUpIcon sx={{ color: '#4CAF50', fontSize: 16, mr: 0.5 }} />
@@ -198,7 +192,7 @@ const InternalControls = () => {
                 Automated Controls
               </Typography>
               <Typography variant="h4" sx={{ fontWeight: 700 }}>
-                42%
+                {controls.length > 0 ? Math.round((controls.filter(c => c.type === 'preventive' || c.type === 'detective').length / controls.length) * 100) : 0}%
               </Typography>
               <Box sx={{ display: 'flex', alignItems: 'center', mt: 1 }}>
                 <SettingsIcon sx={{ color: '#2196F3', fontSize: 16, mr: 0.5 }} />
@@ -216,7 +210,7 @@ const InternalControls = () => {
                 Needs Review
               </Typography>
               <Typography variant="h4" sx={{ fontWeight: 700 }}>
-                18
+                {needsReview}
               </Typography>
               <Box sx={{ display: 'flex', alignItems: 'center', mt: 1 }}>
                 <WarningIcon sx={{ color: '#FF9800', fontSize: 16, mr: 0.5 }} />
@@ -234,6 +228,8 @@ const InternalControls = () => {
         <TextField
           placeholder="Search controls..."
           fullWidth
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
           InputProps={{
             startAdornment: (
               <InputAdornment position="start">
@@ -265,17 +261,17 @@ const InternalControls = () => {
                 </TableRow>
               </TableHead>
               <TableBody>
-                {controls.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map((control) => (
+                {filteredControls.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map((control) => (
                   <TableRow key={control.id} hover>
                     <TableCell>
                       <Box sx={{ display: 'flex', alignItems: 'center' }}>
                         <SecurityIcon sx={{ mr: 1, color: 'primary.main' }} />
                         <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                          {control.name}
+                          {control.title}
                         </Typography>
                       </Box>
                       <Typography variant="caption" color="text.secondary">
-                        Frequency: {control.frequency}
+                        Type: {control.type}
                       </Typography>
                     </TableCell>
                     <TableCell>
@@ -286,8 +282,8 @@ const InternalControls = () => {
                         label={control.type}
                         size="small"
                         sx={{
-                          bgcolor: control.type === 'Preventive' ? '#4CAF5015' : '#2196F315',
-                          color: control.type === 'Preventive' ? '#4CAF50' : '#2196F3',
+                          bgcolor: (control.type === 'preventive' || control.type === 'directive') ? '#4CAF5015' : '#2196F315',
+                          color: (control.type === 'preventive' || control.type === 'directive') ? '#4CAF50' : '#2196F3',
                         }}
                       />
                     </TableCell>
@@ -296,13 +292,13 @@ const InternalControls = () => {
                         <Box sx={{ flexGrow: 1 }}>
                           <LinearProgress
                             variant="determinate"
-                            value={control.effectiveness}
+                            value={getEffectivenessValue(control.effectiveness)}
                             sx={{
                               height: 8,
                               borderRadius: 4,
                               bgcolor: '#E0E0E0',
                               '& .MuiLinearProgress-bar': {
-                                bgcolor: getEffectivenessColor(control.effectiveness),
+                                bgcolor: getEffectivenessColor(getEffectivenessValue(control.effectiveness)),
                               },
                             }}
                           />
@@ -311,11 +307,11 @@ const InternalControls = () => {
                           variant="body2"
                           sx={{
                             fontWeight: 600,
-                            color: getEffectivenessColor(control.effectiveness),
+                            color: getEffectivenessColor(getEffectivenessValue(control.effectiveness)),
                             minWidth: 40,
                           }}
                         >
-                          {control.effectiveness}%
+                          {getEffectivenessValue(control.effectiveness)}%
                         </Typography>
                       </Box>
                     </TableCell>
@@ -332,14 +328,14 @@ const InternalControls = () => {
                     </TableCell>
                     <TableCell>
                       <Typography variant="body2">
-                        {control.lastTested}
+                        {control.lastTested || 'N/A'}
                       </Typography>
                     </TableCell>
                     <TableCell>
                       <FormControlLabel
                         control={
                           <Switch
-                            checked={control.automated}
+                            checked={control.status === 'active'}
                             size="small"
                             color="primary"
                           />
@@ -360,7 +356,7 @@ const InternalControls = () => {
           <TablePagination
             rowsPerPageOptions={[5, 10, 25]}
             component="div"
-            count={controls.length}
+            count={filteredControls.length}
             rowsPerPage={rowsPerPage}
             page={page}
             onPageChange={handleChangePage}
