@@ -224,8 +224,8 @@ class App {
         status: 'healthy',
         timestamp: new Date().toISOString(),
         uptime: process.uptime(),
-        database: database.isConnectedStatus() ? 'connected' : 'disconnected',
-        redis: this.redisPubClient.status === 'ready' ? 'connected' : 'disconnected',
+        database: database.isConnectedStatus ? database.isConnectedStatus() : 'disconnected',
+        redis: this.redisPubClient?.status === 'ready' ? 'connected' : 'disconnected',
       });
     });
     

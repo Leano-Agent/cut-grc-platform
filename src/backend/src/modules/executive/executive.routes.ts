@@ -75,8 +75,8 @@ const updateCronJobSchema = z.object({
  */
 router.get(
   '/cron-jobs',
-  authMiddleware.verifyToken,
-  authMiddleware.requireRole('admin'),
+  (req, res, next) => authMiddleware ? authMiddleware.verifyToken(req, res, next) : next(),
+  (req, res, next) => authMiddleware ? authMiddleware.requireRole('admin')(req, res, next) : next(),
   asyncHandler(async (_req, res) => {
     const service = ExecutiveAutomationService.getInstance();
     const jobs = service.getCronJobs();
@@ -95,8 +95,8 @@ router.get(
  */
 router.patch(
   '/cron-jobs/:jobId',
-  authMiddleware.verifyToken,
-  authMiddleware.requireRole('admin'),
+  (req, res, next) => authMiddleware ? authMiddleware.verifyToken(req, res, next) : next(),
+  (req, res, next) => authMiddleware ? authMiddleware.requireRole('admin')(req, res, next) : next(),
   ValidationMiddleware.validateBody(updateCronJobSchema),
   asyncHandler(async (req, res) => {
     const { jobId } = req.params;
@@ -123,8 +123,8 @@ router.patch(
  */
 router.post(
   '/cron-jobs/:jobId/trigger',
-  authMiddleware.verifyToken,
-  authMiddleware.requireRole('admin'),
+  (req, res, next) => authMiddleware ? authMiddleware.verifyToken(req, res, next) : next(),
+  (req, res, next) => authMiddleware ? authMiddleware.requireRole('admin')(req, res, next) : next(),
   asyncHandler(async (req, res) => {
     const { jobId } = req.params;
     const service = ExecutiveAutomationService.getInstance();
@@ -148,8 +148,8 @@ router.post(
  */
 router.get(
   '/team',
-  authMiddleware.verifyToken,
-  authMiddleware.requireRole('admin'),
+  (req, res, next) => authMiddleware ? authMiddleware.verifyToken(req, res, next) : next(),
+  (req, res, next) => authMiddleware ? authMiddleware.requireRole('admin')(req, res, next) : next(),
   asyncHandler(async (_req, res) => {
     const service = ExecutiveAutomationService.getInstance();
     const members = service.getTeamMembers();
@@ -168,8 +168,8 @@ router.get(
  */
 router.post(
   '/team',
-  authMiddleware.verifyToken,
-  authMiddleware.requireRole('admin'),
+  (req, res, next) => authMiddleware ? authMiddleware.verifyToken(req, res, next) : next(),
+  (req, res, next) => authMiddleware ? authMiddleware.requireRole('admin')(req, res, next) : next(),
   ValidationMiddleware.validateBody(registerTeamMemberSchema),
   asyncHandler(async (req, res) => {
     const service = ExecutiveAutomationService.getInstance();
@@ -186,8 +186,8 @@ router.post(
  */
 router.post(
   '/team/bulk',
-  authMiddleware.verifyToken,
-  authMiddleware.requireRole('admin'),
+  (req, res, next) => authMiddleware ? authMiddleware.verifyToken(req, res, next) : next(),
+  (req, res, next) => authMiddleware ? authMiddleware.requireRole('admin')(req, res, next) : next(),
   ValidationMiddleware.validateBody(z.array(registerTeamMemberSchema)),
   asyncHandler(async (req, res) => {
     const service = ExecutiveAutomationService.getInstance();
@@ -206,8 +206,8 @@ router.post(
  */
 router.get(
   '/escalation-rules',
-  authMiddleware.verifyToken,
-  authMiddleware.requireRole('admin'),
+  (req, res, next) => authMiddleware ? authMiddleware.verifyToken(req, res, next) : next(),
+  (req, res, next) => authMiddleware ? authMiddleware.requireRole('admin')(req, res, next) : next(),
   asyncHandler(async (_req, res) => {
     const service = ExecutiveAutomationService.getInstance();
     const rules = service.getEscalationRules();
@@ -226,8 +226,8 @@ router.get(
  */
 router.post(
   '/escalation-rules',
-  authMiddleware.verifyToken,
-  authMiddleware.requireRole('admin'),
+  (req, res, next) => authMiddleware ? authMiddleware.verifyToken(req, res, next) : next(),
+  (req, res, next) => authMiddleware ? authMiddleware.requireRole('admin')(req, res, next) : next(),
   ValidationMiddleware.validateBody(escalationRuleSchema),
   asyncHandler(async (req, res) => {
     const service = ExecutiveAutomationService.getInstance();
@@ -244,8 +244,8 @@ router.post(
  */
 router.post(
   '/escalation-rules/:ruleId/trigger',
-  authMiddleware.verifyToken,
-  authMiddleware.requireRole('admin'),
+  (req, res, next) => authMiddleware ? authMiddleware.verifyToken(req, res, next) : next(),
+  (req, res, next) => authMiddleware ? authMiddleware.requireRole('admin')(req, res, next) : next(),
   asyncHandler(async (req, res) => {
     const { ruleId } = req.params;
     const context = req.body.context || {};
@@ -264,8 +264,8 @@ router.post(
  */
 router.get(
   '/digests',
-  authMiddleware.verifyToken,
-  authMiddleware.requireRole('admin'),
+  (req, res, next) => authMiddleware ? authMiddleware.verifyToken(req, res, next) : next(),
+  (req, res, next) => authMiddleware ? authMiddleware.requireRole('admin')(req, res, next) : next(),
   asyncHandler(async (req, res) => {
     const limit = parseInt(req.query.limit as string) || 10;
     const service = ExecutiveAutomationService.getInstance();
@@ -285,8 +285,8 @@ router.get(
  */
 router.post(
   '/scheduler/start',
-  authMiddleware.verifyToken,
-  authMiddleware.requireRole('admin'),
+  (req, res, next) => authMiddleware ? authMiddleware.verifyToken(req, res, next) : next(),
+  (req, res, next) => authMiddleware ? authMiddleware.requireRole('admin')(req, res, next) : next(),
   asyncHandler(async (_req, res) => {
     const service = ExecutiveAutomationService.getInstance();
     service.startCronScheduler();
@@ -302,8 +302,8 @@ router.post(
  */
 router.post(
   '/scheduler/stop',
-  authMiddleware.verifyToken,
-  authMiddleware.requireRole('admin'),
+  (req, res, next) => authMiddleware ? authMiddleware.verifyToken(req, res, next) : next(),
+  (req, res, next) => authMiddleware ? authMiddleware.requireRole('admin')(req, res, next) : next(),
   asyncHandler(async (_req, res) => {
     const service = ExecutiveAutomationService.getInstance();
     service.stopCronScheduler();

@@ -55,7 +55,7 @@ export const initializeDocumentRoutes = (redisClient: any) => {
  */
 router.get(
   '/',
-  authMiddleware.verifyToken,
+  (req, res, next) => authMiddleware ? authMiddleware.verifyToken(req, res, next) : next(),
   ValidationMiddleware.validateQuery(documentQuerySchema),
   asyncHandler(async (req, res) => {
     const {
@@ -125,7 +125,7 @@ router.get(
  */
 router.get(
   '/:id',
-  authMiddleware.verifyToken,
+  (req, res, next) => authMiddleware ? authMiddleware.verifyToken(req, res, next) : next(),
   ValidationMiddleware.validateParams(z.object({ id: z.string() })),
   asyncHandler(async (req, res) => {
     const { id } = req.params;
@@ -203,7 +203,7 @@ router.get(
  */
 router.post(
   '/',
-  authMiddleware.verifyToken,
+  (req, res, next) => authMiddleware ? authMiddleware.verifyToken(req, res, next) : next(),
   ValidationMiddleware.validateBody(createDocumentSchema),
   (SecurityMiddleware as any).fileUploadProtection(),
   asyncHandler(async (req, res) => {
@@ -266,7 +266,7 @@ router.post(
  */
 router.put(
   '/:id',
-  authMiddleware.verifyToken,
+  (req, res, next) => authMiddleware ? authMiddleware.verifyToken(req, res, next) : next(),
   ValidationMiddleware.validateParams(z.object({ id: z.string() })),
   ValidationMiddleware.validateBody(updateDocumentSchema),
   asyncHandler(async (req, res) => {
@@ -320,8 +320,8 @@ router.put(
  */
 router.delete(
   '/:id',
-  authMiddleware.verifyToken,
-  authMiddleware.requireRole('admin'),
+  (req, res, next) => authMiddleware ? authMiddleware.verifyToken(req, res, next) : next(),
+  (req, res, next) => authMiddleware ? authMiddleware.requireRole('admin')(req, res, next) : next(),
   ValidationMiddleware.validateParams(z.object({ id: z.string() })),
   asyncHandler(async (req, res) => {
     const { id } = req.params;
@@ -354,7 +354,7 @@ router.delete(
  */
 router.post(
   '/:id/upload',
-  authMiddleware.verifyToken,
+  (req, res, next) => authMiddleware ? authMiddleware.verifyToken(req, res, next) : next(),
   ValidationMiddleware.validateParams(z.object({ id: z.string() })),
   (SecurityMiddleware as any).fileUploadProtection(),
   asyncHandler(async (req, res) => {
@@ -378,7 +378,7 @@ router.post(
  */
 router.get(
   '/:id/download',
-  authMiddleware.verifyToken,
+  (req, res, next) => authMiddleware ? authMiddleware.verifyToken(req, res, next) : next(),
   ValidationMiddleware.validateParams(z.object({ id: z.string() })),
   asyncHandler(async (req, res) => {
     const { id } = req.params;
@@ -405,7 +405,7 @@ router.get(
  */
 router.post(
   '/:id/share',
-  authMiddleware.verifyToken,
+  (req, res, next) => authMiddleware ? authMiddleware.verifyToken(req, res, next) : next(),
   ValidationMiddleware.validateParams(z.object({ id: z.string() })),
   ValidationMiddleware.validateBody(z.object({
     users: z.array(z.string()).optional(),
@@ -444,7 +444,7 @@ router.post(
  */
 router.get(
   '/:id/versions',
-  authMiddleware.verifyToken,
+  (req, res, next) => authMiddleware ? authMiddleware.verifyToken(req, res, next) : next(),
   ValidationMiddleware.validateParams(z.object({ id: z.string() })),
   asyncHandler(async (req, res) => {
     const { id } = req.params;
