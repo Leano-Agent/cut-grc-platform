@@ -40,6 +40,7 @@ import {
 } from '@mui/icons-material'
 
 import { riskService, Risk } from '../../services/riskService'
+import HeatMap, { generateSampleHeatMap } from '../../components/HeatMap'
 
 const RiskManagement = () => {
   const [page, setPage] = useState(0)
@@ -50,6 +51,7 @@ const RiskManagement = () => {
   const [risks, setRisks] = useState<Risk[]>([])
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
+  const [heatMapView, setHeatMapView] = useState(false)
 
   // Fetch risks on mount
   useEffect(() => {
@@ -244,20 +246,46 @@ const RiskManagement = () => {
           fullWidth
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <SearchIcon />
-              </InputAdornment>
-            ),
+          slotProps={{
+            input: {
+              startAdornment: (
+                <InputAdornment position="start">
+                  <SearchIcon />
+                </InputAdornment>
+              ),
+            },
           }}
         />
         <IconButton>
           <FilterIcon />
         </IconButton>
+        <Button
+          variant={heatMapView ? 'contained' : 'outlined'}
+          size="small"
+          onClick={() => setHeatMapView(!heatMapView)}
+          sx={{ minWidth: 120 }}
+        >
+          {heatMapView ? 'Table View' : 'Heat Map'}
+        </Button>
       </Box>
 
+      {/* Heat Map View */}
+      {heatMapView && (
+        <Card sx={{ mb: 3 }}>
+          <CardContent>
+            <Typography variant="h6" gutterBottom>
+              5×5 Risk Matrix
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+              Likelihood × Impact matrix showing risk distribution. Click a cell to see details.
+            </Typography>
+            <HeatMap data={generateSampleHeatMap()} />
+          </CardContent>
+        </Card>
+      )}
+
       {/* Risks Table */}
+      {!heatMapView && (
       <Card>
         <CardContent>
           <TableContainer component={Paper} elevation={0}>
@@ -267,8 +295,6 @@ const RiskManagement = () => {
                   <TableCell>Risk Title</TableCell>
                   <TableCell>Category</TableCell>
                   <TableCell>Severity</TableCell>
-                  <TableCell>Probability</TableCell>
-                  <TableCell>Impact</TableCell>
                   <TableCell>Status</TableCell>
                   <TableCell>Owner</TableCell>
                   <TableCell>Actions</TableCell>
@@ -299,8 +325,6 @@ const RiskManagement = () => {
                         }}
                       />
                     </TableCell>
-                    <TableCell>{risk.probability}</TableCell>
-                    <TableCell>{risk.impact}</TableCell>
                     <TableCell>
                       <Chip
                         label={risk.status}
@@ -336,6 +360,7 @@ const RiskManagement = () => {
           />
         </CardContent>
       </Card>
+      )}
 
       {/* Risk Menu */}
       <Menu
