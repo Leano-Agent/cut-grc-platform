@@ -33,6 +33,8 @@ import {
 } from '@mui/icons-material'
 
 import { complianceService, ComplianceItem } from '../../services/complianceService'
+import ComplianceDashboard from '../../components/ComplianceDashboard'
+import { exportCSV } from '../../utils/exportUtils'
 
 const ComplianceTracking = () => {
   const [page, setPage] = useState(0)
@@ -40,6 +42,7 @@ const ComplianceTracking = () => {
   const [items, setItems] = useState<ComplianceItem[]>([])
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
+  const [dashboardView, setDashboardView] = useState(false)
 
   useEffect(() => {
     const fetchItems = async () => {
@@ -223,9 +226,25 @@ const ComplianceTracking = () => {
         <IconButton>
           <FilterIcon />
         </IconButton>
+        <Button
+          variant={dashboardView ? 'contained' : 'outlined'}
+          size="small"
+          onClick={() => setDashboardView(!dashboardView)}
+          sx={{ minWidth: 140 }}
+        >
+          {dashboardView ? 'Requirements Table' : 'Compliance Dashboard'}
+        </Button>
       </Box>
 
+      {/* Compliance Dashboard */}
+      {dashboardView && (
+        <Box sx={{ mb: 3 }}>
+          <ComplianceDashboard onExport={() => exportCSV('compliance-report', ['Regulation', 'Status', 'Owner', 'Due Date'], items, i => [i.regulation, i.status, i.owner, i.dueDate || ''])} />
+        </Box>
+      )}
+
       {/* Compliance Table */}
+      {!dashboardView && (
       <Card>
         <CardContent>
           <TableContainer component={Paper} elevation={0}>
@@ -242,7 +261,7 @@ const ComplianceTracking = () => {
                 </TableRow>
               </TableHead>
               <TableBody>
-                {complianceItems.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map((item) => (
+                {displayItems.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map((item) => (
                   <TableRow key={item.id} hover>
                     <TableCell>
                       <Box sx={{ display: 'flex', alignItems: 'center' }}>
@@ -327,7 +346,7 @@ const ComplianceTracking = () => {
           <TablePagination
             rowsPerPageOptions={[5, 10, 25]}
             component="div"
-            count={complianceItems.length}
+            count={displayItems.length}
             rowsPerPage={rowsPerPage}
             page={page}
             onPageChange={handleChangePage}
@@ -335,6 +354,7 @@ const ComplianceTracking = () => {
           />
         </CardContent>
       </Card>
+      )}
 
       {/* Regulation Overview */}
       <Grid container spacing={3} sx={{ mt: 4 }}>
