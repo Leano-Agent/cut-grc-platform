@@ -45,8 +45,8 @@ WORKDIR /app
 COPY --from=builder --chown=nodejs:nodejs /app/package*.json ./
 COPY --from=builder --chown=nodejs:nodejs /app/src/backend/package*.json src/backend/
 COPY --from=builder --chown=nodejs:nodejs /app/src/backend/dist src/backend/dist
-COPY --from=builder --chown=nodejs:nodejs /app/src/backend/node_modules src/backend/node_modules
 COPY --from=builder --chown=nodejs:nodejs /app/src/shared src/shared
+# npm workspaces hoist all node_modules to root — copy once, Node.js resolves upward
 COPY --from=builder --chown=nodejs:nodejs /app/node_modules node_modules
 
 # Switch to non-root user
