@@ -23,28 +23,20 @@ export class JWTService {
    * Generate access token
    */
   static generateAccessToken(payload: TokenPayload): string {
-    return jwt.sign(
-      payload,
-      config.jwt.secret,
-      { 
-        expiresIn: this.ACCESS_TOKEN_EXPIRY,
-        algorithm: 'HS256'
-      }
-    );
+    return jwt.sign(payload, config.jwt.secret, {
+      expiresIn: this.ACCESS_TOKEN_EXPIRY as jwt.SignOptions['expiresIn'],
+      algorithm: 'HS256',
+    } as jwt.SignOptions);
   }
   
   /**
    * Generate refresh token
    */
   static generateRefreshToken(payload: RefreshTokenPayload): string {
-    return jwt.sign(
-      payload,
-      config.jwt.refreshSecret,
-      { 
-        expiresIn: this.REFRESH_TOKEN_EXPIRY,
-        algorithm: 'HS256'
-      }
-    );
+    return jwt.sign(payload, config.jwt.refreshSecret, {
+      expiresIn: this.REFRESH_TOKEN_EXPIRY as jwt.SignOptions['expiresIn'],
+      algorithm: 'HS256',
+    } as jwt.SignOptions);
   }
   
   /**
