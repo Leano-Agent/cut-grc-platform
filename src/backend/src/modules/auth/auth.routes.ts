@@ -119,7 +119,7 @@ router.post(
 router.post(
   '/login',
   ValidationMiddleware.validateBody(loginSchema),
-  securityMiddleware.bruteForceProtection(),
+  (req, res, next) => securityMiddleware ? securityMiddleware.bruteForceProtection()(req, res, next) : next(),
   SecurityMiddleware.sqlInjectionProtection(),
   SecurityMiddleware.xssProtection(),
   asyncHandler(async (req, res) => {
@@ -193,7 +193,9 @@ router.post(
     });
     
     // Reset brute force counter
-    await securityMiddleware.resetBruteForceCounter()(req, res, () => {});
+    if (securityMiddleware) {
+      await securityMiddleware.resetBruteForceCounter()(req, res, () => {});
+    }
     
     logAuthentication('login', user.id, req.ip || 'unknown', true, { role: user.role });
     
@@ -370,7 +372,7 @@ router.post(
 router.post(
   '/forgot-password',
   ValidationMiddleware.validateBody(resetPasswordRequestSchema),
-  securityMiddleware.bruteForceProtection(),
+  (req, res, next) => securityMiddleware ? securityMiddleware.bruteForceProtection()(req, res, next) : next(),
   asyncHandler(async (req, res) => {
     const { email } = req.body;
     
