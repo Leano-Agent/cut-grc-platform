@@ -9,12 +9,14 @@ WORKDIR /app
 # Copy root workspace config
 COPY package*.json ./
 
-# Copy backend package files  
+# Copy backend package files
 COPY src/backend/package*.json src/backend/
-COPY src/shared/package*.json src/shared/ 2>/dev/null || true
+
+# Ensure shared workspace has a package.json (may be empty dir in repo)
+RUN mkdir -p src/shared && if [ ! -f src/shared/package.json ]; then echo '{"name":"@cut/shared","version":"1.0.0","private":true}' > src/shared/package.json; fi
 
 # Install all workspace dependencies
-RUN npm ci --workspaces --include-workspace-root || npm install --workspaces
+RUN npm install --workspaces --include-workspace-root
 
 # Copy full source
 COPY . .
@@ -44,8 +46,8 @@ COPY --from=builder --chown=nodejs:nodejs /app/package*.json ./
 COPY --from=builder --chown=nodejs:nodejs /app/src/backend/package*.json src/backend/
 COPY --from=builder --chown=nodejs:nodejs /app/src/backend/dist src/backend/dist
 COPY --from=builder --chown=nodejs:nodejs /app/src/backend/node_modules src/backend/node_modules
-COPY --from=builder --chown=nodejs:nodejs /app/src/shared src/shared 2>/dev/null || true
-COPY --from=builder --chown=nodejs:nodejs /app/node_modules node_modules 2>/dev/null || true
+COPY --from=builder --chown=nodejs:nodejs /app/src/shared src/shared
+COPY --from=builder --chown=nodejs:nodejs /app/node_modules node_modules
 
 # Switch to non-root user
 USER nodejs
