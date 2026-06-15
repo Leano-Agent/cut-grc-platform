@@ -8,6 +8,7 @@ import { SecurityMiddleware } from '../../middleware/security.middleware';
 import { asyncHandler, sendSuccess, sendError } from '../../middleware/errorMiddleware';
 import logger from '../../config/logger';
 import { logAuthentication } from '../../config/logger';
+import { emailService } from '../../services/email.service';
 
 const router = Router();
 
@@ -93,7 +94,12 @@ router.post(
     
     // Log the registration
     logAuthentication('register', userId, req.ip || 'unknown', true, { role });
-    
+
+    // Send welcome email (non-blocking — don't fail registration if email fails)
+    emailService.sendWelcomeEmail(email, firstName).catch(err => {
+      logger.warn('Welcome email failed (non-fatal)', { email, error: err });
+    });
+
     sendSuccess(res, {
       user: {
         id: userId,
