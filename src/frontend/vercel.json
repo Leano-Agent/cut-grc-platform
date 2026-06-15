@@ -1,7 +1,6 @@
 {
   "version": 2,
   "name": "cut-grc-frontend",
-  "public": true,
   "builds": [
     {
       "src": "package.json",
