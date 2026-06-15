@@ -39,6 +39,7 @@ class Database {
    */
   async connect(): Promise<void> {
     try {
+      logger.info(`Attempting database connection to ${config.database.host}:${config.database.port}/${config.database.name} (ssl: ${config.database.ssl})`);
       await this.sequelize.authenticate();
       this.isConnected = true;
       logger.info('Database connection established successfully');
@@ -48,7 +49,9 @@ class Database {
         await this.syncModels();
       }
     } catch (error) {
-      logger.error('Unable to connect to the database:', error);
+      const err = error as Error;
+      logger.error(`Unable to connect to the database at ${config.database.host}:${config.database.port}: ${err.message}`);
+      logger.error('Full connection error:', { name: err.name, stack: err.stack?.slice(0, 500) });
       throw error;
     }
   }

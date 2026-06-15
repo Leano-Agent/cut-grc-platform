@@ -101,13 +101,15 @@ const config = {
     if (url) {
       try {
         const parsed = new URL(url);
+        const isInternal = parsed.hostname?.includes('railway.internal');
         const dbConfig = {
           host: parsed.hostname,
           port: parseInt(parsed.port || '5432'),
           name: parsed.pathname.replace(/^\//, ''),
           user: decodeURIComponent(parsed.username),
           password: decodeURIComponent(parsed.password),
-          ssl: true,
+          // Railway internal network doesn't use SSL; external hosts do
+          ssl: isInternal ? false : true,
           pool: { max: 20, min: 5, acquire: 30000, idle: 10000 },
         };
         console.log('[DB Config] Parsed DATABASE_URL successfully:', {
