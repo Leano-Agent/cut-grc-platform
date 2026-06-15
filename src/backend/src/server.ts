@@ -248,8 +248,12 @@ class App {
     
     // API documentation
     if (process.env.NODE_ENV !== 'production') {
-      this.app.use('/api-docs', require('swagger-ui-express').serve);
-      this.app.get('/api-docs', require('swagger-ui-express').setup(require('../docs/openapi.json')));
+      try {
+        this.app.use('/api-docs', require('swagger-ui-express').serve);
+        this.app.get('/api-docs', require('swagger-ui-express').setup(require('../docs/openapi.json')));
+      } catch (error: any) {
+        logger.warn('Swagger UI not available', { reason: error.message });
+      }
     }
     
     // Catch-all route for undefined endpoints
