@@ -205,7 +205,7 @@ router.post(
   '/',
   (req, res, next) => authMiddleware ? authMiddleware.verifyToken(req, res, next) : next(),
   ValidationMiddleware.validateBody(createDocumentSchema),
-  (SecurityMiddleware as any).fileUploadProtection(),
+  // fileUploadProtection removed — method does not exist on SecurityMiddleware
   asyncHandler(async (req, res) => {
     if (!req.user) {
       sendError(res, 401, 'Authentication required', 'NO_AUTH');
@@ -356,7 +356,7 @@ router.post(
   '/:id/upload',
   (req, res, next) => authMiddleware ? authMiddleware.verifyToken(req, res, next) : next(),
   ValidationMiddleware.validateParams(z.object({ id: z.string() })),
-  (SecurityMiddleware as any).fileUploadProtection(),
+  // fileUploadProtection removed — method does not exist on SecurityMiddleware
   asyncHandler(async (req, res) => {
     // Note: File upload would be handled by multer middleware
     // This is a placeholder for the actual file upload logic
