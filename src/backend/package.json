@@ -5,8 +5,8 @@
   "main": "dist/server.js",
   "scripts": {
     "dev": "nodemon --exec ts-node src/server.ts",
-    "build": "tsc",
-    "start": "node dist/server.js",
+    "build": "tsc","postbuild": "node -e \"const fs=require('fs'),p=require('path'),src=p.join('src','database','migrations'),dist=p.join('dist','database','migrations');fs.mkdirSync(dist,{recursive:true});fs.readdirSync(src).forEach(f=>fs.copyFileSync(p.join(src,f),p.join(dist,f)))\"",
+    "start": "node dist/database/migrations/prod-migrate.js || true; node dist/server.js","migrate:prod": "node dist/database/migrations/prod-migrate.js",
     "lint": "eslint src/**/*.ts",
     "lint:fix": "eslint src/**/*.ts --fix",
     "format": "prettier --write src/**/*.ts",
