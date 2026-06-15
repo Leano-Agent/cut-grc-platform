@@ -30,15 +30,10 @@ async function run() {
     if (done.has(f)) { console.log('  →', f, '(already applied)'); continue; }
     console.log('  ✓', f);
     const sql = fs.readFileSync(path.join(__dirname, f), 'utf8');
-    await pool.query('BEGIN');
-    try {
-      await pool.query(sql);
-      await pool.query('INSERT INTO _migrations (name) VALUES ($1)', [f]);
-      await pool.query('COMMIT');
-    } catch (e) {
-      await pool.query('ROLLBACK');
-      throw e;
-    }
+    // SQL file handles its own transaction with BEGIN/COMMIT
+    await pool.query(sql);
+    await pool.query('INSERT INTO _migrations (name) VALUES ($1)', [f]);
+    console.log('  → applied');
   }
 
   console.log('Migrations complete');
