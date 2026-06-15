@@ -28,12 +28,12 @@ import { ValidationMiddleware } from './middleware/validation.middleware';
 import AuthMiddleware from './middleware/auth.middleware';
 
 // Import routes
-import authRoutes from './modules/auth/auth.routes';
-import userRoutes from './modules/users/user.routes';
-import riskRoutes from './modules/risks/risk.routes';
-import documentRoutes from './modules/documents/document.routes';
-import workflowRoutes from './modules/workflows/workflow.routes';
-import executiveRoutes from './modules/executive/executive.routes';
+import authRoutes, { initializeAuthRoutes } from './modules/auth/auth.routes';
+import userRoutes, { initializeUserRoutes } from './modules/users/user.routes';
+import riskRoutes, { initializeRiskRoutes } from './modules/risks/risk.routes';
+import documentRoutes, { initializeDocumentRoutes } from './modules/documents/document.routes';
+import workflowRoutes, { initializeWorkflowRoutes } from './modules/workflows/workflow.routes';
+import executiveRoutes, { initializeExecutiveRoutes } from './modules/executive/executive.routes';
 import ExecutiveAutomationService from './services/executive-automation.service';
 
 class App {
@@ -218,6 +218,19 @@ class App {
   }
 
   private initializeRoutes(): void {
+    // CRITICAL: Initialize route middleware BEFORE route definitions
+    // Sets authMiddleware, securityMiddleware, tokenBlacklist in each route module
+    // Without this, every route is unprotected (lazy guards bypass via next())
+    const redisClient = this.redisPubClient || null;
+    logger.info('Initializing route middleware (auth, security)', { redisAvailable: !!redisClient });
+    initializeAuthRoutes(redisClient as any);
+    initializeUserRoutes(redisClient as any);
+    initializeRiskRoutes(redisClient as any);
+    initializeDocumentRoutes(redisClient as any);
+    initializeWorkflowRoutes(redisClient as any);
+    initializeExecutiveRoutes(redisClient as any);
+    logger.info('Route middleware initialized — auth enforcement is ACTIVE');
+
     // Health check endpoint
     this.app.get('/health', (req: Request, res: Response) => {
       res.status(200).json({

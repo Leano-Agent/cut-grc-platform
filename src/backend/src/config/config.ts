@@ -101,7 +101,7 @@ const config = {
     if (url) {
       try {
         const parsed = new URL(url);
-        return {
+        const dbConfig = {
           host: parsed.hostname,
           port: parseInt(parsed.port || '5432'),
           name: parsed.pathname.replace(/^\//, ''),
@@ -110,9 +110,20 @@ const config = {
           ssl: true,
           pool: { max: 20, min: 5, acquire: 30000, idle: 10000 },
         };
-      } catch {
+        console.log('[DB Config] Parsed DATABASE_URL successfully:', {
+          host: dbConfig.host,
+          port: dbConfig.port,
+          name: dbConfig.name,
+          user: dbConfig.user,
+          ssl: dbConfig.ssl,
+        });
+        return dbConfig;
+      } catch (parseErr) {
+        console.error('[DB Config] Failed to parse DATABASE_URL — falling back to individual vars:', (parseErr as Error).message);
         // fall through to individual variables
       }
+    } else {
+      console.warn('[DB Config] No DATABASE_URL found — using individual connection vars');
     }
     return {
       host: env.DB_HOST,

@@ -109,26 +109,35 @@ export class JWTService {
  * Token blacklist management using Redis
  */
 export class TokenBlacklist {
-  private redis: Redis;
+  private redis: Redis | null;
   
-  constructor(redisClient: Redis) {
+  constructor(redisClient: Redis | null) {
     this.redis = redisClient;
+  }
+  
+  /**
+   * Check if Redis is available
+   */
+  private hasRedis(): boolean {
+    return this.redis !== null && this.redis !== undefined;
   }
   
   /**
    * Add token to blacklist
    */
   async addToBlacklist(token: string, expirySeconds: number): Promise<void> {
+    if (!this.hasRedis()) return; // No Redis = skip blacklist (token revocation disabled)
     const key = `blacklist:token:${token}`;
-    await this.redis.setex(key, expirySeconds, '1');
+    await this.redis!.setex(key, expirySeconds, '1');
   }
   
   /**
    * Check if token is blacklisted
    */
   async isBlacklisted(token: string): Promise<boolean> {
+    if (!this.hasRedis()) return false; // No Redis = can't check, allow token through
     const key = `blacklist:token:${token}`;
-    const result = await this.redis.get(key);
+    const result = await this.redis!.get(key);
     return result === '1';
   }
   
@@ -136,16 +145,18 @@ export class TokenBlacklist {
    * Remove token from blacklist
    */
   async removeFromBlacklist(token: string): Promise<void> {
+    if (!this.hasRedis()) return;
     const key = `blacklist:token:${token}`;
-    await this.redis.del(key);
+    await this.redis!.del(key);
   }
   
   /**
    * Add user's refresh token version (for logout all devices)
    */
   async incrementRefreshTokenVersion(userId: string): Promise<number> {
+    if (!this.hasRedis()) return 0; // No Redis = version tracking disabled
     const key = `user:${userId}:refreshTokenVersion`;
-    const newVersion = await this.redis.incr(key);
+    const newVersion = await this.redis!.incr(key);
     return newVersion;
   }
   
@@ -153,8 +164,9 @@ export class TokenBlacklist {
    * Get user's refresh token version
    */
   async getRefreshTokenVersion(userId: string): Promise<number> {
+    if (!this.hasRedis()) return 0;
     const key = `user:${userId}:refreshTokenVersion`;
-    const version = await this.redis.get(key);
+    const version = await this.redis!.get(key);
     return version ? parseInt(version, 10) : 0;
   }
 }
