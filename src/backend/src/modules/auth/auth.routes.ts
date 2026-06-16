@@ -9,6 +9,8 @@ import { asyncHandler, sendSuccess, sendError } from '../../middleware/errorMidd
 import logger from '../../config/logger';
 import { logAuthentication } from '../../config/logger';
 import { emailService } from '../../services/email.service';
+import User from '../../models/User';
+import database from '../../config/database';
 
 const router = Router();
 
@@ -67,51 +69,68 @@ router.post(
   SecurityMiddleware.sqlInjectionProtection(),
   SecurityMiddleware.xssProtection(),
   asyncHandler(async (req, res) => {
-    // In a real application, you would:
-    // 1. Check if user already exists
-    // 2. Hash password
-    // 3. Create user in database
-    // 4. Send verification email
-    
     const { email, password, firstName, lastName, role } = req.body;
     
-    // Simulate user creation
-    const userId = `user_${Date.now()}`;
+    // Ensure user table exists
+    await User.sync({ alter: true });
+    
+    // Check if user already exists
+    const existingUser = await User.findOne({ where: { email } });
+    if (existingUser) {
+      sendError(res, 409, 'A user with this email already exists', 'EMAIL_EXISTS');
+      return;
+    }
+    
+    // Hash password
     const hashedPassword = await bcrypt.hash(password, 12);
+    
+    // Create user in database
+    const userId = `user_${Date.now()}`;
+    const user = await User.create({
+      id: userId,
+      email,
+      passwordHash: hashedPassword,
+      firstName,
+      lastName,
+      role: role || 'student',
+      isActive: true,
+      emailVerified: false,
+      failedLoginAttempts: 0,
+      refreshTokenVersion: 1,
+    });
     
     // Generate tokens
     const accessToken = JWTService.generateAccessToken({
-      userId,
-      email,
-      role,
-      permissions: getPermissionsForRole(role),
+      userId: user.id,
+      email: user.email,
+      role: user.role,
+      permissions: getPermissionsForRole(user.role),
     });
     
     const refreshToken = JWTService.generateRefreshToken({
-      userId,
-      tokenVersion: 1,
+      userId: user.id,
+      tokenVersion: user.refreshTokenVersion,
     });
     
-    // Log the registration
     logAuthentication('register', userId, req.ip || 'unknown', true, { role });
 
-    // Send welcome email (non-blocking — don't fail registration if email fails)
+    // Send welcome email (non-blocking)
     emailService.sendWelcomeEmail(email, firstName).catch(err => {
       logger.warn('Welcome email failed (non-fatal)', { email, error: err });
     });
 
     sendSuccess(res, {
       user: {
-        id: userId,
-        email,
-        firstName,
-        lastName,
-        role,
+        id: user.id,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        role: user.role,
       },
       tokens: {
         accessToken,
         refreshToken,
-        expiresIn: 24 * 60 * 60, // 24 hours in seconds
+        expiresIn: 24 * 60 * 60,
       },
     }, 'Registration successful', 201);
   })
@@ -131,27 +150,22 @@ router.post(
   asyncHandler(async (req, res) => {
     const { email, password } = req.body;
     
-    // In a real application, you would:
-    // 1. Find user by email
-    // 2. Check if user exists and is active
-    // 3. Verify password
-    // 4. Check if account is locked
+    // Ensure user table exists
+    await User.sync({ alter: true });
     
-    // Simulate user lookup
-    const user = {
-      id: 'user_123',
-      email,
-      passwordHash: await bcrypt.hash('Password123!', 12), // In real app, get from DB
-      role: 'admin',
-      isActive: true,
-      failedLoginAttempts: 0,
-      lockedUntil: null,
-    };
+    // Find user by email
+    const user = await User.findOne({ where: { email, isActive: true } });
+    
+    if (!user) {
+      logAuthentication('login', 'unknown', req.ip || 'unknown', false, { reason: 'user_not_found', email });
+      sendError(res, 401, 'Invalid credentials', 'INVALID_CREDENTIALS');
+      return;
+    }
     
     // Check if account is locked
     if (user.lockedUntil && new Date(user.lockedUntil) > new Date()) {
       logAuthentication('login', user.id, req.ip || 'unknown', false, { reason: 'account_locked' });
-      sendError(res, 423, 'Account is temporarily locked', 'ACCOUNT_LOCKED');
+      sendError(res, 423, 'Account is temporarily locked. Try again later.', 'ACCOUNT_LOCKED');
       return;
     }
     
@@ -159,20 +173,15 @@ router.post(
     const isPasswordValid = await bcrypt.compare(password, user.passwordHash);
     
     if (!isPasswordValid) {
-      // Increment failed login attempts
       const failedAttempts = user.failedLoginAttempts + 1;
+      const updates: any = { failedLoginAttempts: failedAttempts };
       
       // Lock account after 5 failed attempts
       if (failedAttempts >= 5) {
-        const lockUntil = new Date(Date.now() + 30 * 60 * 1000); // 30 minutes
-        logAuthentication('login', user.id, req.ip || 'unknown', false, { 
-          reason: 'too_many_failed_attempts',
-          failedAttempts,
-          lockedUntil: lockUntil 
-        });
-        sendError(res, 423, 'Account locked due to too many failed attempts', 'ACCOUNT_LOCKED');
-        return;
+        updates.lockedUntil = new Date(Date.now() + 30 * 60 * 1000); // 30 min lockout
       }
+      
+      await User.update(updates, { where: { id: user.id } });
       
       logAuthentication('login', user.id, req.ip || 'unknown', false, { 
         reason: 'invalid_password',
@@ -183,7 +192,10 @@ router.post(
     }
     
     // Reset failed login attempts on successful login
-    // In real app: await user.update({ failedLoginAttempts: 0, lockedUntil: null });
+    await User.update(
+      { failedLoginAttempts: 0, lockedUntil: null, lastLoginAt: new Date() },
+      { where: { id: user.id } }
+    );
     
     // Generate tokens
     const accessToken = JWTService.generateAccessToken({
@@ -195,12 +207,14 @@ router.post(
     
     const refreshToken = JWTService.generateRefreshToken({
       userId: user.id,
-      tokenVersion: 1,
+      tokenVersion: user.refreshTokenVersion,
     });
     
     // Reset brute force counter
     if (securityMiddleware) {
-      await securityMiddleware.resetBruteForceCounter()(req, res, () => {});
+      try {
+        await securityMiddleware.resetBruteForceCounter()(req, res, () => {});
+      } catch (e) { /* non-critical */ }
     }
     
     logAuthentication('login', user.id, req.ip || 'unknown', true, { role: user.role });
@@ -209,12 +223,14 @@ router.post(
       user: {
         id: user.id,
         email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
         role: user.role,
       },
       tokens: {
         accessToken,
         refreshToken,
-        expiresIn: 24 * 60 * 60, // 24 hours in seconds
+        expiresIn: 24 * 60 * 60,
       },
     }, 'Login successful');
   })
@@ -431,19 +447,26 @@ router.get(
       return;
     }
     
-    // In real app, get user details from database
-    const userProfile = {
-      id: req.user.userId,
-      email: req.user.email,
-      role: req.user.role,
-      permissions: req.user.permissions,
-      firstName: 'John',
-      lastName: 'Doe',
-      createdAt: new Date().toISOString(),
-      lastLogin: new Date().toISOString(),
-    };
+    // Get real user from database
+    const user = await User.findByPk(req.user.userId);
     
-    sendSuccess(res, userProfile, 'User profile retrieved successfully');
+    if (!user) {
+      sendError(res, 404, 'User not found', 'USER_NOT_FOUND');
+      return;
+    }
+    
+    sendSuccess(res, {
+      id: user.id,
+      email: user.email,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      role: user.role,
+      permissions: req.user.permissions,
+      isActive: user.isActive,
+      emailVerified: user.emailVerified,
+      lastLoginAt: user.lastLoginAt,
+      createdAt: user.createdAt,
+    }, 'User profile retrieved successfully');
   })
 );
 

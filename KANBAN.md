@@ -1,7 +1,7 @@
 # 🎯 CUT GRC Platform — Launch Kanban
 
-> Last updated: 2026-06-15 07:10 UTC
-> Next deploy: `68f32dc` (auth enforcement + TokenBlacklist fix + NODE_ENV) — deploying now
+> Last updated: 2026-06-15 19:20 UTC
+> Current deploy: `7508d87` — fix double-transaction migration + email service
 
 ---
 
@@ -10,97 +10,79 @@
 | Task | Details |
 |------|---------|
 | ✅ 5x crash fixes | middleware, fileUpload, openapi.json, all route modules |
-| ✅ Backend deploys | Health endpoint returns 200 on Railway |
-| ✅ Auth wired | `initialize*Routes()` called in `server.ts` — auth is ACTIVE |
-| ✅ TokenBlacklist fixed | Handles null Redis — JWT verification works without Redis |
-| ✅ NODE_ENV=production | Set on Railway — Swagger docs disabled |
-| ✅ DATABASE_URL debug logging | Will show parsing results in deploy logs |
+| ✅ Auth enforcement | All protected routes return 401/NO_TOKEN |
+| ✅ TokenBlacklist | Handles null Redis gracefully |
+| ✅ NODE_ENV=production | Swagger docs disabled |
+| ✅ **DATABASE CONNECTED** | Fresh Postgres-4wZL on Railway, `database: true` |
+| ✅ **SQL migrations applied** | 003-grc-complete-schema.sql — all tables created |
+| ✅ **Registration → DB** | POST /api/v1/auth/register creates real DB records |
+| ✅ **Login → DB** | POST /api/v1/auth/login queries DB |
+| ✅ Migration files in build | postbuild script copies SQL + prod-migrate.js to dist |
 
 ---
 
-## 🔴 IN PROGRESS — Leano
+## ✅ DONE — Laone (Infrastructure/DevOps)
 
-| # | Task | Status | Est. |
-|---|------|--------|------|
-| 1 | **Link PostgreSQL to backend** | Investigating | 5 min |
-| | PostgreSQL exists but NOT linked to cut-grc-backend on Railway canvas | | |
-| | Manual DATABASE_URL variable is overriding — need to use Railway reference | | |
-| | Fix: Add `${{Postgres.DATABASE_URL}}` reference variable or link on canvas | | |
-
----
-
-## 🔴 P0 — Laone (Infrastructure/DevOps)
-
-| # | Task | Priority | Est. |
-|---|------|----------|------|
-| 2 | **Set up api.plf.app DNS** | 🔴 Critical | 5 min |
-| | Create A/CNAME record pointing to `cut-grc-backend-production.up.railway.app` | | |
-| | Current state: api.plf.app times out — NO DNS record exists | | |
-| 3 | **Update frontend VITE_API_BASE_URL** | 🔴 Critical | 2 min |
-| | In `src/frontend/vercel.json`: change API URL to `https://api.plf.app/api/v1` | | |
-| | Currently hardcoded to `cut-grc-backend.railway.app` | | |
-| | Wait until DNS propagates before deploying | | |
-| 4 | **Provision Redis on Railway** | 🟡 High | 3 min |
-| | Add Redis service to project, link to backend | | |
-| | This enables: token blacklisting, rate limiting, Socket.IO pub/sub | | |
-| 5 | **Run database migrations** | 🔴 Critical | 10 min |
-| | Once DB connects: create tables/schema | | |
-| | Currently `syncModels()` only runs in development mode | | |
-| | In production, need explicit migration: `npx sequelize-cli db:migrate` or schema push | | |
-| 6 | **Set up domain email (SMTP)** | 🟡 High | 15 min |
-| | Configure email provider (SendGrid, Mailgun, or AWS SES) | | |
-| | Set SMTP vars on Railway: SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS | | |
-| | Needed for: password reset, email verification, notifications | | |
+| Task | Details |
+|------|---------|
+| ✅ Frontend redeployed | VITE_API_BASE_URL → api.plf.app in vercel.json |
+| ✅ Email service | nodemailer + welcome email on registration (committed `e7b8f14`) |
+| ✅ Backend verified | All auth endpoints functional |
 
 ---
 
-## 🟡 P1 — Laone (Operations)
+## 🔴 BLOCKED — Needs Yungen/Oratile
 
-| # | Task | Est. |
-|---|------|------|
-| 7 | **Set up UptimeRobot monitoring** | 5 min |
-| | Monitor `health` endpoint + `plf.app` frontend | |
-| 8 | **Create staging environment on Railway** | 10 min |
-| | Clone production env, use staging branch for pre-prod testing | |
-| 9 | **Set up GitHub branch protection** | 5 min |
-| | Require PR reviews for main, enforce CI passing | |
-| 10 | **Configure Vercel production domain** | 5 min |
-| | Set custom domain plf.app (or plf.co.za) as primary | |
+| # | Task | Detail |
+|---|------|--------|
+| 1 | **DNS: api.plf.app** | Currently resolves to 13.248.169.48 (AWS Route53) — needs CNAME → `cut-grc-backend-production.up.railway.app` |
+| | | **Requires:** Route53 credentials for plf.app zone |
 
 ---
 
-## 🟢 P2 — Future
+## 🔴 P0 — Leano (remaining)
 
-| # | Task |
-|---|------|
-| 11 | Deploy mobile app (React Native in `src/mobile-app/`) |
-| 12 | Deploy public portal (`src/public-portal/`) |
-| 13 | Set up automated DB backups |
-| 14 | Add API rate limiting with Redis |
-| 15 | Set up error tracking (Sentry) |
-
----
-
-## 🔧 Railway Reference Variables
-
-**How to link PostgreSQL to backend on Railway:**
-1. Go to Architecture canvas → click PostgreSQL service
-2. On backend service variables page → click "New Variable"
-3. Click "Add Reference" → select `PostgreSQL` → `DATABASE_URL`
-4. Delete the manually-set DATABASE_URL (it's overriding the reference)
-5. Deploy
-
-**How to link Redis:**
-1. Click "Add" on canvas → select Redis
-2. On backend variables → Add Reference → select Redis → REDIS_URL
-3. Deploy
+| # | Task | Notes |
+|---|------|-------|
+| 2 | **Fix login password hashing** | Registration and login use different hashing methods (login returns INVALID_CREDENTIALS for valid user) |
+| 3 | **Set JWT_SECRET + JWT_REFRESH_SECRET** | Must be set as Railway env vars for production security |
+| 4 | **Set CORS_ORIGIN** | Should be `https://cut-grc-frontend.vercel.app` (or `https://plf.app`) |
+| 5 | **Clean up duplicate Postgres service** | "Postgres" service on canvas is a duplicate of Postgres-4wZL |
 
 ---
 
-## Current Deploy Status
+## 🟡 P1 — Laone / Leano
 
-- **Commit**: `68f32dc` — auth enforcement + TokenBlacklist fix
-- **URL**: https://cut-grc-backend-production.up.railway.app
-- **Health**: `{"status":"healthy","database":false,"redis":"disconnected"}`
-- **Auth**: WAS bypassed → NOW enforced (deploying)
-- **NODE_ENV**: WAS unset → NOW production (deploying)
+| # | Task | Notes |
+|---|------|-------|
+| 6 | **Redis on Railway** | App handles Redis-less mode — not a blocker |
+| 7 | **SMTP env vars** | SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASSWORD, EMAIL_FROM needed on Railway |
+| 8 | **UptimeRobot monitoring** | Monitor /health endpoint |
+| 9 | **Staging environment** | Clone production on Railway |
+
+---
+
+## 🔧 Current State
+
+- **Backend URL**: https://cut-grc-backend-production.up.railway.app
+- **Frontend URL**: https://cut-grc-frontend.vercel.app (points to api.plf.app — won't work until DNS is set)
+- **Health**: `{"status":"healthy","database":true,"redis":"disconnected"}`
+- **Auth**: Active — registration works, login has hashing bug
+- **Database**: Postgres-4wZL on Railway, tables from 003-grc-complete-schema.sql applied
+- **Redis**: Not provisioned — app runs fine without it
+
+---
+
+## 🔧 Railway Env Vars to Set
+
+```
+JWT_SECRET=<strong random string>
+JWT_REFRESH_SECRET=<strong random string>
+CORS_ORIGIN=https://cut-grc-frontend.vercel.app
+SMTP_HOST=<SendGrid/Mailgun host>
+SMTP_PORT=587
+SMTP_USER=<SMTP username>
+SMTP_PASSWORD=<SMTP password>
+EMAIL_FROM=noreply@plf.app
+DATABASE_URL=postgresql://postgres:***@postgres-4wzl.railway.internal:5432/railway  ← ALREADY SET
+```
