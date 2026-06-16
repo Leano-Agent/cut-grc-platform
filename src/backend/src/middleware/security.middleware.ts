@@ -29,7 +29,7 @@ export class SecurityMiddleware {
           scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
           fontSrc: ["'self'", "https://fonts.gstatic.com"],
           imgSrc: ["'self'", "data:", "https:"],
-          connectSrc: ["'self'", "https://api.cut.ac.za"],
+          connectSrc: ["'self'", "https://api.cut.ac.za", "https://cut-grc-backend-production.up.railway.app"],
           frameSrc: ["'none'"],
           objectSrc: ["'none'"],
           mediaSrc: ["'self'"],
