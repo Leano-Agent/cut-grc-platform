@@ -119,7 +119,7 @@ router.post(
       logger.warn('Welcome email failed (non-fatal)', { email, error: err });
     });
 
-    sendSuccess(res, {
+    res.status(201).json({
       user: {
         id: user.id,
         email: user.email,
@@ -127,12 +127,10 @@ router.post(
         lastName: user.lastName,
         role: user.role,
       },
-      tokens: {
-        accessToken,
-        refreshToken,
-        expiresIn: 24 * 60 * 60,
-      },
-    }, 'Registration successful', 201);
+      token: accessToken,
+      refreshToken,
+      expiresIn: 24 * 60 * 60,
+    });
   })
 );
 
@@ -219,7 +217,7 @@ router.post(
     
     logAuthentication('login', user.id, req.ip || 'unknown', true, { role: user.role });
     
-    sendSuccess(res, {
+    res.status(200).json({
       user: {
         id: user.id,
         email: user.email,
@@ -227,12 +225,10 @@ router.post(
         lastName: user.lastName,
         role: user.role,
       },
-      tokens: {
-        accessToken,
-        refreshToken,
-        expiresIn: 24 * 60 * 60,
-      },
-    }, 'Login successful');
+      token: accessToken,
+      refreshToken,
+      expiresIn: 24 * 60 * 60,
+    });
   })
 );
 
@@ -299,11 +295,11 @@ router.post(
       }
     }
     
-    sendSuccess(res, {
-      accessToken: newAccessToken,
+    res.status(200).json({
+      token: newAccessToken,
       refreshToken: newRefreshToken,
       expiresIn: 24 * 60 * 60,
-    }, 'Token refreshed successfully');
+    });
   })
 );
 
