@@ -52,7 +52,7 @@ jobs:
         node-version: ${{ matrix.node-version }}
 
     - name: Install root dependencies
-      run: npm install --workspaces --include-workspace-root
+      run: npm install
 
     - name: Run linting (Backend)
       working-directory: ./src/backend
@@ -187,8 +187,8 @@ jobs:
     steps:
     - name: Check staging health
       run: |
-        curl -f https://cut-grc-backend-staging.onrender.com/api/v1/health || echo "Staging health check failed"
+        curl -f https://cut-grc-backend-production.up.railway.app/health || echo "Staging health check failed"
         
     - name: Check production health
       run: |
-        curl -f https://cut-grc-backend.onrender.com/api/v1/health || echo "Production health check failed"
+        curl -f https://cut-grc-backend-production.up.railway.app/api/v1/health || echo "Production health check failed"
