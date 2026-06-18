@@ -451,7 +451,7 @@ router.get(
       return;
     }
     
-    sendSuccess(res, {
+    res.status(200).json({
       id: user.id,
       email: user.email,
       firstName: user.firstName,
@@ -462,7 +462,7 @@ router.get(
       emailVerified: user.emailVerified,
       lastLoginAt: user.lastLoginAt,
       createdAt: user.createdAt,
-    }, 'User profile retrieved successfully');
+    });
   })
 );
 

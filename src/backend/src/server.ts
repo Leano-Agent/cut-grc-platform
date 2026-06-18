@@ -34,6 +34,10 @@ import riskRoutes, { initializeRiskRoutes } from './modules/risks/risk.routes';
 import documentRoutes, { initializeDocumentRoutes } from './modules/documents/document.routes';
 import workflowRoutes, { initializeWorkflowRoutes } from './modules/workflows/workflow.routes';
 import executiveRoutes, { initializeExecutiveRoutes } from './modules/executive/executive.routes';
+import dashboardRoutes from './modules/dashboard/dashboard.routes';
+import auditRoutes from './modules/audits/audit.routes';
+import complianceRoutes from './modules/compliance/compliance.routes';
+import controlRoutes from './modules/controls/control.routes';
 import ExecutiveAutomationService from './services/executive-automation.service';
 
 class App {
@@ -249,6 +253,10 @@ class App {
     this.app.use('/api/v1/documents', documentRoutes);
     this.app.use('/api/v1/workflows', workflowRoutes);
     this.app.use('/api/v1/executive', executiveRoutes);
+    this.app.use('/api/v1/dashboard', dashboardRoutes);
+    this.app.use('/api/v1/audits', auditRoutes);
+    this.app.use('/api/v1/compliance', complianceRoutes);
+    this.app.use('/api/v1/controls', controlRoutes);
     
     // Initialize executive automation on startup
     try {
