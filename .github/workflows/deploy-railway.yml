@@ -1,29 +1,11 @@
-name: Deploy to Railway (Direct)
+name: Deploy GRC to Railway
 
 on:
   workflow_dispatch:
-    inputs:
-      service:
-        description: 'Service to deploy'
-        required: true
-        default: 'cut-grc-backend'
-        type: choice
-        options:
-        - cut-grc-backend
-        - cut-grc-frontend
-      environment:
-        description: 'Environment'
-        required: true
-        default: 'production'
-        type: choice
-        options:
-        - production
-        - staging
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    
     steps:
     - name: Checkout
       uses: actions/checkout@v4
@@ -32,20 +14,18 @@ jobs:
       uses: railwayapp/action@v1.2.2
       with:
         railway-token: ${{ secrets.RAILWAY_PRODUCTION_TOKEN }}
-        service: ${{ github.event.inputs.service }}
-        environment: ${{ github.event.inputs.environment }}
+        service: cut-grc-backend
+        environment: production
 
-    - name: Verify health
+    - name: Verify
       run: |
-        sleep 30
+        sleep 45
         for i in 1 2 3 4 5; do
           STATUS=$(curl -s -o /dev/null -w "%{http_code}" https://cut-grc-backend-production.up.railway.app/health)
-          echo "Health check attempt $i: HTTP $STATUS"
+          echo "Health attempt $i: HTTP $STATUS"
           if [ "$STATUS" = "200" ]; then
-            UPTIME=$(curl -s https://cut-grc-backend-production.up.railway.app/health | python3 -c "import sys,json; print(round(json.load(sys.stdin)['uptime']),'s')")
-            echo "✅ Deploy successful! Uptime: $UPTIME"
+            echo "✅ Deploy complete!"
             exit 0
           fi
           sleep 15
         done
-        echo "⚠️ Health check timed out"
