@@ -4,6 +4,7 @@ import { AuthMiddleware } from '../../middleware/auth.middleware';
 
 const router = Router();
 
+// Initialize middleware
 let authMiddleware: AuthMiddleware;
 
 export const initializeAuditRoutes = (redisClient: any) => {
