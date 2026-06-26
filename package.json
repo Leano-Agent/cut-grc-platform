@@ -7,7 +7,6 @@
     "src/backend",
     "src/frontend",
     "src/shared",
-    "src/mobile-app",
     "src/public-portal"
   ],
   "scripts": {

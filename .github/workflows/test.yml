@@ -54,11 +54,11 @@ jobs:
 
     - name: Install dependencies (Backend)
       working-directory: ./src/backend
-      run: npm install
+      run: npm install --legacy-peer-deps
 
     - name: Install dependencies (Frontend)
       working-directory: ./src/frontend
-      run: npm install
+      run: npm install --legacy-peer-deps
 
     - name: Wait for PostgreSQL
       run: |
