@@ -34,10 +34,10 @@ import riskRoutes, { initializeRiskRoutes } from './modules/risks/risk.routes';
 import documentRoutes, { initializeDocumentRoutes } from './modules/documents/document.routes';
 import workflowRoutes, { initializeWorkflowRoutes } from './modules/workflows/workflow.routes';
 import executiveRoutes, { initializeExecutiveRoutes } from './modules/executive/executive.routes';
-import dashboardRoutes from './modules/dashboard/dashboard.routes';
-import auditRoutes from './modules/audits/audit.routes';
-import complianceRoutes from './modules/compliance/compliance.routes';
-import controlRoutes from './modules/controls/control.routes';
+import dashboardRoutes, { initializeDashboardRoutes } from './modules/dashboard/dashboard.routes';
+import auditRoutes, { initializeAuditRoutes } from './modules/audits/audit.routes';
+import complianceRoutes, { initializeComplianceRoutes } from './modules/compliance/compliance.routes';
+import controlRoutes, { initializeControlRoutes } from './modules/controls/control.routes';
 import ExecutiveAutomationService from './services/executive-automation.service';
 
 class App {
@@ -233,6 +233,10 @@ class App {
     initializeDocumentRoutes(redisClient as any);
     initializeWorkflowRoutes(redisClient as any);
     initializeExecutiveRoutes(redisClient as any);
+    initializeDashboardRoutes(redisClient as any);
+    initializeAuditRoutes(redisClient as any);
+    initializeComplianceRoutes(redisClient as any);
+    initializeControlRoutes(redisClient as any);
     logger.info('Route middleware initialized — auth enforcement is ACTIVE');
 
     // Health check endpoint

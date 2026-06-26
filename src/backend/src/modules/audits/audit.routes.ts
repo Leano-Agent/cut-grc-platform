@@ -3,7 +3,13 @@ import { asyncHandler } from '../../middleware/errorMiddleware';
 import { AuthMiddleware } from '../../middleware/auth.middleware';
 
 const router = Router();
-const authMiddleware = new AuthMiddleware();
+
+// Initialize middleware
+let authMiddleware: AuthMiddleware;
+
+export const initializeAuditRoutes = (redisClient: any) => {
+  authMiddleware = new AuthMiddleware(redisClient);
+};
 
 // All routes require auth
 router.use((req, res, next) => authMiddleware.verifyToken(req, res, next));

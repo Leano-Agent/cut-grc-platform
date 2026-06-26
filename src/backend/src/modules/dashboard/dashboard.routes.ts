@@ -3,7 +3,13 @@ import { asyncHandler } from '../../middleware/errorMiddleware';
 import { AuthMiddleware } from '../../middleware/auth.middleware';
 
 const router = Router();
-const authMiddleware = new AuthMiddleware();
+
+// Initialize middleware
+let authMiddleware: AuthMiddleware;
+
+export const initializeDashboardRoutes = (redisClient: any) => {
+  authMiddleware = new AuthMiddleware(redisClient);
+};
 
 /**
  * Dashboard routes — aggregated data for the main dashboard
