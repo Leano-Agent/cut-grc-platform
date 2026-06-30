@@ -32,7 +32,7 @@ const registerSchema = z.object({
   password: ValidationMiddleware.schemas.password,
   firstName: z.string().min(1, 'First name is required').max(50),
   lastName: z.string().min(1, 'Last name is required').max(50),
-  role: z.enum(['student', 'faculty', 'admin', 'auditor']).default('student'),
+  role: z.enum(['student', 'faculty', 'admin', 'auditor', 'staff', 'risk_manager', 'compliance_officer', 'manager']).default('student'),
 });
 
 const loginSchema = z.object({
@@ -259,7 +259,8 @@ router.post(
     
     // Check token version (for logout all devices)
     const currentVersion = await tokenBlacklist.getRefreshTokenVersion(payload.userId);
-    if (payload.tokenVersion !== currentVersion) {
+    // Skip version check when Redis is unavailable (returns 0 meaning no version tracking)
+    if (currentVersion !== 0 && payload.tokenVersion !== currentVersion) {
       sendError(res, 401, 'Refresh token version mismatch', 'TOKEN_VERSION_MISMATCH');
       return;
     }
@@ -494,6 +495,10 @@ function getPermissionsForRole(role: string): string[] {
     faculty: ['view_risks', 'view_compliance', 'submit_risks', 'review_risks', 'manage_courses'],
     admin: ['view_risks', 'view_compliance', 'submit_risks', 'review_risks', 'manage_courses', 'manage_users', 'system_config'],
     auditor: ['view_risks', 'view_compliance', 'audit_risks', 'audit_compliance', 'generate_reports'],
+    staff: ['view_risks', 'view_compliance'],
+    risk_manager: ['view_risks', 'view_compliance', 'submit_risks', 'review_risks', 'manage_risks'],
+    compliance_officer: ['view_risks', 'view_compliance', 'submit_risks', 'manage_compliance', 'audit_compliance'],
+    manager: ['view_risks', 'view_compliance', 'submit_risks', 'review_risks', 'manage_users'],
   };
   
   return permissions[role] || permissions.student;

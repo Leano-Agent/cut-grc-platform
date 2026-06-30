@@ -7,7 +7,7 @@ interface UserAttributes {
   passwordHash: string;
   firstName: string;
   lastName: string;
-  role: 'student' | 'faculty' | 'admin' | 'auditor';
+  role: 'student' | 'faculty' | 'admin' | 'auditor' | 'staff' | 'risk_manager' | 'compliance_officer' | 'manager';
   isActive: boolean;
   emailVerified: boolean;
   failedLoginAttempts: number;
@@ -29,7 +29,7 @@ class User extends Model<UserAttributes, UserCreationAttributes> implements User
   declare passwordHash: string;
   declare firstName: string;
   declare lastName: string;
-  declare role: 'student' | 'faculty' | 'admin' | 'auditor';
+  declare role: 'student' | 'faculty' | 'admin' | 'auditor' | 'staff' | 'risk_manager' | 'compliance_officer' | 'manager';
   declare isActive: boolean;
   declare emailVerified: boolean;
   declare failedLoginAttempts: number;
@@ -68,7 +68,7 @@ User.init(
       allowNull: false,
     },
     role: {
-      type: DataTypes.ENUM('student', 'faculty', 'admin', 'auditor'),
+      type: DataTypes.ENUM('student', 'faculty', 'admin', 'auditor', 'staff', 'risk_manager', 'compliance_officer', 'manager'),
       allowNull: false,
       defaultValue: 'student',
     },
