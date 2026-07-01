@@ -324,6 +324,7 @@ export class HealthController {
    * Version information endpoint
    */
   static async version(req: Request, res: Response): Promise<void> {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
     const packageJson = require('../../package.json');
     
     res.status(200).json({

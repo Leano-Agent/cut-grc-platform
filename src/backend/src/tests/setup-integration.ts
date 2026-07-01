@@ -64,8 +64,11 @@ beforeEach(async () => {
 
 // Type declarations for global test utilities
 declare global {
+  // eslint-disable-next-line no-var
   var dbPool: Pool;
+  // eslint-disable-next-line no-var
   var redisClient: any;
+  // eslint-disable-next-line no-var
   var testUser: {
     email: string;
     password: string;
