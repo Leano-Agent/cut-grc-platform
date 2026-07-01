@@ -52,12 +52,10 @@ jobs:
         node-version: ${{ matrix.node-version }}
 
     - name: Install dependencies (Backend)
-      working-directory: ./src/backend
-      run: npm install --legacy-peer-deps
+      run: npm install --legacy-peer-deps --workspace=src/backend
 
     - name: Install dependencies (Frontend)
-      working-directory: ./src/frontend
-      run: npm install --legacy-peer-deps
+      run: npm install --legacy-peer-deps --workspace=src/frontend
 
     - name: Run linting (Backend)
       working-directory: ./src/backend
