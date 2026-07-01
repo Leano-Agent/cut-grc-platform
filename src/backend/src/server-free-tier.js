@@ -11,7 +11,7 @@ const compression = require('compression');
 const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
 const fs = require('fs');
-const bcrypt = require('bcrypt');
+const bcrypt = require('bcryptjs');
 
 const app = express();
 const PORT = process.env.PORT || 10000;

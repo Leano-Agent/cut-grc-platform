@@ -36,9 +36,8 @@
   "license": "MIT",
   "dependencies": {
     "@socket.io/redis-adapter": "^8.3.0",
-    "@types/sequelize": "^4.28.20",
     "aws-sdk": "^2.1394.0",
-    "bcrypt": "^5.1.0",
+    "bcryptjs": "^2.4.3",
     "compression": "^1.7.4",
     "cors": "^2.8.5",
     "dotenv": "^16.0.3",
@@ -69,7 +68,6 @@
     "zod": "^3.21.4"
   },
   "devDependencies": {
-    "@types/bcrypt": "^5.0.0",
     "@types/cors": "^2.8.13",
     "@types/express": "^4.17.17",
     "@types/faker": "^5.5.9",
@@ -83,6 +81,7 @@
     "@types/passport": "^1.0.14",
     "@types/passport-jwt": "^3.0.10",
     "@types/passport-local": "^1.0.38",
+    "@types/sequelize": "^4.28.20",
     "@types/supertest": "^2.0.12",
     "@typescript-eslint/eslint-plugin": "^5.59.11",
     "@typescript-eslint/parser": "^5.59.11",

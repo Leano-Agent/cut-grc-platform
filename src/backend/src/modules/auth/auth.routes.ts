@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { z } from 'zod';
-import bcrypt from 'bcrypt';
+import bcrypt from 'bcryptjs';
 import { JWTService, TokenBlacklist } from '../../utils/jwt';
 import { ValidationMiddleware } from '../../middleware/validation.middleware';
 import { AuthMiddleware } from '../../middleware/auth.middleware';
