@@ -30,7 +30,6 @@
     "react-hook-form": "^7.48.2",
     "zod": "^3.22.4",
     "@hookform/resolvers": "^3.3.2",
-    "react-aria": "^1.4.0",
     "@react-aria/focus": "^3.14.0",
     "@react-aria/interactions": "^3.19.0"
   },
