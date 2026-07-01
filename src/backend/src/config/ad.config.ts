@@ -328,7 +328,6 @@ export async function saveADConfigToFile(config: ADConfig, filePath: string): Pr
 export async function loadADConfigFromFile(filePath: string): Promise<ADConfig | null> {
   try {
     const fs = await import('fs');
-    const path = await import('path');
     
     if (!fs.existsSync(filePath)) {
       return null;

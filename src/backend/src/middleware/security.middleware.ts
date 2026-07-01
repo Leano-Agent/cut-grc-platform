@@ -339,8 +339,8 @@ export class SecurityMiddleware {
   static sqlInjectionProtection = () => {
     return (req: Request, res: Response, next: NextFunction): void => {
       // Common SQL injection patterns
+      /* eslint-disable no-useless-escape */
       const sqlInjectionPatterns = [
-        // eslint-disable-next-line no-useless-escape
         /(\%27)|(\')|(\-\-)|(\%23)|(#)/gi,
         /((\%3D)|(=))[^\n]*((\%27)|(\')|(\-\-)|(\%3B)|(;))/gi,
         /(\%27)|(\')|(\-\-)|(\%23)|(#)/gi,
