@@ -449,7 +449,7 @@ class ExecutiveAutomationService extends EventEmitter {
     const parts = cronExpression.split(' ');
     if (parts.length !== 5) return null;
 
-    const [minute, hour, dayOfMonth, month, dayOfWeek] = parts;
+    const [_minute, _hour, _dayOfMonth, _month, _dayOfWeek] = parts;
     
     // Start from the next minute
     const next = new Date(from);

@@ -37,10 +37,6 @@
         ]
       }
     ],
-    "curly": [
-      "error",
-      "all"
-    ],
     "eqeqeq": [
       "error",
       "always"
