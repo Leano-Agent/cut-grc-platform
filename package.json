@@ -6,7 +6,6 @@
   "workspaces": [
     "src/backend",
     "src/frontend",
-    "src/shared",
     "src/public-portal"
   ],
   "scripts": {

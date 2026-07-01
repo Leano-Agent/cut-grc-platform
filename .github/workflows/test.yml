@@ -67,10 +67,17 @@ jobs:
 
     - name: Wait for Redis
       run: |
-        until redis-cli -h localhost ping | grep -q PONG; do
-          echo "Waiting for Redis..."
+        sudo apt-get update -qq && sudo apt-get install -y -qq redis-tools 2>/dev/null || true
+        for i in $(seq 1 30); do
+          if redis-cli -h localhost ping 2>/dev/null | grep -q PONG; then
+            echo "Redis is ready!"
+            exit 0
+          fi
+          echo "Waiting for Redis... attempt $i/30"
           sleep 2
         done
+        echo "Redis health check failed after 60 seconds"
+        exit 1
 
     - name: Run linting (Backend)
       working-directory: ./src/backend
