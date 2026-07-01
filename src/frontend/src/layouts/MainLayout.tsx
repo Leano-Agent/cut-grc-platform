@@ -191,9 +191,8 @@ const MainLayout = () => {
             display: { xs: 'none', sm: 'block' },
             '& .MuiDrawer-paper': {
               boxSizing: 'border-box',
-              width: drawerWidth,
-              transition: 'width 0.3s',
               width: sidebarOpen ? drawerWidth : 0,
+              transition: 'width 0.3s',
               overflowX: 'hidden',
             },
           }}
