@@ -27,8 +27,6 @@
     "clsx": "^2.0.0",
     "tailwind-merge": "^2.2.0",
     "lucide-react": "^0.309.0",
-    "@payfast/sdk": "^1.0.0",
-    "ozow-js": "^1.0.0",
     "react-hook-form": "^7.48.2",
     "zod": "^3.22.4",
     "@hookform/resolvers": "^3.3.2",
