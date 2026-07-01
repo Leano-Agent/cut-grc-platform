@@ -84,3 +84,4 @@ dump.rdb
 # Render/Railway specific
 .render/
 .railway/
+.vercel
