@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-namespace */
 import { Request, Response, NextFunction } from 'express';
 import { JWTService, TokenBlacklist } from '../utils/jwt';
 import logger from '../config/logger';

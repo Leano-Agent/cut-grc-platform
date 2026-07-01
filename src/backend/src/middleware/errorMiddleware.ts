@@ -70,7 +70,7 @@ export const errorHandler = (
   error: Error | AppError,
   req: Request,
   res: Response,
-  next: NextFunction
+  next: NextFunction // eslint-disable-line @typescript-eslint/no-unused-vars
 ): void => {
   // Log the error
   logError(error, req);
