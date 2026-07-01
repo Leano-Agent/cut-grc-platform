@@ -76,13 +76,15 @@ router.get(
   '/activities',
   (req, res, next) => authMiddleware.verifyToken(req, res, next),
   asyncHandler(async (_req: Request, res: Response) => {
-    res.json([
-      { id: '1', action: 'Risk #1042 updated', user: 'Oratile Admin', time: '10 minutes ago', type: 'risk' },
-      { id: '2', action: 'Compliance review completed', user: 'Oratile Admin', time: '1 hour ago', type: 'compliance' },
-      { id: '3', action: 'Audit #3012 scheduled', user: 'Oratile Admin', time: '3 hours ago', type: 'audit' },
-      { id: '4', action: 'New control added', user: 'Oratile Admin', time: 'Yesterday', type: 'control' },
-      { id: '5', action: 'Policy document updated', user: 'Oratile Admin', time: 'Yesterday', type: 'document' },
-    ]);
+    res.json({
+      data: [
+        { id: '1', action: 'Risk #1042 updated', user: 'Oratile Admin', module: 'Risk Management', time: '10 minutes ago', avatar: 'OA' },
+        { id: '2', action: 'Compliance review completed', user: 'Oratile Admin', module: 'Compliance Tracking', time: '1 hour ago', avatar: 'OA' },
+        { id: '3', action: 'Audit #3012 scheduled', user: 'Oratile Admin', module: 'Audit Management', time: '3 hours ago', avatar: 'OA' },
+        { id: '4', action: 'New control added', user: 'Oratile Admin', module: 'Internal Controls', time: 'Yesterday', avatar: 'OA' },
+        { id: '5', action: 'Policy document updated', user: 'Oratile Admin', module: 'Document Management', time: 'Yesterday', avatar: 'OA' },
+      ],
+    });
   })
 );
 

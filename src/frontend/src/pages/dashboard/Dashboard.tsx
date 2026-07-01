@@ -428,7 +428,7 @@ const Dashboard = () => {
                     />
                     <ListItemSecondaryAction>
                       <Chip
-                        label={activity.module.split(' ')[0]}
+                        {(activity.module || 'General').split(' ')[0]}
                         size="small"
                         sx={{ bgcolor: 'primary.light', color: 'primary.contrastText' }}
                       />
