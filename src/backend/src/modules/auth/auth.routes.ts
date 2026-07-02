@@ -368,7 +368,7 @@ router.post(
       return;
     }
     
-    const { currentPassword, newPassword } = req.body;
+    const { currentPassword: _currentPassword, newPassword: _newPassword } = req.body;
     
     // In real app:
     // 1. Get user from database
@@ -393,7 +393,7 @@ router.post(
   ValidationMiddleware.validateBody(resetPasswordRequestSchema),
   (req, res, next) => securityMiddleware ? securityMiddleware.bruteForceProtection()(req, res, next) : next(),
   asyncHandler(async (req, res) => {
-    const { email } = req.body;
+    const { email: _email } = req.body;
     
     // In real app:
     // 1. Check if user exists
@@ -417,7 +417,7 @@ router.post(
   '/reset-password',
   ValidationMiddleware.validateBody(resetPasswordSchema),
   asyncHandler(async (req, res) => {
-    const { token, newPassword } = req.body;
+    const { token: _token, newPassword: _newPassword } = req.body;
     
     // In real app:
     // 1. Verify reset token (check in database, check expiry)
