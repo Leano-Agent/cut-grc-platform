@@ -52,6 +52,7 @@ const filterWorkflowsSchema = z.object({
 });
 
 // Middleware to check if user has municipal role
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const requireMunicipalRole = (requiredRole: string) => {
   return (req: any, res: any, next: any) => {
     if (!req.user) {
