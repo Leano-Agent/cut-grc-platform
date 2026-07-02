@@ -71,8 +71,8 @@ router.post(
   asyncHandler(async (req, res) => {
     const { email, password, firstName, lastName, role } = req.body;
     
-    // Ensure user table exists
-    await User.sync({ alter: true });
+    // Schema is already applied by prod-migrate.js on startup
+    // User.sync({ alter: true }) removed — it blocks every request with ALTER TABLE scan
     
     // Check if user already exists
     const existingUser = await User.findOne({ where: { email } });
@@ -148,8 +148,8 @@ router.post(
   asyncHandler(async (req, res) => {
     const { email, password } = req.body;
     
-    // Ensure user table exists
-    await User.sync({ alter: true });
+    // Schema is already applied by prod-migrate.js on startup
+    // User.sync({ alter: true }) removed — it blocks every request with ALTER TABLE scan
     
     // Find user by email
     const user = await User.findOne({ where: { email, isActive: true } });
