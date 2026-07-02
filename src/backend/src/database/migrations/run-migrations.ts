@@ -330,7 +330,7 @@ async function main() {
       case 'status':
         await runner.status();
         break;
-      case 'create':
+      case 'create': {
         const name = process.argv[3];
         if (!name) {
           console.error('Usage: ts-node run-migrations.ts create <migration-name>');
@@ -338,6 +338,7 @@ async function main() {
         }
         await runner.create(name);
         break;
+      }
       default:
         console.log(`
 CUT GRC Platform Migration Runner

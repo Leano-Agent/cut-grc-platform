@@ -487,7 +487,7 @@ export class UserSyncService {
   /**
    * Find user in local database (mock implementation)
    */
-  private async findLocalUser(userId: string): Promise<any> {
+  private async findLocalUser(_userId: string): Promise<any> {
     // In a real application, you would query your database
     // For now, return null to simulate user not found
     return null;
@@ -496,7 +496,7 @@ export class UserSyncService {
   /**
    * Find group in local database (mock implementation)
    */
-  private async findLocalGroup(groupName: string): Promise<any> {
+  private async findLocalGroup(_groupName: string): Promise<any> {
     // In a real application, you would query your database
     // For now, return null to simulate group not found
     return null;
@@ -505,7 +505,7 @@ export class UserSyncService {
   /**
    * Find department in local database (mock implementation)
    */
-  private async findLocalDepartment(department: string): Promise<any> {
+  private async findLocalDepartment(_department: string): Promise<any> {
     // In a real application, you would query your database
     // For now, return null to simulate department not found
     return null;

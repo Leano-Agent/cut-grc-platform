@@ -261,9 +261,9 @@ export class ADModule {
     try {
       // Use Passport strategy to authenticate
       return new Promise((resolve, reject) => {
-        passport.authenticate('ldap', { session: false }, (error: any, user: any, info: any) => {
-          if (error) {
-            reject(error);
+        passport.authenticate('ldap', { session: false }, (_error: any, user: any, _info: any) => {
+          if (_error) {
+            reject(_error);
           } else if (!user) {
             resolve({
               success: false,
@@ -284,7 +284,7 @@ export class ADModule {
                   department: syncResult.department,
                 });
               })
-              .catch(syncError => {
+              .catch((_syncError: any) => {
                 resolve({
                   success: true,
                   user: { username: user.username },
@@ -294,7 +294,9 @@ export class ADModule {
                 });
               });
           }
-        })({ body: { username, password } } as any, {} as any, () => {});
+        })({ body: { username, password } } as any, {} as any, () => {
+          // No-op callback for passport.authenticate
+        });
       });
     } catch (error: any) {
       this.logger.error('Authentication test failed', {

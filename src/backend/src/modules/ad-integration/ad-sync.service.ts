@@ -2,6 +2,7 @@ import { Service } from 'typedi';
 import { Logger } from '../common/logger';
 import { ActiveDirectoryService } from './ad.service';
 import { UserSyncService } from './user-sync.service';
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { ADConfig } from '../../config/ad.config';
 import config from '../../config/config';
 

@@ -621,11 +621,12 @@ export class ActiveDirectoryService {
 }
 
 // Singleton instance
+// eslint-disable-next-line prefer-const
 let adServiceInstance: ActiveDirectoryService | null = null;
 
 export function getADService(): ActiveDirectoryService {
   if (!adServiceInstance) {
-    const adConfig: ADConfig = {
+    const _adConfig: ADConfig = {
       url: config.ad?.url || 'ldap://localhost:389',
       bindDN: config.ad?.bindDN || '',
       bindCredentials: config.ad?.bindCredentials || '',
