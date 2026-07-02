@@ -66,7 +66,7 @@ router.get(
       status,
       search,
       sortBy = 'createdAt',
-      sortOrder = 'desc'
+      _sortOrder = 'desc'
     } = req.query as any;
     
     // In real application, you would:
@@ -415,7 +415,7 @@ router.post(
   })),
   asyncHandler(async (req, res) => {
     const { id } = req.params;
-    const { users = [], departments = [], permission, message } = req.body;
+    const { users = [], departments = [], permission, message: _message } = req.body;
     
     // In real application:
     // 1. Create share records in database
