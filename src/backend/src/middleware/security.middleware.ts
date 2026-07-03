@@ -136,6 +136,12 @@ export class SecurityMiddleware {
    */
   bruteForceProtection = () => {
     return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+      // Skip Redis-dependent checks when Redis is disconnected
+      if (this.redis.status !== 'ready') {
+        logger.warn('Redis not ready — skipping brute force protection');
+        next();
+        return;
+      }
       try {
         const ip = req.ip || req.socket.remoteAddress || 'unknown';
         const key = `bruteforce:${ip}:${req.path}`;

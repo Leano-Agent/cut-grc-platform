@@ -1,7 +1,7 @@
 # 🎯 Ngome Platform — Launch Kanban
 
-> Last updated: 2026-06-15 19:20 UTC
-> Current deploy: `7508d87` — fix double-transaction migration + email service
+> Last updated: 2026-07-03 11:03 UTC
+> Current deploy: `3c03ef7` — multi-tenant: Organisation model + 004 migration + org_id on all tables
 
 ---
 
@@ -9,10 +9,12 @@
 
 | Task | Details |
 |------|---------|
-| ✅ 5x crash fixes | middleware, fileUpload, openapi.json, all route modules |
-| ✅ Auth enforcement | All protected routes return 401/NO_TOKEN |
-| ✅ TokenBlacklist | Handles null Redis gracefully |
-| ✅ NODE_ENV=production | Swagger docs disabled |
+| ✅ **Multi-Tenant Phase 1 (t_leone_027)** | Organisation model, 004 migration, org_id on all 18 tables — CI green ✅ |
+| ✅ **CI Pipeline GREEN** (both Node 20.x & 22.x) | Test Suite passes all 20 steps — first time ever ✅ |
+| ✅ **Ngome rebrand (t_leone_026)** | 51 files rebranded from CUT GRC → Ngome across backend + frontend + docs + CI/CD |
+| ✅ **Auth enforcement** | All protected routes return 401/NO_TOKEN |
+| ✅ **TokenBlacklist** | Handles null Redis gracefully |
+| ✅ **NODE_ENV=production** | Swagger docs disabled |
 | ✅ **DATABASE CONNECTED** | Fresh Postgres-4wZL on Railway, `database: true` |
 | ✅ **SQL migrations applied** | 003-grc-complete-schema.sql — all tables created |
 | ✅ **Registration → DB** | POST /api/v1/auth/register creates real DB records |
