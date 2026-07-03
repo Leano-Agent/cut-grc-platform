@@ -8,6 +8,8 @@ interface UserAttributes {
   firstName: string;
   lastName: string;
   role: 'student' | 'faculty' | 'admin' | 'auditor' | 'staff' | 'risk_manager' | 'compliance_officer' | 'manager';
+  organisationId: string;
+  orgRole: 'owner' | 'admin' | 'member';
   isActive: boolean;
   emailVerified: boolean;
   failedLoginAttempts: number;
@@ -20,7 +22,7 @@ interface UserAttributes {
 
 type UserCreationAttributes = Optional<
   UserAttributes,
-  'id' | 'isActive' | 'emailVerified' | 'failedLoginAttempts' | 'lockedUntil' | 'refreshTokenVersion' | 'lastLoginAt' | 'createdAt' | 'updatedAt'
+  'id' | 'organisationId' | 'orgRole' | 'isActive' | 'emailVerified' | 'failedLoginAttempts' | 'lockedUntil' | 'refreshTokenVersion' | 'lastLoginAt' | 'createdAt' | 'updatedAt'
 >;
 
 class User extends Model<UserAttributes, UserCreationAttributes> implements UserAttributes {
@@ -30,6 +32,8 @@ class User extends Model<UserAttributes, UserCreationAttributes> implements User
   declare firstName: string;
   declare lastName: string;
   declare role: 'student' | 'faculty' | 'admin' | 'auditor' | 'staff' | 'risk_manager' | 'compliance_officer' | 'manager';
+  declare organisationId: string;
+  declare orgRole: 'owner' | 'admin' | 'member';
   declare isActive: boolean;
   declare emailVerified: boolean;
   declare failedLoginAttempts: number;
@@ -50,7 +54,6 @@ User.init(
     email: {
       type: DataTypes.STRING(255),
       allowNull: false,
-      unique: true,
       validate: {
         isEmail: true,
       },
@@ -71,6 +74,21 @@ User.init(
       type: DataTypes.ENUM('student', 'faculty', 'admin', 'auditor', 'staff', 'risk_manager', 'compliance_officer', 'manager'),
       allowNull: false,
       defaultValue: 'student',
+    },
+    organisationId: {
+      type: DataTypes.UUID,
+      allowNull: true,
+      field: 'organisation_id',
+      references: {
+        model: 'organisations',
+        key: 'id',
+      },
+    },
+    orgRole: {
+      type: DataTypes.ENUM('owner', 'admin', 'member'),
+      allowNull: false,
+      defaultValue: 'member',
+      field: 'org_role',
     },
     isActive: {
       type: DataTypes.BOOLEAN,

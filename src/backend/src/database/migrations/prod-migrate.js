@@ -20,7 +20,7 @@ async function run() {
   )`);
 
   const files = fs.readdirSync(__dirname)
-    .filter(f => f.endsWith('.sql') && f.startsWith('003'))
+    .filter(f => f.endsWith('.sql') && (f.startsWith('003') || f.startsWith('004')))
     .sort();
 
   const { rows } = await pool.query('SELECT name FROM _migrations');

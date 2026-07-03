@@ -185,6 +185,30 @@
   }
 
   /**
+   * Seed default organisation
+   */
+  private async seedOrganisation(): Promise<void> {
+    const client = await this.pool.connect();
+    try {
+      await client.query('BEGIN');
+      await client.query(
+        `INSERT INTO organisations (id, name, slug, subscription_tier, max_users)
+         VALUES ($1, $2, $3, $4, $5)
+         ON CONFLICT (slug) DO NOTHING`,
+        ['00000000-0000-0000-0000-000000000001', 'Central University of Technology', 'cut', 'enterprise', 1000]
+      );
+      await client.query('COMMIT');
+      logger.info('Seeded default organisation');
+    } catch (error) {
+      await client.query('ROLLBACK');
+      logger.error('Failed to seed organisation', { error });
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
+
+  /**
    * Run all seed operations
    */
   async run(): Promise<void> {
@@ -192,6 +216,7 @@
     
     try {
       await this.clearSeedData();
+      await this.seedOrganisation();
       await this.seedUsers();
       await this.seedRisks();
       await this.seedComplianceRequirements();
