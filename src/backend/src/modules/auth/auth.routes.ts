@@ -27,6 +27,8 @@ export const initializeAuthRoutes = (redisClient: any) => {
 };
 
 // Validation schemas
+const DEFAULT_ORG_ID = '00000000-0000-0000-0000-000000000001';
+
 const registerSchema = z.object({
   email: ValidationMiddleware.schemas.email,
   password: ValidationMiddleware.schemas.password,
@@ -93,6 +95,7 @@ router.post(
       firstName,
       lastName,
       role: role || 'student',
+      organisationId: DEFAULT_ORG_ID,
       isActive: true,
       emailVerified: false,
       failedLoginAttempts: 0,
