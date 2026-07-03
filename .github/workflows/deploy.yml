@@ -153,8 +153,7 @@ jobs:
     needs: docker-build
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/develop' || (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'staging')
-    environment: staging
-    
+
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
@@ -171,8 +170,7 @@ jobs:
     needs: test-and-build
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main' || (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'production')
-    environment: production
-    
+
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
