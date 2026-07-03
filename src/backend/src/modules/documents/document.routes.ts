@@ -41,6 +41,7 @@ const documentQuerySchema = z.object({
 
 // Initialize middleware
 let authMiddleware: AuthMiddleware;
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 let securityMiddleware: SecurityMiddleware;
 
 export const initializeDocumentRoutes = (redisClient: any) => {

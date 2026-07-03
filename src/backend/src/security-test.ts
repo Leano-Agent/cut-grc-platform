@@ -77,6 +77,7 @@ try {
 // Test 4: Validation Schemas
 console.log('\n4. Testing Validation Schemas...');
 try {
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
   const { z } = require('zod');
   
   // Test email validation
@@ -107,6 +108,7 @@ try {
 // Test 5: Error Handling
 console.log('\n5. Testing Error Handling...');
 try {
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
   const { AppError, ValidationError, AuthenticationError } = require('./middleware/errorMiddleware');
   
   // Test custom error classes
