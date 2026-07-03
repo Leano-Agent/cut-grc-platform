@@ -21,7 +21,6 @@ import { JWTService, TokenBlacklist } from './utils/jwt';
 import { errorHandler, notFound } from './middleware/errorMiddleware';
 import { SecurityMiddleware } from './middleware/security.middleware';
 import { ValidationMiddleware } from './middleware/validation.middleware';
-import AuthMiddleware from './middleware/auth.middleware';
 
 // Import routes
 import authRoutes, { initializeAuthRoutes } from './modules/auth/auth.routes';

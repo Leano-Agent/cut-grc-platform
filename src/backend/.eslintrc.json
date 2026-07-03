@@ -52,6 +52,8 @@
     "src/modules/municipal",
     "src/config/ad.config.ts",
     "src/config/database-sqlite.ts",
-    "src/database/migrations/run-migrations.ts"
+    "src/database/migrations/run-migrations.ts",
+    "src/security-test.ts",
+    "src/tests"
   ]
 }
