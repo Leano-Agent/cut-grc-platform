@@ -10,7 +10,6 @@ import logger from '../../config/logger';
 import { logAuthentication } from '../../config/logger';
 import { emailService } from '../../services/email.service';
 import User from '../../models/User';
-import database from '../../config/database';
 
 const router = Router();
 
@@ -476,7 +475,7 @@ router.get(
   '/verify-email/:token',
   ValidationMiddleware.validateParams(z.object({ token: z.string() })),
   asyncHandler(async (req, res) => {
-    const { token } = req.params;
+    const { token: _token } = req.params;
     
     // In real app:
     // 1. Verify email token

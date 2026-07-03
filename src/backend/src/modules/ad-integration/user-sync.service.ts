@@ -597,6 +597,7 @@ export class UserSyncService {
 }
 
 // Singleton instance
+// eslint-disable-next-line prefer-const
 let userSyncServiceInstance: UserSyncService | null = null;
 
 export function getUserSyncService(): UserSyncService {

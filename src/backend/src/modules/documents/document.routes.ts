@@ -65,7 +65,7 @@ router.get(
       department,
       status,
       search,
-      sortBy = 'createdAt',
+      _sortBy = 'createdAt',
       _sortOrder = 'desc'
     } = req.query as any;
     
