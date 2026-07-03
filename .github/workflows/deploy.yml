@@ -168,7 +168,7 @@ jobs:
 
   # Deploy to Production
   deploy-production:
-    needs: docker-build
+    needs: test-and-build
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main' || (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'production')
     environment: production
