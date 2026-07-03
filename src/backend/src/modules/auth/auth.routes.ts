@@ -6,15 +6,16 @@ import { ValidationMiddleware } from '../../middleware/validation.middleware';
 import { AuthMiddleware } from '../../middleware/auth.middleware';
 import { SecurityMiddleware } from '../../middleware/security.middleware';
 import { asyncHandler, sendSuccess, sendError } from '../../middleware/errorMiddleware';
-import logger from '../../config/logger';
-import { logAuthentication } from '../../config/logger';
+import logger, { logAuthentication } from '../../config/logger';
 import { emailService } from '../../services/email.service';
 import User from '../../models/User';
 
 const router = Router();
 
 // Initialize middleware
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 let authMiddleware: AuthMiddleware;
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 let securityMiddleware: SecurityMiddleware;
 let tokenBlacklist: TokenBlacklist;
 
@@ -210,8 +211,12 @@ router.post(
     // Reset brute force counter
     if (securityMiddleware) {
       try {
-        await securityMiddleware.resetBruteForceCounter()(req, res, () => {});
-      } catch (e) { /* non-critical */ }
+        await securityMiddleware.resetBruteForceCounter()(req, res, () => {
+          // No-op callback for reset operation
+        });
+      } catch (_e) { 
+        // Non-critical — brute force reset is best-effort
+      }
     }
     
     logAuthentication('login', user.id, req.ip || 'unknown', true, { role: user.role });
