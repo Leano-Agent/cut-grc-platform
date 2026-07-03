@@ -1,7 +1,7 @@
 {
-  "name": "cut-grc-backend",
-  "version": "1.0.0",
-  "description": "CUT GRC Platform Backend API",
+  "name": "ngome-backend",
+  "version": "2.0.0",
+  "description": "Ngome Backend API — The Fortress for African Governance",
   "main": "dist/server.js",
   "scripts": {
     "dev": "nodemon --exec ts-node src/server.ts",
@@ -21,8 +21,8 @@
     "docs:generate": "ts-node src/docs/generate-openapi.ts",
     "docs:serve": "swagger-ui-express dist/openapi.json",
     "check": "npm run lint && npm run type-check && npm test",
-    "docker:build": "docker build -t cut-grc-backend .",
-    "docker:run": "docker run -p 3000:3000 cut-grc-backend"
+    "docker:build": "docker build -t ngome-backend .",
+    "docker:run": "docker run -p 3000:3000 ngome-backend"
   },
   "keywords": [
     "grc",
@@ -32,7 +32,7 @@
     "nodejs",
     "typescript"
   ],
-  "author": "CUT GRC Development Team",
+  "author": "Ngome Development Team",
   "license": "MIT",
   "dependencies": {
     "@socket.io/redis-adapter": "^8.3.0",

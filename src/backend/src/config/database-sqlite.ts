@@ -15,7 +15,7 @@ export class SQLiteDatabaseService implements Database {
 
   constructor() {
     // Store database in /data directory (persistent storage on Render)
-    this.dbPath = process.env.SQLITE_PATH || '/data/cut-grc.sqlite';
+    this.dbPath = process.env.SQLITE_PATH || '/data/ngome.sqlite';
     
     // Ensure data directory exists
     const dataDir = path.dirname(this.dbPath);

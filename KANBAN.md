@@ -1,4 +1,4 @@
-# 🎯 CUT GRC Platform — Launch Kanban
+# 🎯 Ngome Platform — Launch Kanban
 
 > Last updated: 2026-06-15 19:20 UTC
 > Current deploy: `7508d87` — fix double-transaction migration + email service
@@ -35,7 +35,7 @@
 
 | # | Task | Detail |
 |---|------|--------|
-| 1 | **DNS: api.plf.app** | Currently resolves to 13.248.169.48 (AWS Route53) — needs CNAME → `cut-grc-backend-production.up.railway.app` |
+| 1 | **DNS: api.plf.app** | Currently resolves to 13.248.169.48 (AWS Route53) — needs CNAME → `ngome-backend-production.up.railway.app` |
 | | | **Requires:** Route53 credentials for plf.app zone |
 
 ---
@@ -46,7 +46,7 @@
 |---|------|-------|
 | 2 | **Fix login password hashing** | Registration and login use different hashing methods (login returns INVALID_CREDENTIALS for valid user) |
 | 3 | **Set JWT_SECRET + JWT_REFRESH_SECRET** | Must be set as Railway env vars for production security |
-| 4 | **Set CORS_ORIGIN** | Should be `https://cut-grc-frontend.vercel.app` (or `https://plf.app`) |
+| 4 | **Set CORS_ORIGIN** | Should be `https://ngome-frontend.vercel.app` (or `https://plf.app`) |
 | 5 | **Clean up duplicate Postgres service** | "Postgres" service on canvas is a duplicate of Postgres-4wZL |
 
 ---
@@ -64,8 +64,8 @@
 
 ## 🔧 Current State
 
-- **Backend URL**: https://cut-grc-backend-production.up.railway.app
-- **Frontend URL**: https://cut-grc-frontend.vercel.app (points to api.plf.app — won't work until DNS is set)
+- **Backend URL**: https://ngome-backend-production.up.railway.app
+- **Frontend URL**: https://ngome-frontend.vercel.app (points to api.plf.app — won't work until DNS is set)
 - **Health**: `{"status":"healthy","database":true,"redis":"disconnected"}`
 - **Auth**: Active — registration works, login has hashing bug
 - **Database**: Postgres-4wZL on Railway, tables from 003-grc-complete-schema.sql applied
@@ -78,7 +78,7 @@
 ```
 JWT_SECRET=<strong random string>
 JWT_REFRESH_SECRET=<strong random string>
-CORS_ORIGIN=https://cut-grc-frontend.vercel.app
+CORS_ORIGIN=https://ngome-frontend.vercel.app
 SMTP_HOST=<SendGrid/Mailgun host>
 SMTP_PORT=587
 SMTP_USER=<SMTP username>

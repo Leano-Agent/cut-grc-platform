@@ -1,4 +1,4 @@
-# Railway Configuration — CUT GRC Platform
+# Railway Configuration — Ngome Platform
 # Project: https://railway.app/project/fdf323a7-5500-4c0c-827f-504c680dfb44
 
 [build]
@@ -10,4 +10,4 @@
   restartPolicyType = "always"
 
 [service]
-  name = "cut-grc-backend"
+  name = "ngome-backend"

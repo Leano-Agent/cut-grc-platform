@@ -212,7 +212,7 @@ const Dashboard = () => {
             {getGreeting()}, {user?.firstName}!
           </Typography>
           <Typography variant="body1" color="text.secondary">
-            Here's what's happening with your GRC platform today.
+            Here's what's happening with your Ngome platform today.
           </Typography>
         </Box>
         <IconButton onClick={handleRefresh} disabled={isRefreshing}>

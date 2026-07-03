@@ -1,4 +1,4 @@
-# CUT GRC Platform - Frontend
+# Ngome Platform - Frontend
 
 Enterprise Governance, Risk & Compliance (GRC) platform frontend built with React, TypeScript, and Material-UI, designed with African design principles and sovereignty in mind.
 

@@ -1,8 +1,8 @@
 {
-  "name": "cut-grc-frontend",
-  "version": "1.0.0",
+  "name": "ngome-frontend",
+  "version": "2.0.0",
   "private": true,
-  "description": "CUT GRC Platform Frontend Application",
+  "description": "Ngome Frontend — The Fortress for African Governance",
   "type": "module",
   "scripts": {
     "diagnostics": "echo \"Open http://localhost:5173/diagnostic-tools/ in your browser\"",
@@ -20,8 +20,8 @@
     "storybook": "storybook dev -p 6006",
     "storybook:build": "storybook build",
     "check": "npm run lint && npm run type-check && npm test",
-    "docker:build": "docker build -t cut-grc-frontend .",
-    "docker:run": "docker run -p 5173:80 cut-grc-frontend"
+    "docker:build": "docker build -t ngome-frontend .",
+    "docker:run": "docker run -p 5173:80 ngome-frontend"
   },
   "dependencies": {
     "react": "^18.2.0",

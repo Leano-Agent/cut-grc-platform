@@ -7,7 +7,7 @@ import config from '../../config/config';
 import logger from '../../utils/logger';
 
 /**
- * Migration runner for CUT GRC Platform
+ * Migration runner for Ngome Platform
  * 
  * Usage:
  *   ts-node run-migrations.ts up    - Run all pending migrations
@@ -341,7 +341,7 @@ async function main() {
       }
       default:
         console.log(`
-CUT GRC Platform Migration Runner
+Ngome Platform Migration Runner
 
 Usage:
   ts-node run-migrations.ts up        - Run all pending migrations

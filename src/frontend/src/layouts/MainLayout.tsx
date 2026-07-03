@@ -136,7 +136,7 @@ const MainLayout = () => {
           </IconButton>
           
           <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1 }}>
-            CUT GRC Platform
+            Ngome Platform
           </Typography>
 
           {/* Notifications */}

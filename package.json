@@ -1,8 +1,8 @@
 {
-  "name": "cut-grc-platform",
+  "name": "ngome-platform",
   "version": "2.0.0",
   "private": true,
-  "description": "CUT GRC Platform — Governance, Risk & Compliance System",
+  "description": "Ngome — The Fortress for African Governance",
   "workspaces": [
     "src/backend",
     "src/frontend",

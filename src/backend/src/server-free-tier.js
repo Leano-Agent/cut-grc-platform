@@ -24,7 +24,7 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // Database setup
-const dbPath = process.env.SQLITE_PATH || '/data/cut-grc-free.sqlite';
+const dbPath = process.env.SQLITE_PATH || '/data/ngome-free.sqlite';
 const dataDir = path.dirname(dbPath);
 
 // Ensure data directory exists

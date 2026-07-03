@@ -126,7 +126,7 @@ jobs:
       id: meta
       uses: docker/metadata-action@v5
       with:
-        images: ${{ secrets.DOCKER_USERNAME }}/cut-grc-backend
+        images: ${{ secrets.DOCKER_USERNAME }}/ngome-backend
         tags: |
           type=ref,event=branch
           type=sha,prefix=
@@ -156,7 +156,7 @@ jobs:
       uses: railwayapp/action@v1.2.2
       with:
         railway-token: ${{ secrets.RAILWAY_STAGING_TOKEN }}
-        service: cut-grc-backend
+        service: ngome-backend
         environment: staging
 
   # Deploy to Production
@@ -174,7 +174,7 @@ jobs:
       uses: railwayapp/action@v1.2.2
       with:
         railway-token: ${{ secrets.RAILWAY_PRODUCTION_TOKEN }}
-        service: cut-grc-backend
+        service: ngome-backend
         environment: production
 
     - name: Notify deployment success
@@ -190,8 +190,8 @@ jobs:
     steps:
     - name: Check staging health
       run: |
-        curl -f https://cut-grc-backend-production.up.railway.app/health || echo "Staging health check failed"
-        
+        curl -f https://ngome-backend-production.up.railway.app/health || echo "Staging health check failed"
+
     - name: Check production health
       run: |
-        curl -f https://cut-grc-backend-production.up.railway.app/api/v1/health || echo "Production health check failed"
+        curl -f https://ngome-backend-production.up.railway.app/api/v1/health || echo "Production health check failed"

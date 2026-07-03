@@ -22,7 +22,7 @@ const DiagnosticsPage: React.FC = () => {
     setIsRunningTests(true);
     try {
       // Load and run test suite
-      const TestSuite = (window as any).CUTGRCTestSuite;
+      const TestSuite = (window as any).NgomeTestSuite;
       if (TestSuite) {
         const suite = new TestSuite();
         const results = await suite.runAllTests();
@@ -79,7 +79,7 @@ const DiagnosticsPage: React.FC = () => {
       </Typography>
       
       <Typography variant="body1" color="text.secondary" paragraph>
-        Comprehensive monitoring, debugging, and testing tools for the CUT GRC platform.
+        Comprehensive monitoring, debugging, and testing tools for the Ngome platform.
       </Typography>
 
       <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 3, mb: 4 }}>

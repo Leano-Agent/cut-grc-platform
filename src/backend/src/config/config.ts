@@ -15,7 +15,7 @@ const envSchema = z.object({
   DATABASE_URL: z.string().optional(),
   DB_HOST: z.string().default('localhost'),
   DB_PORT: z.string().transform(Number).default('5432'),
-  DB_NAME: z.string().default('cut_grc'),
+  DB_NAME: z.string().default('ngome'),
   DB_USER: z.string().default('postgres'),
   DB_PASSWORD: z.string().default('postgres'),
   DB_SSL: z.string().transform(val => val === 'true').default('false'),
@@ -143,7 +143,7 @@ const config = {
     host: env.REDIS_HOST,
     port: env.REDIS_PORT,
     password: env.REDIS_PASSWORD,
-    keyPrefix: 'cut-grc:',
+    keyPrefix: 'ngome:',
   },
   
   // JWT

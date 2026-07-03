@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document outlines the backup and recovery procedures for the CUT GRC Platform PostgreSQL database. These procedures ensure data integrity, availability, and compliance with data protection requirements.
+This document outlines the backup and recovery procedures for the Ngome Platform PostgreSQL database. These procedures ensure data integrity, availability, and compliance with data protection requirements.
 
 ## Backup Strategy
 
@@ -45,20 +45,20 @@ Sunday:
 
 ### 1. Full Backup Script
 
-Create `/opt/cut-grc/backup/backup-full.sh`:
+Create `/opt/ngome/backup/backup-full.sh`:
 
 ```bash
 #!/bin/bash
 
 # Configuration
-BACKUP_DIR="/opt/cut-grc/backup/full"
+BACKUP_DIR="/opt/ngome/backup/full"
 DATE=$(date +%Y%m%d_%H%M%S)
-BACKUP_FILE="$BACKUP_DIR/cut_grc_full_$DATE.dump"
-LOG_FILE="/var/log/cut-grc/backup-full.log"
+BACKUP_FILE="$BACKUP_DIR/ngome_full_$DATE.dump"
+LOG_FILE="/var/log/ngome/backup-full.log"
 RETENTION_DAYS=30
 
 # Load environment
-source /opt/cut-grc/.env
+source /opt/ngome/.env
 
 # Create backup directory if it doesn't exist
 mkdir -p $BACKUP_DIR
@@ -84,10 +84,9 @@ if [ $? -eq 0 ]; then
     
     # Encrypt backup (optional)
     # openssl enc -aes-256-cbc -salt -in $BACKUP_FILE.gz -out $BACKUP_FILE.gz.enc -pass pass:$ENCRYPTION_KEY
-    
     # Upload to cloud storage (example with AWS S3)
-    # aws s3 cp $BACKUP_FILE.gz s3://cut-grc-backups/database/full/ --storage-class STANDARD_IA
-    
+    # aws s3 cp $BACKUP_FILE.gz s3://ngome-backups/database/full/ --storage-class STANDARD_IA
+
     # Cleanup old backups
     find $BACKUP_DIR -name "*.dump.gz" -mtime +$RETENTION_DAYS -delete
     echo "[$(date)] Cleaned up backups older than $RETENTION_DAYS days" >> $LOG_FILE
@@ -105,16 +104,16 @@ Add to `postgresql.conf`:
 # WAL Archiving
 wal_level = replica
 archive_mode = on
-archive_command = 'test ! -f /opt/cut-grc/backup/wal/%f && cp %p /opt/cut-grc/backup/wal/%f'
+archive_command = 'test ! -f /opt/ngome/backup/wal/%f && cp %p /opt/ngome/backup/wal/%f'
 archive_timeout = 300
 ```
 
-Create WAL archive script `/opt/cut-grc/backup/archive-wal.sh`:
+Create WAL archive script `/opt/ngome/backup/archive-wal.sh`:
 
 ```bash
 #!/bin/bash
 
-WAL_DIR="/opt/cut-grc/backup/wal"
+WAL_DIR="/opt/ngome/backup/wal"
 RETENTION_DAYS=7
 
 # Cleanup old WAL files
@@ -122,7 +121,7 @@ find $WAL_DIR -name "*.backup" -mtime +$RETENTION_DAYS -delete
 find $WAL_DIR -name "*.[0-9A-F]*" -mtime +$RETENTION_DAYS -delete
 
 # Sync to cloud storage
-# aws s3 sync $WAL_DIR s3://cut-grc-backups/database/wal/ --delete
+# aws s3 sync $WAL_DIR s3://ngome-backups/database/wal/ --delete
 ```
 
 ### 3. Automated Backup with Cron
@@ -131,13 +130,13 @@ Add to crontab (`crontab -e`):
 
 ```bash
 # Full backups daily at 2 AM
-0 2 * * * /opt/cut-grc/backup/backup-full.sh
+0 2 * * * /opt/ngome/backup/backup-full.sh
 
 # WAL cleanup daily at 3 AM
-0 3 * * * /opt/cut-grc/backup/archive-wal.sh
+0 3 * * * /opt/ngome/backup/archive-wal.sh
 
 # Transaction log backups every 15 minutes
-*/15 * * * * /opt/cut-grc/backup/backup-transaction.sh
+*/15 * * * * /opt/ngome/backup/backup-transaction.sh
 ```
 
 ## Recovery Procedures
@@ -154,21 +153,21 @@ Add to crontab (`crontab -e`):
 sudo systemctl stop postgresql
 
 # Restore from latest full backup
-LATEST_BACKUP=$(ls -t /opt/cut-grc/backup/full/*.dump.gz | head -1)
+LATEST_BACKUP=$(ls -t /opt/ngome/backup/full/*.dump.gz | head -1)
 
 # Decompress
 gunzip $LATEST_BACKUP
 BACKUP_FILE=${LATEST_BACKUP%.gz}
 
 # Drop and recreate database
-psql -h localhost -U postgres -c "DROP DATABASE IF EXISTS cut_grc;"
-psql -h localhost -U postgres -c "CREATE DATABASE cut_grc;"
+psql -h localhost -U postgres -c "DROP DATABASE IF EXISTS ngome;"
+psql -h localhost -U postgres -c "CREATE DATABASE ngome;"
 
 # Restore
 pg_restore \
   -h localhost \
   -U postgres \
-  -d cut_grc \
+  -d ngome \
   -v \
   $BACKUP_FILE
 
@@ -189,7 +188,7 @@ sudo systemctl stop postgresql
 mkdir -p /var/lib/postgresql/recovery
 
 # Copy WAL files to recovery location
-cp /opt/cut-grc/backup/wal/* /var/lib/postgresql/recovery/
+cp /opt/ngome/backup/wal/* /var/lib/postgresql/recovery/
 
 # Create recovery.conf (PostgreSQL 12+ uses postgresql.auto.conf)
 cat > /var/lib/postgresql/data/recovery.conf << EOF
@@ -213,7 +212,7 @@ tail -f /var/log/postgresql/postgresql-15-main.log
 
 # Extract single table from backup
 TABLE_NAME="users"
-BACKUP_FILE="/opt/cut-grc/backup/full/cut_grc_full_20240101_020000.dump"
+BACKUP_FILE="/opt/ngome/backup/full/ngome_full_20240101_020000.dump"
 
 # List tables in backup
 pg_restore -l $BACKUP_FILE | grep "TABLE DATA public $TABLE_NAME"
@@ -223,7 +222,7 @@ pg_restore \
   --table=$TABLE_NAME \
   --data-only \
   $BACKUP_FILE | \
-psql -h localhost -U postgres -d cut_grc
+psql -h localhost -U postgres -d ngome
 ```
 
 ### 2. Recovery Testing
@@ -233,8 +232,8 @@ psql -h localhost -U postgres -d cut_grc
 #!/bin/bash
 # recovery-test.sh
 
-TEST_DB="cut_grc_test_$(date +%Y%m%d)"
-BACKUP_FILE=$(ls -t /opt/cut-grc/backup/full/*.dump.gz | head -1)
+TEST_DB="ngome_test_$(date +%Y%m%d)"
+BACKUP_FILE=$(ls -t /opt/ngome/backup/full/*.dump.gz | head -1)
 
 echo "Starting recovery test for $TEST_DB"
 
@@ -259,33 +258,33 @@ echo "Recovery test completed"
 Add to crontab:
 ```bash
 # First Sunday of every month at 4 AM
-0 4 1-7 * 0 /opt/cut-grc/backup/recovery-test.sh
+0 4 1-7 * 0 /opt/ngome/backup/recovery-test.sh
 ```
 
 ## Monitoring and Alerting
 
 ### 1. Backup Monitoring Script
 
-Create `/opt/cut-grc/backup/monitor-backups.sh`:
+Create `/opt/ngome/backup/monitor-backups.sh`:
 
 ```bash
 #!/bin/bash
 
 # Check if backups are running
-BACKUP_AGE_HOURS=$(( ($(date +%s) - $(stat -c %Y /opt/cut-grc/backup/full/latest.dump)) / 3600 ))
+BACKUP_AGE_HOURS=$(( ($(date +%s) - $(stat -c %Y /opt/ngome/backup/full/latest.dump)) / 3600 ))
 
 if [ $BACKUP_AGE_HOURS -gt 26 ]; then
     echo "ALERT: No new backup in $BACKUP_AGE_HOURS hours" | \
-    mail -s "CUT GRC Backup Alert" admin@cut.ac.za
+    mail -s "Ngome Backup Alert" admin@tyriie.com
 fi
 
 # Check backup size
-BACKUP_SIZE=$(du -h /opt/cut-grc/backup/full/latest.dump | cut -f1)
+BACKUP_SIZE=$(du -h /opt/ngome/backup/full/latest.dump | cut -f1)
 MIN_SIZE="100M"
 
 if [ "$(echo "$BACKUP_SIZE < $MIN_SIZE" | bc)" -eq 1 ]; then
     echo "ALERT: Backup size suspiciously small: $BACKUP_SIZE" | \
-    mail -s "CUT GRC Backup Size Alert" admin@cut.ac.za
+    mail -s "Ngome Backup Size Alert" admin@tyriie.com
 fi
 ```
 
@@ -319,7 +318,7 @@ scrape_configs:
 - **Historical data**: 24 hours
 
 ### 3. Disaster Recovery Sites
-- **Primary**: CUT Data Center (Bloemfontein)
+- **Primary**: Ngome Data Center (Johannesburg)
 - **Secondary**: AWS Africa (Cape Town) Region
 - **Tertiary**: Azure South Africa North Region
 
@@ -341,7 +340,7 @@ aws route53 change-resource-record-sets \
   --change-batch file://dns-update.json
 
 # Verify application connectivity
-curl -I https://grc.cut.ac.za/health
+curl -I https://ngome.dev/health
 ```
 
 #### Step 3: Data Synchronization
@@ -385,17 +384,17 @@ pg_basebackup -h primary-server -D /var/lib/postgresql/data -U replicator -v -P
 
 **Primary Backup Administrator**: 
 - Name: IT Operations Team
-- Email: it-ops@cut.ac.za
+- Email: it-ops@tyriie.com
 - Phone: +27 51 123 4567
 
 **Secondary Backup Administrator**:
 - Name: Database Administrator
-- Email: dba@cut.ac.za
+- Email: dba@tyriie.com
 - Phone: +27 51 123 4568
 
 **Emergency Contact**:
-- Name: CUT IT Director
-- Email: it-director@cut.ac.za
+- Name: Ngome IT Director
+- Email: it-director@tyriie.com
 - Phone: +27 51 123 4569
 
 ### C. Change Log
@@ -410,4 +409,4 @@ pg_basebackup -h primary-server -D /var/lib/postgresql/data -U replicator -v -P
 
 **Last Updated**: 2024-01-15  
 **Next Review**: 2024-04-15  
-**Document Owner**: CUT IT Department
+**Document Owner**: Ngome Platform Team

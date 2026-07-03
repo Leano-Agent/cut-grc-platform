@@ -79,15 +79,15 @@ class EmailService {
    * Send password reset email
    */
   async sendPasswordResetEmail(to: string, resetToken: string): Promise<boolean> {
-    const resetUrl = `${config.corsOrigin || 'https://cut-grc-frontend.vercel.app'}/reset-password?token=${resetToken}`;
+    const resetUrl = `${config.corsOrigin || 'https://ngome-frontend.vercel.app'}/reset-password?token=${resetToken}`;
 
     return this.sendMail({
       to,
-      subject: 'CUT GRC Platform — Password Reset',
+      subject: 'Ngome Platform — Password Reset',
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
           <div style="background-color: #1a5276; padding: 20px; text-align: center;">
-            <h1 style="color: white; margin: 0;">CUT GRC Platform</h1>
+            <h1 style="color: white; margin: 0;">Ngome Platform</h1>
           </div>
           <div style="padding: 20px; background-color: #f9f9f9;">
             <h2>Password Reset Request</h2>
@@ -118,18 +118,18 @@ class EmailService {
   async sendWelcomeEmail(to: string, firstName: string): Promise<boolean> {
     return this.sendMail({
       to,
-      subject: 'Welcome to CUT GRC Platform',
+      subject: 'Welcome to Ngome Platform',
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
           <div style="background-color: #1a5276; padding: 20px; text-align: center;">
-            <h1 style="color: white; margin: 0;">CUT GRC Platform</h1>
+            <h1 style="color: white; margin: 0;">Ngome Platform</h1>
           </div>
           <div style="padding: 20px; background-color: #f9f9f9;">
             <h2>Welcome, ${firstName}!</h2>
-            <p>Your account has been created on the CUT Governance, Risk & Compliance Platform.</p>
+            <p>Your account has been created on the Ngome Governance, Risk & Compliance Platform.</p>
             <p>You can now log in and access the platform's features.</p>
             <div style="text-align: center; margin: 30px 0;">
-              <a href="${config.corsOrigin || 'https://cut-grc-frontend.vercel.app'}/login" 
+              <a href="${config.corsOrigin || 'https://ngome-frontend.vercel.app'}/login" 
                  style="background-color: #1a5276; color: white; padding: 12px 30px; 
                         text-decoration: none; border-radius: 4px; font-size: 16px;">
                 Log in to Platform
@@ -142,7 +142,7 @@ class EmailService {
           </div>
         </div>
       `,
-      text: `Welcome to CUT GRC Platform, ${firstName}!\n\nYour account has been created. Log in at: ${config.corsOrigin || 'https://cut-grc-frontend.vercel.app'}/login`,
+      text: `Welcome to Ngome Platform, ${firstName}!\n\nYour account has been created. Log in at: ${config.corsOrigin || 'https://ngome-frontend.vercel.app'}/login`,
     });
   }
 }

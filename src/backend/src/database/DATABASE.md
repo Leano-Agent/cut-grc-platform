@@ -1,8 +1,8 @@
-# CUT GRC Platform Database Documentation
+# Ngome Platform Database Documentation
 
 ## Overview
 
-This document provides comprehensive documentation for the CUT GRC Platform database schema, including table structures, relationships, indexes, security policies, and maintenance procedures.
+This document provides comprehensive documentation for the Ngome Platform database schema, including table structures, relationships, indexes, security policies, and maintenance procedures.
 
 ## Database Specifications
 

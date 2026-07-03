@@ -78,7 +78,7 @@ describe('App', () => {
     renderWithProviders(<App />, { route: '/' })
     
     // Check for login page elements
-    expect(screen.getByText(/CUT GRC Platform/i)).toBeInTheDocument()
+    expect(screen.getByText(/Ngome Platform/i)).toBeInTheDocument()
     expect(screen.getByText(/Sign in to your account/i)).toBeInTheDocument()
     expect(screen.getByLabelText(/Email Address/i)).toBeInTheDocument()
     expect(screen.getByLabelText(/Password/i)).toBeInTheDocument()
@@ -139,7 +139,7 @@ describe('App', () => {
     )
 
     // Check for dashboard elements
-    expect(screen.getByText(/CUT GRC Platform/i)).toBeInTheDocument()
+    expect(screen.getByText(/Ngome Platform/i)).toBeInTheDocument()
   })
 
   test('handles 404 routes', () => {
@@ -153,7 +153,7 @@ describe('App', () => {
     renderWithProviders(<App />)
     
     // Check for African-inspired design elements
-    const platformName = screen.getByText(/CUT GRC Platform/i)
+    const platformName = screen.getByText(/Ngome Platform/i)
     expect(platformName).toBeInTheDocument()
     
     // Check for African sovereignty mention

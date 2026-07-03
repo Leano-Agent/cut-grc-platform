@@ -218,7 +218,7 @@ const Sidebar = ({ navItems }: SidebarProps) => {
               display: sidebarOpen ? 'block' : 'none',
             }}
           >
-            CUT GRC
+            Ngome
           </Typography>
           {!sidebarOpen && (
             <Typography
@@ -258,7 +258,7 @@ const Sidebar = ({ navItems }: SidebarProps) => {
             fontSize: '0.75rem',
           }}
         >
-          {sidebarOpen ? 'CUT GRC Platform v1.0' : 'v1.0'}
+          {sidebarOpen ? 'Ngome Platform v2.0' : 'v2.0'}
         </Typography>
         <Typography
           variant="caption"

@@ -1,4 +1,4 @@
-# CUT GRC Mobile Field Worker App
+# Ngome Mobile Field Worker App
 
 React Native mobile application for field workers to collect data, manage service requests, and communicate with the office.
 

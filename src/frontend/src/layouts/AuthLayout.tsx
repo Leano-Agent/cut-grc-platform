@@ -68,7 +68,7 @@ const AuthLayout = () => {
                 mb: 1,
               }}
             >
-              CUT GRC Platform
+              Ngome Platform
             </Typography>
             <Typography
               variant="body1"
@@ -128,7 +128,7 @@ const AuthLayout = () => {
             }}
           >
             <Typography variant="body2" color="text.secondary">
-              © {new Date().getFullYear()} CUT GRC Platform. All rights reserved.
+              © {new Date().getFullYear()} Ngome Platform. All rights reserved.
             </Typography>
             <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1 }}>
               Built with African design principles and sovereignty in mind

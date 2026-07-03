@@ -27,7 +27,7 @@ describe('Authentication Integration Tests', () => {
     dbPool = new Pool({
       host: process.env.TEST_DB_HOST || 'localhost',
       port: parseInt(process.env.TEST_DB_PORT || '5432'),
-      database: process.env.TEST_DB_NAME || 'cut_grc_test',
+      database: process.env.TEST_DB_NAME || 'ngome_test',
       user: process.env.TEST_DB_USER || 'postgres',
       password: process.env.TEST_DB_PASSWORD || 'postgres',
     });

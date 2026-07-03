@@ -40,7 +40,7 @@ const logger = winston.createLogger({
   level: config.logLevel,
   levels,
   format: fileFormat,
-  defaultMeta: { service: 'cut-grc-backend' },
+  defaultMeta: { service: 'ngome-backend' },
   transports: [
     // Console transport for development
     new winston.transports.Console({

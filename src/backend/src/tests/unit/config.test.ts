@@ -138,7 +138,7 @@ describe('Configuration', () => {
         expect(freshConfig.redis.host).toBe('redis-host');
         expect(freshConfig.redis.port).toBe(6380);
         expect(freshConfig.redis.password).toBe('redis-password');
-        expect(freshConfig.redis.keyPrefix).toBe('cut-grc:');
+        expect(freshConfig.redis.keyPrefix).toBe('ngome:');
       });
     });
 

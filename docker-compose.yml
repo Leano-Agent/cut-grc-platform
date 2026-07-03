@@ -7,10 +7,10 @@ services:
   # PostgreSQL Database
   postgres:
     image: postgres:15-alpine
-    container_name: cut-grc-postgres
+    container_name: ngome-postgres
     restart: unless-stopped
     environment:
-      POSTGRES_DB: cut_grc
+      POSTGRES_DB: ngome
       POSTGRES_USER: user
       POSTGRES_PASSWORD: password
       POSTGRES_INITDB_ARGS: "--encoding=UTF8 --lc-collate=C --lc-ctype=C"
@@ -22,7 +22,7 @@ services:
     networks:
       - grc-network
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U user -d cut_grc"]
+      test: ["CMD-SHELL", "pg_isready -U user -d ngome"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -30,7 +30,7 @@ services:
   # Redis Cache
   redis:
     image: redis:7-alpine
-    container_name: cut-grc-redis
+    container_name: ngome-redis
     restart: unless-stopped
     command: redis-server --appendonly yes --requirepass redispassword
     volumes:
@@ -50,7 +50,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: cut-grc-backend
+    container_name: ngome-backend
     restart: unless-stopped
     depends_on:
       postgres:
@@ -60,7 +60,7 @@ services:
     environment:
       - NODE_ENV=development
       - PORT=3000
-      - DATABASE_URL=postgresql://user:password@postgres:5432/cut_grc
+      - DATABASE_URL=postgresql://user:password@postgres:5432/ngome
       - REDIS_URL=redis://:redispassword@redis:6379
       - JWT_SECRET=development_jwt_secret_change_in_production
       - CORS_ORIGIN=http://localhost:5173
@@ -84,7 +84,7 @@ services:
   # Frontend Service (Optional - Vite/React)
   frontend:
     image: node:20-alpine
-    container_name: cut-grc-frontend
+    container_name: ngome-frontend
     restart: unless-stopped
     working_dir: /app
     volumes:
@@ -102,7 +102,7 @@ services:
   # Adminer (Database Management - Optional)
   adminer:
     image: adminer
-    container_name: cut-grc-adminer
+    container_name: ngome-adminer
     restart: unless-stopped
     ports:
       - "8080:8080"

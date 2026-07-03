@@ -1,4 +1,4 @@
-name: Deploy GRC to Railway
+name: Deploy Ngome to Railway
 
 on:
   workflow_dispatch:
@@ -30,11 +30,11 @@ jobs:
         sleep 60
         
         for i in 1 2 3 4 5; do
-          STATUS=$(curl -s -o /dev/null -w "%{http_code}" https://cut-grc-backend-production.up.railway.app/health)
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" https://ngome-backend-production.up.railway.app/health)
           echo "Health attempt $i: HTTP $STATUS"
           if [ "$STATUS" = "200" ]; then
-            curl -s https://cut-grc-backend-production.up.railway.app/health | python3 -c "import sys,json; d=json.load(sys.stdin); print(f'Status: {d[\"status\"]} | Uptime: {round(d[\"uptime\"])}s | DB: {d[\"database\"]}')"
-            echo "✅ GRC backend is healthy!"
+            curl -s https://ngome-backend-production.up.railway.app/health | python3 -c "import sys,json; d=json.load(sys.stdin); print(f'Status: {d[\"status\"]} | Uptime: {round(d[\"uptime\"])}s | DB: {d[\"database\"]}')"
+            echo "✅ Ngome backend is healthy!"
             exit 0
           fi
           sleep 15

@@ -3,7 +3,7 @@
 
 services:
   - type: web
-    name: cut-grc-free
+    name: ngome-free
     env: node
     region: frankfurt
     plan: free
@@ -17,10 +17,10 @@ services:
       - key: PORT
         value: 10000
       - key: CORS_ORIGINS
-        value: "https://cut-grc-frontend.vercel.app"
+        value: "https://ngome-frontend.vercel.app"
       - key: JWT_SECRET
         generateValue: true
       - key: JWT_REFRESH_SECRET
         generateValue: true
       - key: SQLITE_PATH
-        value: /data/cut-grc.sqlite
+        value: /data/ngome.sqlite

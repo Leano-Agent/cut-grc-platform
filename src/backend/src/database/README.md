@@ -1,8 +1,8 @@
-# CUT GRC Platform Database Setup
+# Ngome Platform Database Setup
 
 ## Overview
 
-This directory contains the complete database setup for the CUT GRC Platform, including schema definitions, migrations, seed data, and maintenance procedures.
+This directory contains the complete database setup for the Ngome Platform, including schema definitions, migrations, seed data, and maintenance procedures.
 
 ## Structure
 
@@ -68,7 +68,7 @@ Create `.env` file in the backend root:
 # Database
 DB_HOST=localhost
 DB_PORT=5432
-DB_NAME=cut_grc
+DB_NAME=ngome
 DB_USER=postgres
 DB_PASSWORD=your_password
 DB_SSL=false
@@ -104,7 +104,7 @@ npm run migrate:status
 #### Option B: Manual SQL Execution
 ```bash
 # Apply initial schema
-psql -h localhost -U postgres -d cut_grc -f src/database/migrations/001-initial-schema.sql
+psql -h localhost -U postgres -d ngome -f src/database/migrations/001-initial-schema.sql
 ```
 
 ### 4. Seed Development Data
@@ -113,11 +113,11 @@ npm run seed:dev
 ```
 
 Default login credentials after seeding:
-- Admin: `admin@cut.ac.za` / `Admin123!`
-- Risk Manager: `risk.manager@cut.ac.za` / `Risk123!`
-- Compliance Officer: `compliance@cut.ac.za` / `Compliance123!`
-- Auditor: `auditor@cut.ac.za` / `Audit123!`
-- Viewer: `finance.viewer@cut.ac.za` / `Viewer123!`
+- Admin: `admin@tyriie.com` / `Admin123!`
+- Risk Manager: `risk.manager@tyriie.com` / `Risk123!`
+- Compliance Officer: `compliance@tyriie.com` / `Compliance123!`
+- Auditor: `auditor@tyriie.com` / `Audit123!`
+- Viewer: `finance.viewer@tyriie.com` / `Viewer123!`
 
 ## Health Checks
 
@@ -219,7 +219,7 @@ See `backup-recovery.md` for detailed procedures.
    sudo systemctl status postgresql
    
    # Test connection
-   psql -h localhost -U postgres -d cut_grc
+   psql -h localhost -U postgres -d ngome
    ```
 
 2. **Migration Issues**
@@ -243,8 +243,8 @@ See `backup-recovery.md` for detailed procedures.
 
 ### Support
 For database-related issues, contact:
-- Primary: Database Administrator (dba@cut.ac.za)
-- Secondary: IT Operations (it-ops@cut.ac.za)
+- Primary: Database Administrator (dba@tyriie.com)
+- Secondary: IT Operations (it-ops@tyriie.com)
 
 ## Version History
 
@@ -259,4 +259,4 @@ For database-related issues, contact:
 
 **Last Updated**: 2024-01-15  
 **Next Review**: 2024-04-15  
-**Document Owner**: CUT IT Department
+**Document Owner**: Ngome Platform Team

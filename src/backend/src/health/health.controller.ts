@@ -87,7 +87,7 @@ export class HealthController {
         application: {
           environment: process.env.NODE_ENV || 'development',
           version: process.env.npm_package_version || '1.0.0',
-          name: process.env.npm_package_name || 'cut-grc-backend',
+          name: process.env.npm_package_name || 'ngome-backend',
         },
       };
       
@@ -167,7 +167,7 @@ export class HealthController {
         details: {
           host: process.env.REDIS_HOST,
           port: process.env.REDIS_PORT,
-          keyPrefix: process.env.REDIS_KEY_PREFIX || 'cut-grc:',
+          keyPrefix: process.env.REDIS_KEY_PREFIX || 'ngome:',
         },
       };
       

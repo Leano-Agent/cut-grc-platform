@@ -63,8 +63,8 @@ app.use(express.json());
 // Root endpoint
 app.get('/', (req, res) => {
   res.json({
-    message: 'CUT GRC Platform API',
-    version: '1.0.0',
+    message: 'Ngome Platform API',
+    version: '2.0.0',
     status: 'operational',
     mode: 'free-tier-simple',
     endpoints: {
@@ -74,7 +74,7 @@ app.get('/', (req, res) => {
       users: '/api/v1/users',
       dashboard: '/api/v1/dashboard/stats'
     },
-    documentation: 'https://github.com/Leano-Agent/cut-grc-platform',
+    documentation: 'https://github.com/Leano-Agent/ngome',
     timestamp: new Date().toISOString()
   });
 });

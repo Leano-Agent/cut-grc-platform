@@ -1,4 +1,4 @@
-# CUT GRC Platform Test Report
+# Ngome Platform Test Report
 
 **Date:** {{DATE}}
 **Environment:** {{ENVIRONMENT}}

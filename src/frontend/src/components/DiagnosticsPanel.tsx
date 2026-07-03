@@ -16,7 +16,7 @@ const DiagnosticsPanel: React.FC = () => {
     };
 
     // Load diagnostic tools if not already loaded
-    if (!(window as any).CUTGRCTestSuite) {
+    if (!(window as any).NgomeTestSuite) {
       loadScript('/diagnostic-tools/diagnostic-tools.js').catch(console.error);
     }
     if (!(window as any).__reactDebug) {
@@ -29,8 +29,8 @@ const DiagnosticsPanel: React.FC = () => {
   };
 
   const runQuickTest = () => {
-    if ((window as any).CUTGRCTestSuite) {
-      const TestSuite = (window as any).CUTGRCTestSuite;
+    if ((window as any).NgomeTestSuite) {
+      const TestSuite = (window as any).NgomeTestSuite;
       const suite = new TestSuite();
       suite.runAllTests();
     } else {
@@ -85,7 +85,7 @@ const DiagnosticsPanel: React.FC = () => {
         <code style={{ display: 'block', background: '#f5f5f5', padding: '0.5rem', borderRadius: '4px', marginTop: '0.5rem' }}>
           __reactDebug.enable()<br/>
           __reactDebug.getTree()<br/>
-          new CUTGRCTestSuite().runAllTests()<br/>
+          new NgomeTestSuite().runAllTests()<br/>
           runDeploymentVerification()
         </code>
       </Box>

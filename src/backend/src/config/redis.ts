@@ -3,7 +3,7 @@ import config from './config';
 import logger from '../utils/logger';
 
 /**
- * Redis configuration for CUT GRC Platform
+ * Redis configuration for Ngome Platform
  * Supports caching, sessions, and real-time features
  */
 
@@ -26,7 +26,7 @@ class RedisClient {
         },
       },
       password: config.redis.password,
-      name: 'cut-grc-backend',
+      name: 'ngome-backend',
     });
 
     // Setup event handlers

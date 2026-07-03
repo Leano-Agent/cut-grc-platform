@@ -1,4 +1,4 @@
-# Production Dockerfile for GRC Backend
+# Production Dockerfile for Ngome Backend
 # African Sovereignty: Optimized for African deployment environments
 
 # Stage 1: Build
@@ -13,7 +13,7 @@ COPY package*.json ./
 COPY src/backend/package*.json src/backend/
 
 # Ensure shared workspace has a package.json (may be empty dir in repo)
-RUN mkdir -p src/shared && if [ ! -f src/shared/package.json ]; then echo '{"name":"@cut/shared","version":"1.0.0","private":true}' > src/shared/package.json; fi
+RUN mkdir -p src/shared && if [ ! -f src/shared/package.json ]; then echo '{"name":"@ngome/shared","version":"1.0.0","private":true}' > src/shared/package.json; fi
 
 # Install all workspace dependencies
 RUN npm install --workspaces --include-workspace-root

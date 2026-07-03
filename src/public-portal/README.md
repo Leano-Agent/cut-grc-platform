@@ -1,6 +1,6 @@
-# CUT GRC Public Portal
+# Ngome Public Portal
 
-Citizen self-service portal for Central University of Technology's Governance, Risk, and Compliance platform.
+Citizen self-service portal for the Ngome Governance, Risk, and Compliance platform.
 
 ## Features
 

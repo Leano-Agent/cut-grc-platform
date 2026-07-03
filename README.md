@@ -1,11 +1,13 @@
-# CUT GRC Platform
+# Ngome Platform
 
-Enterprise Governance, Risk, and Compliance software platform for Central University of Technology (CUT).
+**The Fortress for African Governance**
+
+Enterprise Governance, Risk, and Compliance software platform built with African sovereignty in mind.
 
 ## Project Overview
 
-**Client:** Central University of Technology (CUT)
-**Project:** Comprehensive GRC Software Platform
+**Project:** Ngome — Comprehensive GRC Software Platform
+**Tagline:** The Fortress for African Governance
 **Timeline:** 6-9 months enterprise development
 **Status:** Development Phase
 
@@ -27,7 +29,7 @@ Enterprise Governance, Risk, and Compliance software platform for Central Univer
    - Control testing and monitoring
 
 4. **Integration Capabilities**
-   - Live data tracking with CUT systems
+   - Live data tracking with existing systems
    - External updates without login
    - API-first architecture
 
@@ -109,7 +111,7 @@ Enterprise Governance, Risk, and Compliance software platform for Central Univer
 ## Project Structure
 
 ```
-cut-grc-platform/
+ngome/
 ├── .github/           # GitHub Actions workflows
 ├── docs/              # Documentation
 │   ├── architecture/  # Architecture designs
@@ -178,7 +180,7 @@ All API endpoints (except `/auth/*`) require JWT authentication.
 # Login to get token
 curl -X POST http://localhost:3000/api/v1/auth/login \
   -H "Content-Type: application/json" \
-  -d '{"email": "user@cut.ac.za", "password": "password"}'
+  -d '{"email": "user@example.com", "password": "password"}'
 
 # Use token in subsequent requests
 curl -X GET http://localhost:3000/api/v1/risks \
@@ -283,14 +285,13 @@ kubectl get services
 
 ## License
 
-This project is proprietary software developed for Central University of Technology (CUT).
+This project is proprietary software developed by Ngome.
 
 ## Support
 
 For technical support or questions:
-- **Development Team:** dev-team@cut.ac.za
-- **Documentation:** [Internal Wiki](https://wiki.cut.ac.za/grc-platform)
-- **Issue Tracking:** [GitHub Issues](https://github.com/cut-university/grc-platform/issues)
+- **Email:** dev@ngome.dev
+- **Issue Tracking:** [GitHub Issues](https://github.com/Leano-Agent/ngome-platform/issues)
 
 ---
 
