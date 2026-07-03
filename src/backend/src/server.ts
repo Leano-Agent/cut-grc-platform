@@ -1,5 +1,8 @@
 import express, { Application, Request, Response, NextFunction } from 'express';
+import cors from 'cors';
+import helmet from 'helmet';
 import compression from 'compression';
+import rateLimit from 'express-rate-limit';
 import slowDown from 'express-slow-down';
 import dotenv from 'dotenv';
 import { createServer } from 'http';
@@ -271,12 +274,8 @@ class App {
     // API documentation
     if (process.env.NODE_ENV !== 'production') {
       try {
-        // eslint-disable-next-line @typescript-eslint/no-var-requires
-        const swaggerUi = require('swagger-ui-express');
-        // eslint-disable-next-line @typescript-eslint/no-var-requires
-        const swaggerDoc = require('../docs/openapi.json');
-        this.app.use('/api-docs', swaggerUi.serve);
-        this.app.get('/api-docs', swaggerUi.setup(swaggerDoc));
+        this.app.use('/api-docs', require('swagger-ui-express').serve);
+        this.app.get('/api-docs', require('swagger-ui-express').setup(require('../docs/openapi.json')));
       } catch (error: any) {
         logger.warn('Swagger UI not available', { reason: error.message });
       }
