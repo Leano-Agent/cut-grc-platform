@@ -345,8 +345,10 @@ class App {
 
 // Create and start the application
 console.log('[server] constructing App...');
+
+let app: App | undefined;
 try {
-  const app = new App();
+  app = new App();
   console.log('[server] App constructed, calling listen()...');
   app.listen();
   console.log('[server] listen() called');
