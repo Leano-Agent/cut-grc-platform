@@ -1,8 +1,3 @@
-// === CRASH DIAGNOSTIC ===
-// This MUST be the very first output. If you see migrations but NOT this,
-// the crash happens during Node.js module loading (import/require phase).
-console.log('[server] process started, loading modules...');
-
 import express, { Application, Request, Response, NextFunction } from 'express';
 import compression from 'compression';
 import dotenv from 'dotenv';
@@ -13,7 +8,6 @@ import { createAdapter } from '@socket.io/redis-adapter';
 
 // Load environment variables
 dotenv.config();
-console.log('[server] modules loaded, env configured');
 
 // Import configurations
 import config from './config/config';
@@ -344,18 +338,7 @@ class App {
 }
 
 // Create and start the application
-console.log('[server] constructing App...');
-
-let app: App | undefined;
-try {
-  app = new App();
-  console.log('[server] App constructed, calling listen()...');
-  app.listen();
-  console.log('[server] listen() called');
-} catch (error: any) {
-  console.error('[server] FATAL: App construction failed:', error?.message || error);
-  console.error(error?.stack);
-  process.exit(1);
-}
+const app = new App();
+app.listen();
 
 export default app;
