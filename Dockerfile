@@ -46,6 +46,8 @@ COPY --from=builder --chown=nodejs:nodejs /app/package*.json ./
 COPY --from=builder --chown=nodejs:nodejs /app/src/backend/package*.json src/backend/
 COPY --from=builder --chown=nodejs:nodejs /app/src/backend/dist src/backend/dist
 COPY --from=builder --chown=nodejs:nodejs /app/src/shared src/shared
+# Copy migrations (prod-migrate.js is a raw JS file, not compiled — must be copied from source)
+COPY --from=builder --chown=nodejs:nodejs /app/src/backend/src/database/migrations src/backend/src/database/migrations
 # npm workspaces hoist all node_modules to root — copy once, Node.js resolves upward
 COPY --from=builder --chown=nodejs:nodejs /app/node_modules node_modules
 
