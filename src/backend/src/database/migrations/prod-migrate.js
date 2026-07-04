@@ -38,6 +38,7 @@ async function run() {
 
   console.log('Migrations complete');
   await pool.end();
+  process.exit(0);
 }
 
 run().catch(e => { console.error(e); process.exit(1); });
