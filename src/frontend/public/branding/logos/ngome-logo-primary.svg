@@ -1,0 +1,86 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 560 160" width="560" height="160">
+  <defs>
+    <linearGradient id="shieldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1E3270;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#0D1A3E;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="goldGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#D4A017" />
+      <stop offset="100%" style="stop-color:#A87C0A" />
+    </linearGradient>
+    <linearGradient id="goldH" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#D4A017" />
+      <stop offset="100%" style="stop-color:#A87C0A" />
+    </linearGradient>
+  </defs>
+
+  <!-- ══════════════════════════════════════════════
+       SHIELD / FORTRESS ICON  (70 × 140, left-anchored at x=10)
+       ══════════════════════════════════════════════ -->
+
+  <!-- Shield main body -->
+  <path d="M10,20 L90,20 L90,95 Q90,138 50,152 Q10,138 10,95 Z"
+        fill="url(#shieldGrad)"/>
+
+  <!-- Gold border -->
+  <path d="M14,24 L86,24 L86,94 Q86,133 50,146 Q14,133 14,94 Z"
+        fill="none" stroke="url(#goldGrad)" stroke-width="2.2" opacity="0.85"/>
+
+  <!-- Battlements (crenellations) across the top -->
+  <!-- Left merlon -->
+  <rect x="14" y="10" width="13" height="14" rx="1.5" fill="#0D1A3E"/>
+  <!-- Gap 27 -->
+  <!-- Centre-left merlon -->
+  <rect x="33" y="10" width="13" height="14" rx="1.5" fill="#0D1A3E"/>
+  <!-- Gap 46 -->
+  <!-- Centre-right merlon -->
+  <rect x="52" y="10" width="13" height="14" rx="1.5" fill="#0D1A3E"/>
+  <!-- Gap 65 -->
+  <!-- Right merlon -->
+  <rect x="71" y="10" width="13" height="14" rx="1.5" fill="#0D1A3E"/>
+  <!-- Battlement base bar -->
+  <rect x="10" y="22" width="80" height="7" fill="#0D1A3E"/>
+
+  <!-- Ndebele-inspired terracotta chevron band -->
+  <rect x="14" y="56" width="72" height="14" fill="#C1440E" opacity="0.92"/>
+  <!-- Chevron overlay -->
+  <polyline points="14,56 26,70 38,56 50,70 62,56 74,70 86,56"
+            fill="none" stroke="#D4A017" stroke-width="3" stroke-linejoin="round"/>
+
+  <!-- Central arched gate -->
+  <!-- Gate body -->
+  <rect x="40" y="82" width="20" height="30" fill="#D4A017" opacity="0.95"/>
+  <!-- Gate arch -->
+  <path d="M40,82 Q50,68 60,82" fill="#D4A017" opacity="0.95"/>
+
+  <!-- Flanking tower windows (arched) -->
+  <rect x="18" y="80" width="14" height="20" rx="7" fill="#D4A017" opacity="0.75"/>
+  <rect x="68" y="80" width="14" height="20" rx="7" fill="#D4A017" opacity="0.75"/>
+
+  <!-- Shield bottom point accent -->
+  <path d="M46,144 L50,152 L54,144 Z" fill="#D4A017" opacity="0.9"/>
+
+  <!-- ══════════════════════════════════════════════
+       WORDMARK + TAGLINE  (starts at x=108)
+       ══════════════════════════════════════════════ -->
+
+  <!-- "Ngome" wordmark -->
+  <text x="108" y="100"
+        font-family="'Segoe UI', 'Helvetica Neue', 'Arial', sans-serif"
+        font-size="72"
+        font-weight="800"
+        letter-spacing="-2"
+        fill="#1B2A5E">Ngome</text>
+
+  <!-- Gold rule under wordmark -->
+  <rect x="108" y="108" width="440" height="3.5" fill="url(#goldH)" rx="1.5"/>
+
+  <!-- Tagline -->
+  <text x="110" y="126"
+        font-family="'Segoe UI', 'Helvetica Neue', 'Arial', sans-serif"
+        font-size="12.5"
+        font-weight="500"
+        letter-spacing="4"
+        fill="#C1440E">THE FORTRESS FOR AFRICAN GOVERNANCE</text>
+
+</svg>

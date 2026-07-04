@@ -1,35 +1,20 @@
 import { createTheme } from '@mui/material/styles'
 
-// African-inspired color palette
-const africanColors = {
-  // Earth tones - inspired by African landscapes
-  earth: {
-    sand: '#E6D5B8',
-    clay: '#C44536',
-    soil: '#8B4513',
-    ochre: '#CC7722',
-  },
-  // Nature tones - inspired by African flora
-  nature: {
-    savanna: '#8FBC8F',
-    baobab: '#228B22',
-    acacia: '#DAA520',
-    desert: '#F5DEB3',
-  },
-  // Cultural tones - inspired by African textiles and art
-  cultural: {
-    kenteGold: '#FFD700',
-    adinkraRed: '#8B0000',
-    mudclothBrown: '#654321',
-    indigo: '#4B0082',
-  },
-  // Modern accents
-  modern: {
-    techBlue: '#1E88E5',
-    successGreen: '#4CAF50',
-    warningOrange: '#FF9800',
-    errorRed: '#F44336',
-  },
+// ── Ngome Brand Palette ───────────────────────────────────────────
+// The Fortress for African Governance
+// Source: Ngome-Brand-Guidelines.md (Jul 2026)
+
+const brand = {
+  // Primary
+  fortressNavy: '#1B2A5E',   // Primary brand color, text, dark backgrounds
+  deepCitadel: '#0D1A3E',    // Gradients, shadows, battlements
+  // Accent
+  africanGold: '#D4A017',    // Accents, gates, highlights, buttons
+  terracotta: '#C1440E',     // Action items, taglines, Ndebele band
+  // Neutrals
+  slateCharcoal: '#2A3441',  // Secondary text, borders
+  savannaSand: '#F5F2EB',    // App backgrounds, light sections
+  white: '#FFFFFF',
 }
 
 // Create theme with African design principles
@@ -37,36 +22,36 @@ const theme = createTheme({
   palette: {
     mode: 'light',
     primary: {
-      main: africanColors.cultural.indigo, // Indigo for primary - represents wisdom and royalty
-      light: '#7B68EE',
-      dark: '#191970',
-      contrastText: '#FFFFFF',
+      main: brand.fortressNavy,
+      light: '#3A4A7E',
+      dark: brand.deepCitadel,
+      contrastText: brand.white,
     },
     secondary: {
-      main: africanColors.earth.ochre, // Ochre for secondary - represents earth and tradition
-      light: '#E6B325',
-      dark: '#8B6914',
-      contrastText: '#000000',
+      main: brand.africanGold,
+      light: '#E6B840',
+      dark: '#B8890F',
+      contrastText: brand.deepCitadel,
     },
     background: {
-      default: '#FAF9F6', // Light sand color
-      paper: '#FFFFFF',
+      default: brand.savannaSand,
+      paper: brand.white,
     },
     text: {
-      primary: '#2C3E50', // Dark blue-grey for good readability
-      secondary: '#546E7A',
+      primary: brand.deepCitadel,
+      secondary: brand.slateCharcoal,
     },
     success: {
-      main: africanColors.nature.baobab, // Baobab green for success
+      main: '#228B22', // Baobab green
     },
     warning: {
-      main: africanColors.nature.acacia, // Acacia gold for warnings
+      main: brand.africanGold,
     },
     error: {
-      main: africanColors.cultural.adinkraRed, // Adinkra red for errors
+      main: brand.terracotta,
     },
     info: {
-      main: africanColors.modern.techBlue, // Tech blue for information
+      main: '#1E88E5',
     },
   },
   typography: {
@@ -162,8 +147,8 @@ const theme = createTheme({
     MuiDrawer: {
       styleOverrides: {
         paper: {
-          backgroundColor: africanColors.earth.sand,
-          borderRight: `1px solid ${africanColors.earth.sand}`,
+          backgroundColor: brand.savannaSand,
+          borderRight: `1px solid ${brand.savannaSand}`,
         },
       },
     },

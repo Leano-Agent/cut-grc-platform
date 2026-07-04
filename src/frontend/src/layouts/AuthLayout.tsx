@@ -59,6 +59,17 @@ const AuthLayout = () => {
               mb: 4,
             }}
           >
+            <Box
+              component="img"
+              src="/branding/logos/ngome-logo-primary.svg"
+              alt="Ngome Platform"
+              sx={{
+                height: 64,
+                mb: 2,
+                mx: 'auto',
+                display: 'block',
+              }}
+            />
             <Typography
               variant="h4"
               component="h1"
@@ -75,7 +86,7 @@ const AuthLayout = () => {
               color="text.secondary"
               sx={{ mb: 3 }}
             >
-              Governance, Risk & Compliance Management System
+              The Fortress for African Governance
             </Typography>
             
             {/* African-inspired decorative element */}

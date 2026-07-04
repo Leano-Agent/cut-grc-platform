@@ -208,8 +208,15 @@ const Sidebar = ({ navItems }: SidebarProps) => {
             alignItems: 'center',
             justifyContent: 'center',
             width: '100%',
+            gap: 1,
           }}
         >
+          <Box
+            component="img"
+            src="/branding/logos/ngome-icon.svg"
+            alt="Ngome"
+            sx={{ height: 32, width: 32 }}
+          />
           <Typography
             variant="h6"
             sx={{
@@ -228,7 +235,7 @@ const Sidebar = ({ navItems }: SidebarProps) => {
                 color: 'primary.main',
               }}
             >
-              CG
+              N
             </Typography>
           )}
         </Box>
