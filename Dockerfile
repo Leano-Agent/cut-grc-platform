@@ -48,6 +48,9 @@ COPY --from=builder --chown=nodejs:nodejs /app/src/backend/dist src/backend/dist
 COPY --from=builder --chown=nodejs:nodejs /app/src/shared src/shared
 # Copy migrations (prod-migrate.js is a raw JS file, not compiled — must be copied from source)
 COPY --from=builder --chown=nodejs:nodejs /app/src/backend/src/database/migrations src/backend/src/database/migrations
+# Copy entrypoint script
+COPY --chown=nodejs:nodejs entrypoint.sh ./
+RUN chmod +x entrypoint.sh
 # npm workspaces hoist all node_modules to root — copy once, Node.js resolves upward
 COPY --from=builder --chown=nodejs:nodejs /app/node_modules node_modules
 
@@ -61,4 +64,5 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
 EXPOSE 3000
 
 WORKDIR /app/src/backend
-CMD ["node", "dist/server.js"]
+ENTRYPOINT ["/app/entrypoint.sh"]
+CMD []

@@ -5,7 +5,7 @@
   builder = "DOCKERFILE"
 
 [deploy]
-  startCommand = "node src/database/migrations/prod-migrate.js && node dist/server.js"
+  # Using Dockerfile ENTRYPOINT (entrypoint.sh) which runs migrations then server
   healthcheckPath = "/health"
   restartPolicyType = "always"
 
