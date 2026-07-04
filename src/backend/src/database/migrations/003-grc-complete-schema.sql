@@ -495,6 +495,8 @@ CREATE INDEX IF NOT EXISTS idx_sessions_expires ON sessions(expires_at);
 -- ============================================
 -- TRIGGER: Auto-update updated_at
 -- ============================================
+-- Drop first to avoid "must be owner" on re-deploy (different DB user)
+DROP FUNCTION IF EXISTS update_updated_at_column CASCADE;
 CREATE OR REPLACE FUNCTION update_updated_at_column()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -521,6 +523,8 @@ CREATE TRIGGER set_actions_updated_at BEFORE UPDATE ON risk_treatment_actions
 -- ============================================
 -- TRIGGER: Auto audit log on risk/control changes
 -- ============================================
+-- Drop first to avoid "must be owner" on re-deploy (different DB user)
+DROP FUNCTION IF EXISTS audit_trigger_function CASCADE;
 CREATE OR REPLACE FUNCTION audit_trigger_function()
 RETURNS TRIGGER AS $$
 BEGIN

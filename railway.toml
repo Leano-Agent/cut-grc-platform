@@ -5,7 +5,7 @@
   builder = "DOCKERFILE"
 
 [deploy]
-  startCommand = "node dist/server.js"
+  startCommand = "node src/database/migrations/prod-migrate.js && node dist/server.js"
   healthcheckPath = "/health"
   restartPolicyType = "always"
 
