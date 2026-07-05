@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
+import { useNavigate } from 'react-router-dom'
 import {
   Box,
   Grid,
@@ -94,6 +95,7 @@ const DEFAULT_ACTIVITIES: ActivityItem[] = [
 const Dashboard = () => {
   const { user } = useAuth()
   const { showSuccess } = useUI()
+  const navigate = useNavigate()
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [loading, setLoading] = useState(true)
 
@@ -395,7 +397,7 @@ const Dashboard = () => {
               title="Recent Activity"
               subheader="Latest actions across the platform"
               action={
-                <Button size="small" endIcon={<ArrowForwardIcon />}>
+                <Button size="small" endIcon={<ArrowForwardIcon />} onClick={() => navigate('/risk-management')}>
                   View All
                 </Button>
               }
@@ -448,22 +450,22 @@ const Dashboard = () => {
         </Typography>
         <Grid container spacing={2}>
           <Grid item xs={6} sm={3}>
-            <Button fullWidth variant="outlined" startIcon={<SecurityIcon />} sx={{ py: 2 }}>
+            <Button fullWidth variant="outlined" startIcon={<SecurityIcon />} sx={{ py: 2 }} onClick={() => navigate('/risk-management')}>
               Add Risk
             </Button>
           </Grid>
           <Grid item xs={6} sm={3}>
-            <Button fullWidth variant="outlined" startIcon={<GavelIcon />} sx={{ py: 2 }}>
+            <Button fullWidth variant="outlined" startIcon={<GavelIcon />} sx={{ py: 2 }} onClick={() => navigate('/compliance-tracking')}>
               Compliance Check
             </Button>
           </Grid>
           <Grid item xs={6} sm={3}>
-            <Button fullWidth variant="outlined" startIcon={<AssignmentIcon />} sx={{ py: 2 }}>
+            <Button fullWidth variant="outlined" startIcon={<AssignmentIcon />} sx={{ py: 2 }} onClick={() => navigate('/internal-controls')}>
               New Control
             </Button>
           </Grid>
           <Grid item xs={6} sm={3}>
-            <Button fullWidth variant="outlined" startIcon={<VerifiedUserIcon />} sx={{ py: 2 }}>
+            <Button fullWidth variant="outlined" startIcon={<VerifiedUserIcon />} sx={{ py: 2 }} onClick={() => navigate('/audit-management')}>
               Start Audit
             </Button>
           </Grid>

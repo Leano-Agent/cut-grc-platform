@@ -127,10 +127,10 @@ const MainLayout = () => {
         <Toolbar>
           <IconButton
             color="inherit"
-            aria-label="open drawer"
+            aria-label="toggle sidebar"
             edge="start"
             onClick={toggleSidebar}
-            sx={{ mr: 2, display: { sm: 'none' } }}
+            sx={{ mr: 2 }}
           >
             <MenuIcon />
           </IconButton>
@@ -191,12 +191,12 @@ const MainLayout = () => {
             display: { xs: 'none', sm: 'block' },
             '& .MuiDrawer-paper': {
               boxSizing: 'border-box',
-              width: sidebarOpen ? drawerWidth : 0,
-              transition: 'width 0.3s',
+              width: drawerWidth,
+              transition: 'margin-left 0.3s, width 0.3s',
               overflowX: 'hidden',
+              ml: sidebarOpen ? 0 : `-${drawerWidth}px`,
             },
           }}
-          open={sidebarOpen}
         >
           <Sidebar navItems={navItems} />
         </Drawer>
