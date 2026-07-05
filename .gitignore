@@ -85,3 +85,6 @@ dump.rdb
 .render/
 .railway/
 .vercel
+check_railway.py
+check_railway2.py
+package-lock.json
