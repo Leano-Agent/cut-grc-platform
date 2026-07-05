@@ -16,6 +16,15 @@ import InternalControls from './pages/controls/InternalControls'
 import AuditManagement from './pages/audit/AuditManagement'
 import UserAdministration from './pages/admin/UserAdministration'
 
+// New pages for sidebar routes that were blank
+import RiskReports from './pages/reports/RiskReports'
+import ComplianceReports from './pages/reports/ComplianceReports'
+import AuditReports from './pages/reports/AuditReports'
+import SystemSettings from './pages/settings/SystemSettings'
+import UserRoles from './pages/settings/UserRoles'
+import EmailTemplates from './pages/settings/EmailTemplates'
+import Help from './pages/help/Help'
+
 // Hooks
 import { useAuth } from './hooks/useAuth'
 
@@ -64,6 +73,20 @@ function App() {
         <Route path="internal-controls" element={<InternalControls />} />
         <Route path="audit-management" element={<AuditManagement />} />
         <Route path="user-administration" element={<UserAdministration />} />
+        
+        {/* Reports */}
+        <Route path="reports/risk" element={<RiskReports />} />
+        <Route path="reports/compliance" element={<ComplianceReports />} />
+        <Route path="reports/audit" element={<AuditReports />} />
+        
+        {/* Settings */}
+        <Route path="settings/system" element={<SystemSettings />} />
+        <Route path="settings/roles" element={<UserRoles />} />
+        <Route path="settings/email" element={<EmailTemplates />} />
+        
+        {/* Help */}
+        <Route path="help" element={<Help />} />
+        
         <Route path="diagnostics" element={<DiagnosticsPage />} />
       </Route>
 
