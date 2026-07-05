@@ -4,8 +4,7 @@ import {
   InputAdornment, IconButton, Chip, Table, TableBody, TableCell,
   TableContainer, TableHead, TableRow, TablePagination, Paper,
   Avatar, Switch, Dialog, DialogTitle, DialogContent, DialogActions,
-  Menu, MenuItem, ListItemIcon, ListItemText, FormControlLabel, LinearProgress,
-  Alert, Snackbar,
+  Menu, MenuItem, ListItemIcon, FormControlLabel, LinearProgress,
 } from '@mui/material'
 import {
   Add as AddIcon, Search as SearchIcon, FilterList as FilterIcon,
@@ -76,15 +75,26 @@ const UserAdministration = () => {
 
   const handleMenuOpen = (event: React.MouseEvent<HTMLElement>, userId: string) => {
     setAnchorEl(event.currentTarget)
-    setSelectedUser(userId)
+    setSelectedUserId(userId)
   }
 
   const handleMenuClose = () => {
     setAnchorEl(null)
-    setSelectedUser(null)
+    setSelectedUserId(null)
   }
 
   const handleEdit = () => {
+    const user = users.find(u => u.id === selectedUserId)
+    if (user) {
+      setFormData({
+        firstName: user.firstName || '',
+        lastName: user.lastName || '',
+        email: user.email || '',
+        password: '',
+        role: user.role || 'user',
+        department: user.department || '',
+      })
+    }
     setDialogMode('edit')
     setOpenDialog(true)
     handleMenuClose()
@@ -133,13 +143,36 @@ const UserAdministration = () => {
     }
   }
 
-  const handleDelete = () => {
-    // Delete user
+  const handleDelete = async () => {
+    const userId = selectedUserId
     handleMenuClose()
+    if (!userId) return
+    setSaving(true)
+    try {
+      await userService.deleteUser(userId)
+      setUsers(prev => prev.filter(u => u.id !== userId))
+      setSuccessMsg('User deleted successfully')
+    } catch (err: any) {
+      setError(err.response?.data?.message || err.message || 'Failed to delete user')
+    } finally {
+      setSaving(false)
+    }
   }
 
-  const handleToggleStatus = (userId: string) => {
-    // Toggle user status
+  const handleToggleStatus = async (userId: string) => {
+    setSaving(true)
+    try {
+      const user = users.find(u => u.id === userId)
+      if (!user) return
+      const updated = user.isActive
+        ? await userService.suspendUser(userId)
+        : await userService.activateUser(userId)
+      setUsers(prev => prev.map(u => u.id === userId ? { ...u, isActive: updated.isActive } : u))
+    } catch (err: any) {
+      setError(err.response?.data?.message || err.message || 'Failed to toggle status')
+    } finally {
+      setSaving(false)
+    }
   }
 
   const getRoleColor = (role: string) => {
@@ -147,15 +180,6 @@ const UserAdministration = () => {
       case 'Admin': return '#F44336'
       case 'Manager': return '#2196F3'
       case 'User': return '#4CAF50'
-      default: return '#9E9E9E'
-    }
-  }
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'Active': return '#4CAF50'
-      case 'Inactive': return '#9E9E9E'
-      case 'Suspended': return '#F44336'
       default: return '#9E9E9E'
     }
   }
@@ -190,12 +214,12 @@ const UserAdministration = () => {
                 Total Users
               </Typography>
               <Typography variant="h4" sx={{ fontWeight: 700 }}>
-                156
+                {totalUsers}
               </Typography>
               <Box sx={{ display: 'flex', alignItems: 'center', mt: 1 }}>
                 <PeopleIcon sx={{ color: 'primary.main', fontSize: 16, mr: 0.5 }} />
                 <Typography variant="body2" sx={{ color: 'primary.main', fontWeight: 600 }}>
-                  +12 this month
+                  {totalUsers > 0 ? `${activeUsers} active` : 'No users yet'}
                 </Typography>
               </Box>
             </CardContent>
@@ -208,12 +232,12 @@ const UserAdministration = () => {
                 Active Users
               </Typography>
               <Typography variant="h4" sx={{ fontWeight: 700 }}>
-                142
+                {activeUsers}
               </Typography>
               <Box sx={{ display: 'flex', alignItems: 'center', mt: 1 }}>
                 <PersonIcon sx={{ color: '#4CAF50', fontSize: 16, mr: 0.5 }} />
                 <Typography variant="body2" sx={{ color: '#4CAF50', fontWeight: 600 }}>
-                  91% active rate
+                  {activeRate}% active rate
                 </Typography>
               </Box>
             </CardContent>
@@ -226,12 +250,12 @@ const UserAdministration = () => {
                 Admin Users
               </Typography>
               <Typography variant="h4" sx={{ fontWeight: 700 }}>
-                8
+                {adminUsers}
               </Typography>
               <Box sx={{ display: 'flex', alignItems: 'center', mt: 1 }}>
                 <AdminPanelSettingsIcon sx={{ color: '#F44336', fontSize: 16, mr: 0.5 }} />
                 <Typography variant="body2" sx={{ color: '#F44336', fontWeight: 600 }}>
-                  5% of total
+                  {totalUsers > 0 ? `${Math.round((adminUsers / totalUsers) * 100)}% of total` : '0% of total'}
                 </Typography>
               </Box>
             </CardContent>
@@ -244,12 +268,12 @@ const UserAdministration = () => {
                 2FA Enabled
               </Typography>
               <Typography variant="h4" sx={{ fontWeight: 700 }}>
-                85%
+                —
               </Typography>
               <Box sx={{ display: 'flex', alignItems: 'center', mt: 1 }}>
                 <LockIcon sx={{ color: '#2196F3', fontSize: 16, mr: 0.5 }} />
                 <Typography variant="body2" sx={{ color: '#2196F3', fontWeight: 600 }}>
-                  Security score: 92
+                  Feature not yet available
                 </Typography>
               </Box>
             </CardContent>
@@ -262,6 +286,8 @@ const UserAdministration = () => {
         <TextField
           placeholder="Search users..."
           fullWidth
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
           InputProps={{
             startAdornment: (
               <InputAdornment position="start">
@@ -292,16 +318,16 @@ const UserAdministration = () => {
                 </TableRow>
               </TableHead>
               <TableBody>
-                {users.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map((user) => (
+                {filteredUsers.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map((user) => (
                   <TableRow key={user.id} hover>
                     <TableCell>
                       <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                        <Avatar sx={{ mr: 2, bgcolor: 'primary.main' }}>
-                          {user.avatar}
+                        <Avatar sx={{ mr: 2, bgcolor: 'primary.main', fontSize: 14 }}>
+                          {`${user.firstName?.[0] || ''}${user.lastName?.[0] || ''}`}
                         </Avatar>
                         <Box>
                           <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                            {user.name}
+                            {user.firstName} {user.lastName}
                           </Typography>
                           <Typography variant="caption" color="text.secondary">
                             {user.email}
@@ -329,16 +355,16 @@ const UserAdministration = () => {
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                         <Switch
                           size="small"
-                          checked={user.status === 'Active'}
+                          checked={user.isActive}
                           onChange={() => handleToggleStatus(user.id)}
                           color="primary"
                         />
                         <Chip
-                          label={user.status}
+                          label={user.isActive ? 'Active' : 'Inactive'}
                           size="small"
                           sx={{
-                            bgcolor: `${getStatusColor(user.status)}15`,
-                            color: getStatusColor(user.status),
+                            bgcolor: user.isActive ? '#4CAF5015' : '#9E9E9E15',
+                            color: user.isActive ? '#4CAF50' : '#9E9E9E',
                           }}
                         />
                       </Box>
@@ -349,11 +375,7 @@ const UserAdministration = () => {
                       </Typography>
                     </TableCell>
                     <TableCell>
-                      {user.twoFactor ? (
-                        <LockIcon sx={{ color: '#4CAF50' }} />
-                      ) : (
-                        <LockOpenIcon sx={{ color: '#9E9E9E' }} />
-                      )}
+                      <LockOpenIcon sx={{ color: '#9E9E9E' }} />
                     </TableCell>
                     <TableCell>
                       <IconButton
@@ -519,6 +541,8 @@ const UserAdministration = () => {
                 <TextField
                   fullWidth
                   label="First Name"
+                  value={formData.firstName}
+                  onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
                   placeholder="Enter first name"
                 />
               </Grid>
@@ -526,6 +550,8 @@ const UserAdministration = () => {
                 <TextField
                   fullWidth
                   label="Last Name"
+                  value={formData.lastName}
+                  onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
                   placeholder="Enter last name"
                 />
               </Grid>
@@ -534,6 +560,8 @@ const UserAdministration = () => {
                   fullWidth
                   label="Email Address"
                   type="email"
+                  value={formData.email}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                   placeholder="Enter email address"
                 />
               </Grid>
@@ -542,6 +570,8 @@ const UserAdministration = () => {
                   fullWidth
                   label="Role"
                   select
+                  value={formData.role}
+                  onChange={(e) => setFormData({ ...formData, role: e.target.value as SystemUser['role'] })}
                   SelectProps={{
                     native: true,
                   }}
@@ -556,6 +586,8 @@ const UserAdministration = () => {
                 <TextField
                   fullWidth
                   label="Department"
+                  value={formData.department}
+                  onChange={(e) => setFormData({ ...formData, department: e.target.value })}
                   placeholder="Enter department"
                 />
               </Grid>
@@ -566,6 +598,8 @@ const UserAdministration = () => {
                       fullWidth
                       label="Password"
                       type="password"
+                      value={formData.password}
+                      onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                       placeholder="Enter password"
                     />
                   </Grid>

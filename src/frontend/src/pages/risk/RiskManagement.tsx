@@ -26,6 +26,9 @@ import {
   DialogActions,
   ListItemIcon,
   Alert,
+  Select,
+  FormControl,
+  InputLabel,
 } from '@mui/material'
 import {
   Add as AddIcon,
@@ -59,12 +62,15 @@ const RiskManagement = () => {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null)
   const [selectedRisk, setSelectedRisk] = useState<string | null>(null)
   const [openDialog, setOpenDialog] = useState(false)
+  const [openViewDialog, setOpenViewDialog] = useState(false)
+  const [viewingRisk, setViewingRisk] = useState<Risk | null>(null)
   const [risks, setRisks] = useState<Risk[]>([])
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
   const [heatMapView, setHeatMapView] = useState(false)
   const [formData, setFormData] = useState(emptyForm)
   const [saving, setSaving] = useState(false)
+  const [deleteLoading, setDeleteLoading] = useState(false)
   const [error, setError] = useState('')
 
   useEffect(() => {
@@ -113,7 +119,6 @@ const RiskManagement = () => {
         assignedTo: '',
         owner: '',
         mitigation: formData.mitigation,
-        createdAt: new Date().toISOString(),
       })
       setRisks(prev => [newRisk, ...prev])
       handleCloseDialog()
@@ -144,16 +149,45 @@ const RiskManagement = () => {
   }
 
   const handleView = () => {
+    const risk = risks.find(r => r.id === selectedRisk)
+    if (risk) {
+      setViewingRisk(risk)
+      setOpenViewDialog(true)
+    }
     handleMenuClose()
   }
 
   const handleEdit = () => {
+    const risk = risks.find(r => r.id === selectedRisk)
+    if (risk) {
+      setFormData({
+        title: risk.title,
+        description: risk.description || '',
+        category: risk.category,
+        severity: risk.severity,
+        likelihood: risk.likelihood || '',
+        impact: risk.impact || '',
+        mitigation: risk.mitigation || '',
+      })
+      setSelectedRisk(risk.id)
+      setOpenDialog(true)
+    }
     handleMenuClose()
-    setOpenDialog(true)
   }
 
-  const handleDelete = () => {
+  const handleDelete = async () => {
+    const riskId = selectedRisk
     handleMenuClose()
+    if (!riskId) return
+    setDeleteLoading(true)
+    try {
+      await riskService.deleteRisk(riskId)
+      setRisks(prev => prev.filter(r => r.id !== riskId))
+    } catch (err: any) {
+      setError(err.message || 'Failed to delete risk')
+    } finally {
+      setDeleteLoading(false)
+    }
   }
 
   const getSeverityColor = (severity: string) => {
@@ -268,14 +302,12 @@ const RiskManagement = () => {
           fullWidth
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          slotProps={{
-            input: {
-              startAdornment: (
-                <InputAdornment position="start">
-                  <SearchIcon />
-                </InputAdornment>
-              ),
-            },
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">
+                <SearchIcon />
+              </InputAdornment>
+            ),
           }}
         />
         <IconButton><FilterIcon /></IconButton>
@@ -406,55 +438,67 @@ const RiskManagement = () => {
                 />
               </Grid>
               <Grid item xs={12} md={6}>
-                <TextField
-                  fullWidth required label="Category" select value={formData.category}
-                  onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                  slotProps={{ select: { native: true } }}
-                >
-                  <option value="">Select category</option>
-                  <option value="cybersecurity">Cybersecurity</option>
-                  <option value="compliance">Compliance</option>
-                  <option value="operational">Operational</option>
-                  <option value="financial">Financial</option>
-                  <option value="reputational">Reputational</option>
-                </TextField>
+                <FormControl fullWidth required>
+                  <InputLabel>Category</InputLabel>
+                  <Select
+                    value={formData.category}
+                    label="Category"
+                    onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                  >
+                    <MenuItem value=""><em>Select category</em></MenuItem>
+                    <MenuItem value="cybersecurity">Cybersecurity</MenuItem>
+                    <MenuItem value="compliance">Compliance</MenuItem>
+                    <MenuItem value="operational">Operational</MenuItem>
+                    <MenuItem value="financial">Financial</MenuItem>
+                    <MenuItem value="reputational">Reputational</MenuItem>
+                  </Select>
+                </FormControl>
               </Grid>
               <Grid item xs={12} md={6}>
-                <TextField
-                  fullWidth required label="Severity" select value={formData.severity}
-                  onChange={(e) => setFormData({ ...formData, severity: e.target.value })}
-                  slotProps={{ select: { native: true } }}
-                >
-                  <option value="">Select severity</option>
-                  <option value="critical">Critical</option>
-                  <option value="high">High</option>
-                  <option value="medium">Medium</option>
-                  <option value="low">Low</option>
-                </TextField>
+                <FormControl fullWidth required>
+                  <InputLabel>Severity</InputLabel>
+                  <Select
+                    value={formData.severity}
+                    label="Severity"
+                    onChange={(e) => setFormData({ ...formData, severity: e.target.value })}
+                  >
+                    <MenuItem value=""><em>Select severity</em></MenuItem>
+                    <MenuItem value="critical">Critical</MenuItem>
+                    <MenuItem value="high">High</MenuItem>
+                    <MenuItem value="medium">Medium</MenuItem>
+                    <MenuItem value="low">Low</MenuItem>
+                  </Select>
+                </FormControl>
               </Grid>
               <Grid item xs={12} md={6}>
-                <TextField
-                  fullWidth label="Probability" select value={formData.likelihood}
-                  onChange={(e) => setFormData({ ...formData, likelihood: e.target.value })}
-                  slotProps={{ select: { native: true } }}
-                >
-                  <option value="">Select probability</option>
-                  <option value="high">High</option>
-                  <option value="medium">Medium</option>
-                  <option value="low">Low</option>
-                </TextField>
+                <FormControl fullWidth>
+                  <InputLabel>Probability</InputLabel>
+                  <Select
+                    value={formData.likelihood}
+                    label="Probability"
+                    onChange={(e) => setFormData({ ...formData, likelihood: e.target.value })}
+                  >
+                    <MenuItem value=""><em>Select probability</em></MenuItem>
+                    <MenuItem value="high">High</MenuItem>
+                    <MenuItem value="medium">Medium</MenuItem>
+                    <MenuItem value="low">Low</MenuItem>
+                  </Select>
+                </FormControl>
               </Grid>
               <Grid item xs={12} md={6}>
-                <TextField
-                  fullWidth label="Impact" select value={formData.impact}
-                  onChange={(e) => setFormData({ ...formData, impact: e.target.value })}
-                  slotProps={{ select: { native: true } }}
-                >
-                  <option value="">Select impact</option>
-                  <option value="high">High</option>
-                  <option value="medium">Medium</option>
-                  <option value="low">Low</option>
-                </TextField>
+                <FormControl fullWidth>
+                  <InputLabel>Impact</InputLabel>
+                  <Select
+                    value={formData.impact}
+                    label="Impact"
+                    onChange={(e) => setFormData({ ...formData, impact: e.target.value })}
+                  >
+                    <MenuItem value=""><em>Select impact</em></MenuItem>
+                    <MenuItem value="high">High</MenuItem>
+                    <MenuItem value="medium">Medium</MenuItem>
+                    <MenuItem value="low">Low</MenuItem>
+                  </Select>
+                </FormControl>
               </Grid>
               <Grid item xs={12}>
                 <TextField
@@ -478,6 +522,69 @@ const RiskManagement = () => {
           <Button variant="contained" onClick={handleCreate} disabled={saving}>
             {saving ? 'Creating...' : 'Create Risk'}
           </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* View Risk Details Dialog */}
+      <Dialog open={openViewDialog} onClose={() => setOpenViewDialog(false)} maxWidth="md" fullWidth>
+        <DialogTitle>Risk Details</DialogTitle>
+        <DialogContent>
+          {viewingRisk && (
+            <Box sx={{ pt: 2 }}>
+              <Grid container spacing={2}>
+                <Grid item xs={12}>
+                  <Typography variant="h6">{viewingRisk.title}</Typography>
+                </Grid>
+                <Grid item xs={12} md={4}>
+                  <Typography variant="caption" color="text.secondary">Category</Typography>
+                  <Typography variant="body1"><Chip label={viewingRisk.category} size="small" /></Typography>
+                </Grid>
+                <Grid item xs={12} md={4}>
+                  <Typography variant="caption" color="text.secondary">Severity</Typography>
+                  <Typography variant="body1">
+                    <Chip label={viewingRisk.severity} size="small"
+                      sx={{ bgcolor: `${getSeverityColor(viewingRisk.severity)}15`, color: getSeverityColor(viewingRisk.severity), fontWeight: 600 }}
+                    />
+                  </Typography>
+                </Grid>
+                <Grid item xs={12} md={4}>
+                  <Typography variant="caption" color="text.secondary">Status</Typography>
+                  <Typography variant="body1">
+                    <Chip label={viewingRisk.status} size="small"
+                      sx={{ bgcolor: `${getStatusColor(viewingRisk.status)}15`, color: getStatusColor(viewingRisk.status) }}
+                    />
+                  </Typography>
+                </Grid>
+                <Grid item xs={12} md={4}>
+                  <Typography variant="caption" color="text.secondary">Probability</Typography>
+                  <Typography variant="body1">{viewingRisk.likelihood || '-'}</Typography>
+                </Grid>
+                <Grid item xs={12} md={4}>
+                  <Typography variant="caption" color="text.secondary">Impact</Typography>
+                  <Typography variant="body1">{viewingRisk.impact || '-'}</Typography>
+                </Grid>
+                <Grid item xs={12} md={4}>
+                  <Typography variant="caption" color="text.secondary">Owner</Typography>
+                  <Typography variant="body1">{viewingRisk.owner || '-'}</Typography>
+                </Grid>
+                {viewingRisk.description && (
+                  <Grid item xs={12}>
+                    <Typography variant="caption" color="text.secondary">Description</Typography>
+                    <Typography variant="body1">{viewingRisk.description}</Typography>
+                  </Grid>
+                )}
+                {viewingRisk.mitigation && (
+                  <Grid item xs={12}>
+                    <Typography variant="caption" color="text.secondary">Mitigation Strategy</Typography>
+                    <Typography variant="body1">{viewingRisk.mitigation}</Typography>
+                  </Grid>
+                )}
+              </Grid>
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpenViewDialog(false)}>Close</Button>
         </DialogActions>
       </Dialog>
     </Box>
