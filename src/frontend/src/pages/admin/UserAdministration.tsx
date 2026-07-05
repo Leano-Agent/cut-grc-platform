@@ -11,6 +11,7 @@ import {
   People as PeopleIcon, Edit as EditIcon, Delete as DeleteIcon,
   MoreVert as MoreVertIcon, Lock as LockIcon, LockOpen as LockOpenIcon,
   Person as PersonIcon, AdminPanelSettings as AdminPanelSettingsIcon,
+  Email as EmailIcon, ManageAccounts as ManageAccountsIcon,
 } from '@mui/icons-material'
 import { userService, SystemUser } from '../../services/userService'
 
