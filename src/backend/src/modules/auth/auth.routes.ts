@@ -168,6 +168,7 @@ router.post(
   SecurityMiddleware.sqlInjectionProtection(),
   SecurityMiddleware.xssProtection(),
   asyncHandler(async (req, res) => {
+    try {
     const { email, password } = req.body;
     const orgId = req.body.organisationId || null;
     const sequelize = database.getSequelize();
@@ -229,10 +230,14 @@ router.post(
     }
     
     // Reset failed login attempts on successful login
-    await sequelize.query(
-      'UPDATE users SET failed_login_attempts = 0, locked_until = NULL, last_login_at = NOW() WHERE id = :id',
-      { replacements: { id: user.id } }
-    );
+    try {
+      await sequelize.query(
+        'UPDATE users SET failed_login_attempts = 0, last_login_at = NOW() WHERE id = :id',
+        { replacements: { id: user.id } }
+      );
+    } catch (_e) {
+      // Non-critical
+    }
     
     // Generate tokens
     const accessToken = JWTService.generateAccessToken({
@@ -274,6 +279,9 @@ router.post(
       refreshToken,
       expiresIn: 24 * 60 * 60,
     });
+    } catch (loginErr: any) {
+      sendError(res, 500, loginErr.message || 'Login error', 'LOGIN_ERROR');
+    }
   })
 );
 
