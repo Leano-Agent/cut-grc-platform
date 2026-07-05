@@ -1,6 +1,5 @@
 import { riskService } from './riskService'
 import { complianceService } from './complianceService'
-import { controlService } from './controlService'
 import { auditService } from './auditService'
 import api from './apiClient'
 
@@ -59,8 +58,8 @@ class DashboardService {
       return {
         totalRisks: riskSummary.total,
         riskChange: riskSummary.high > 0 ? `+${riskSummary.high}` : '0',
-        complianceRate: complianceSummary.overallRate,
-        complianceChange: complianceSummary.overallRate > 0 ? `+${complianceSummary.overallRate - 80}` : '0',
+        complianceRate: complianceSummary.overallScore,
+        complianceChange: complianceSummary.overallScore > 0 ? `+${complianceSummary.overallScore - 80}` : '0',
         openAudits: auditSummary.inProgress + auditSummary.planned,
         auditChange: auditSummary.overdue > 0 ? `-${auditSummary.overdue}` : '0',
         activeUsers: 0, // Will be populated when user service connects

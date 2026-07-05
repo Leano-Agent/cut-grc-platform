@@ -1,5 +1,4 @@
 import api from './apiClient'
-import { User } from '../store/slices/authSlice'
 
 export interface SystemUser {
   id: string

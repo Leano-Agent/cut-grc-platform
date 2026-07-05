@@ -4,55 +4,73 @@ export interface Control {
   id: string
   title: string
   description?: string
-  category: string
-  type: 'preventive' | 'detective' | 'corrective' | 'directive'
-  status: 'active' | 'inactive' | 'draft' | 'review' | 'archived'
-  effectiveness: 'high' | 'medium' | 'low' | 'not_rated'
-  owner: string
+  controlType: 'preventive' | 'detective' | 'corrective' | 'directive' | 'compensating'
+  frequency: 'daily' | 'weekly' | 'monthly' | 'quarterly' | 'annually' | 'ad_hoc'
+  status: 'draft' | 'active' | 'testing' | 'review' | 'inactive' | 'failed'
   department: string
-  riskIds?: string[]
-  lastTested?: string
-  nextTestDue?: string
-  notes?: string
+  ownerId?: string
+  owner?: { id: string; firstName: string; lastName: string; email: string } | string
+  riskId?: string
+  requirementId?: string
+  designEffectiveness?: 'effective' | 'partially_effective' | 'ineffective' | 'not_designed'
+  operationalEffectiveness?: 'effective' | 'partially_effective' | 'ineffective' | 'not_tested'
+  lastTestedAt?: string
+  nextTestDate?: string
+  automationLevel?: 'manual' | 'semi_automated' | 'fully_automated'
+  controlOwner?: string
+  evidenceRequired?: boolean
+  autoApprove?: boolean
+  escalationThreshold?: number
+  approvalRequired?: boolean
+  tags?: string[]
+  metadata?: Record<string, any>
+  createdBy?: string
+  organisationId?: string
   createdAt: string
+  updatedAt?: string
+}
+
+export interface ControlSummary {
+  total: number
+  byStatus: Record<string, number>
+  byDesignEffectiveness: Record<string, number>
 }
 
 class ControlService {
   async getControls(params?: { status?: string; department?: string; type?: string }): Promise<Control[]> {
     const response = await api.get<{ data: Control[] }>('/controls', { params })
-    return response.data.data || response.data as any
+    return response.data.data || (response.data as any)
   }
 
   async getControlById(id: string): Promise<Control> {
     const response = await api.get<{ data: Control }>(`/controls/${id}`)
-    return response.data.data || response.data as any
+    return response.data.data || (response.data as any)
   }
 
-  async createControl(control: Omit<Control, 'id' | 'createdAt'>): Promise<Control> {
+  async createControl(control: Omit<Control, 'id' | 'createdAt' | 'updatedAt'>): Promise<Control> {
     const response = await api.post<{ data: Control }>('/controls', control)
-    return response.data.data || response.data as any
+    return response.data.data || (response.data as any)
   }
 
   async updateControl(id: string, control: Partial<Control>): Promise<Control> {
     const response = await api.put<{ data: Control }>(`/controls/${id}`, control)
-    return response.data.data || response.data as any
+    return response.data.data || (response.data as any)
   }
 
   async deleteControl(id: string): Promise<void> {
     await api.delete(`/controls/${id}`)
   }
 
-  async getControlSummary(): Promise<{ total: number; active: number; inactive: number; highEffectiveness: number }> {
+  async getControlSummary(): Promise<ControlSummary> {
     try {
-      const response = await api.get<{ data: any }>('/controls/summary')
-      return response.data.data || response.data as any
+      const response = await api.get<{ data: ControlSummary }>('/controls/summary')
+      return response.data.data || (response.data as any)
     } catch {
       const controls = await this.getControls()
       return {
         total: controls.length,
-        active: controls.filter(c => c.status === 'active').length,
-        inactive: controls.filter(c => c.status === 'inactive' || c.status === 'archived').length,
-        highEffectiveness: controls.filter(c => c.effectiveness === 'high').length,
+        byStatus: {},
+        byDesignEffectiveness: {},
       }
     }
   }

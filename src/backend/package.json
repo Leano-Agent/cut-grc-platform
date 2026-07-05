@@ -5,8 +5,8 @@
   "main": "dist/server.js",
   "scripts": {
     "dev": "nodemon --exec ts-node src/server.ts",
-    "build": "tsc","postbuild": "node -e \"const fs=require('fs'),p=require('path'),src=p.join('src','database','migrations'),dist=p.join('dist','database','migrations');fs.mkdirSync(dist,{recursive:true});fs.readdirSync(src).forEach(f=>fs.copyFileSync(p.join(src,f),p.join(dist,f)))\"",
-    "start": "node dist/database/migrations/prod-migrate.js || true; node dist/server.js","migrate:prod": "node dist/database/migrations/prod-migrate.js",
+    "build": "tsc","postbuild": "node -e \"const fs=require('fs'),p=require('path'),m=p.join('src','database','migrations'),ms=p.join('dist','database','migrations'),s=p.join('src','database','seeds'),ss=p.join('dist','database','seeds');fs.mkdirSync(ms,{recursive:true});fs.mkdirSync(ss,{recursive:true});fs.readdirSync(m).forEach(f=>fs.copyFileSync(p.join(m,f),p.join(ms,f)));fs.readdirSync(s).forEach(f=>fs.copyFileSync(p.join(s,f),p.join(ss,f)))\"",
+    "start": "node dist/database/migrations/prod-migrate.js || true; node dist/database/seeds/seed-demo.js || true; node dist/server.js","migrate:prod": "node dist/database/migrations/prod-migrate.js",
     "lint": "eslint \"src/**/*.ts\" --no-error-on-unmatched-pattern",
     "lint:fix": "eslint \"src/**/*.ts\" --fix --no-error-on-unmatched-pattern",
     "format": "prettier --write src/**/*.ts",
