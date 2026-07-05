@@ -10,9 +10,9 @@ import config from '../config/config';
  * Security middleware for comprehensive protection
  */
 export class SecurityMiddleware {
-  private redis: Redis;
+  private redis: Redis | null;
   
-  constructor(redisClient: Redis) {
+  constructor(redisClient: Redis | null) {
     this.redis = redisClient;
   }
   
