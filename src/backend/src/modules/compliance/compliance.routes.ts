@@ -30,13 +30,6 @@ router.get(
 
     const items = await ComplianceRequirement.findAll({
       where: { organisationId },
-      include: [
-        {
-          model: User,
-          as: 'owner',
-          attributes: ['id', 'firstName', 'lastName', 'email'],
-        },
-      ],
       order: [['createdAt', 'DESC']],
     });
 
@@ -159,13 +152,6 @@ router.get(
         id: req.params.id,
         organisationId,
       },
-      include: [
-        {
-          model: User,
-          as: 'owner',
-          attributes: ['id', 'firstName', 'lastName', 'email'],
-        },
-      ],
     });
 
     if (!item) {
@@ -194,16 +180,8 @@ router.post(
       organisationId: user.organisationId,
     });
 
-    // Re-fetch to include the owner association
-    const createdItem = await ComplianceRequirement.findByPk(newItem.id, {
-      include: [
-        {
-          model: User,
-          as: 'owner',
-          attributes: ['id', 'firstName', 'lastName', 'email'],
-        },
-      ],
-    });
+    // Re-fetch to return the created item
+    const createdItem = await ComplianceRequirement.findByPk(newItem.id);
 
     sendSuccess(res, createdItem, 'Compliance requirement created successfully', 201);
   })
@@ -234,18 +212,7 @@ router.put(
 
     await item.update(req.body);
 
-    // Re-fetch to get the updated record with associations
-    const updatedItem = await ComplianceRequirement.findByPk(item.id, {
-      include: [
-        {
-          model: User,
-          as: 'owner',
-          attributes: ['id', 'firstName', 'lastName', 'email'],
-        },
-      ],
-    });
-
-    sendSuccess(res, updatedItem, 'Compliance requirement updated successfully');
+    sendSuccess(res, item, 'Compliance requirement updated successfully');
   })
 );
 

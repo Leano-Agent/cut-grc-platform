@@ -1,8 +1,8 @@
 import { Router, Request, Response } from 'express';
 import Risk from '../../models/Risk';
-import User from '../../models/User';
 import { AuthMiddleware } from '../../middleware/auth.middleware';
 import { asyncHandler, sendSuccess, sendError } from '../../middleware/errorMiddleware';
+import database from '../../config/database';
 
 const router = Router();
 
@@ -27,19 +27,35 @@ router.get(
   asyncHandler(async (req: Request, res: Response) => {
     const organisationId = (req as any).user.organisationId;
 
-    const risks = await Risk.findAll({
-      where: { organisationId },
-      include: [
-        {
-          model: User,
-          as: 'owner',
-          attributes: ['id', 'firstName', 'lastName', 'email'],
-        },
-      ],
-      order: [['createdAt', 'DESC']],
+    // Use raw query to get risks with owner name (avoids Sequelize association issues)
+    const sequelize = database.getSequelize();
+    const [results] = await sequelize.query(
+      `SELECT r.*, 
+              u.first_name AS "owner.firstName", 
+              u.last_name AS "owner.lastName",
+              u.email AS "owner.email",
+              u.id AS "owner.id"
+       FROM risks r
+       LEFT JOIN users u ON r.owner_id = u.id
+       WHERE r.organisation_id = :orgId
+       ORDER BY r.created_at DESC`,
+      { replacements: { orgId: organisationId } }
+    );
+
+    // Format the results: flatten owner.* into nested owner object
+    const formatted = (results as any[]).map(r => {
+      const owner = r['owner.id'] ? {
+        id: r['owner.id'],
+        firstName: r['owner.firstName'],
+        lastName: r['owner.lastName'],
+        email: r['owner.email'],
+      } : null;
+      // Remove the flattened fields
+      const { 'owner.firstName': _1, 'owner.lastName': _2, 'owner.email': _3, 'owner.id': _4, ...rest } = r as any;
+      return { ...rest, owner };
     });
 
-    sendSuccess(res, risks, 'Risks retrieved successfully');
+    sendSuccess(res, formatted, 'Risks retrieved successfully');
   })
 );
 
@@ -53,23 +69,10 @@ router.get(
   authGuard,
   asyncHandler(async (req: Request, res: Response) => {
     const organisationId = (req as any).user.organisationId;
-
-    const risk = await Risk.findOne({
-      where: {
-        id: req.params.id,
-        organisationId,
-      },
-      include: [
-        {
-          model: User,
-          as: 'owner',
-          attributes: ['id', 'firstName', 'lastName', 'email'],
-        },
-      ],
-    });
+    const risk = await Risk.findOne({ where: { id: req.params.id, organisationId } });
 
     if (!risk) {
-      sendError(res, 404, 'Risk not found', 'NOT_FOUND');
+      sendError(res, 404, 'Risk not found', 'RISK_NOT_FOUND');
       return;
     }
 
@@ -87,20 +90,20 @@ router.post(
   authGuard,
   asyncHandler(async (req: Request, res: Response) => {
     const user = (req as any).user;
-
-    const newRisk = await Risk.create({
+    
+    const risk = await Risk.create({
       ...req.body,
       createdBy: user.userId,
       organisationId: user.organisationId,
     });
 
-    sendSuccess(res, newRisk, 'Risk created successfully', 201);
+    sendSuccess(res, risk, 'Risk created successfully');
   })
 );
 
 /**
  * @route   PUT /api/v1/risks/:id
- * @desc    Update a risk (scoped to organisation)
+ * @desc    Update a risk
  * @access  Private
  */
 router.put(
@@ -108,39 +111,21 @@ router.put(
   authGuard,
   asyncHandler(async (req: Request, res: Response) => {
     const organisationId = (req as any).user.organisationId;
-
-    const risk = await Risk.findOne({
-      where: {
-        id: req.params.id,
-        organisationId,
-      },
-    });
+    const risk = await Risk.findOne({ where: { id: req.params.id, organisationId } });
 
     if (!risk) {
-      sendError(res, 404, 'Risk not found', 'NOT_FOUND');
+      sendError(res, 404, 'Risk not found', 'RISK_NOT_FOUND');
       return;
     }
 
     await risk.update(req.body);
-
-    // Re-fetch to get the updated record with associations
-    const updatedRisk = await Risk.findByPk(risk.id, {
-      include: [
-        {
-          model: User,
-          as: 'owner',
-          attributes: ['id', 'firstName', 'lastName', 'email'],
-        },
-      ],
-    });
-
-    sendSuccess(res, updatedRisk, 'Risk updated successfully');
+    sendSuccess(res, risk, 'Risk updated successfully');
   })
 );
 
 /**
  * @route   DELETE /api/v1/risks/:id
- * @desc    Delete a risk (scoped to organisation)
+ * @desc    Delete a risk
  * @access  Private
  */
 router.delete(
@@ -148,21 +133,14 @@ router.delete(
   authGuard,
   asyncHandler(async (req: Request, res: Response) => {
     const organisationId = (req as any).user.organisationId;
-
-    const risk = await Risk.findOne({
-      where: {
-        id: req.params.id,
-        organisationId,
-      },
-    });
+    const risk = await Risk.findOne({ where: { id: req.params.id, organisationId } });
 
     if (!risk) {
-      sendError(res, 404, 'Risk not found', 'NOT_FOUND');
+      sendError(res, 404, 'Risk not found', 'RISK_NOT_FOUND');
       return;
     }
 
     await risk.destroy();
-
     sendSuccess(res, null, 'Risk deleted successfully');
   })
 );

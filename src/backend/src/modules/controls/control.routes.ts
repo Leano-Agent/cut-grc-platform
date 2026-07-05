@@ -30,13 +30,6 @@ router.get(
 
     const controls = await InternalControl.findAll({
       where: { organisationId },
-      include: [
-        {
-          model: User,
-          as: 'owner',
-          attributes: ['id', 'firstName', 'lastName', 'email'],
-        },
-      ],
       order: [['createdAt', 'DESC']],
     });
 
@@ -108,13 +101,6 @@ router.get(
         id: req.params.id,
         organisationId,
       },
-      include: [
-        {
-          model: User,
-          as: 'owner',
-          attributes: ['id', 'firstName', 'lastName', 'email'],
-        },
-      ],
     });
 
     if (!control) {
@@ -172,18 +158,7 @@ router.put(
 
     await control.update(req.body);
 
-    // Re-fetch to get the updated record with associations
-    const updatedControl = await InternalControl.findByPk(control.id, {
-      include: [
-        {
-          model: User,
-          as: 'owner',
-          attributes: ['id', 'firstName', 'lastName', 'email'],
-        },
-      ],
-    });
-
-    sendSuccess(res, updatedControl, 'Control updated successfully');
+    sendSuccess(res, control, 'Control updated successfully');
   })
 );
 
