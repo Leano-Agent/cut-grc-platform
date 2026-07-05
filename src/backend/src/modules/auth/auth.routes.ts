@@ -183,8 +183,15 @@ router.post(
       userQuery = 'SELECT * FROM users WHERE email = :email AND is_active = true ORDER BY created_at DESC LIMIT 1';
     }
     
-    const [rows] = await sequelize.query(userQuery, { replacements }) as any[];
-    const user = (rows as any[])?.[0] || null;
+    let user: any = null;
+    try {
+      const result = await sequelize.query(userQuery, { replacements });
+      const rows = (result as any[])[0];
+      user = rows?.[0] || null;
+    } catch (queryErr: any) {
+      sendError(res, 500, 'Query error: ' + (queryErr.message || queryErr), 'QUERY_ERROR');
+      return;
+    }
     
     if (!user) {
       logAuthentication('login', 'unknown', req.ip || 'unknown', false, { reason: 'user_not_found', email });
