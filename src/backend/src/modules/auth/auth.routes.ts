@@ -108,6 +108,7 @@ router.post(
       email: user.email,
       role: user.role,
       permissions: getPermissionsForRole(user.role),
+      organisationId: user.organisationId,
     });
     
     const refreshToken = JWTService.generateRefreshToken({
@@ -129,6 +130,7 @@ router.post(
         firstName: user.firstName,
         lastName: user.lastName,
         role: user.role,
+        organisationId: user.organisationId,
       },
       token: accessToken,
       refreshToken,
@@ -204,6 +206,7 @@ router.post(
       email: user.email,
       role: user.role,
       permissions: getPermissionsForRole(user.role),
+      organisationId: user.organisationId,
     });
     
     const refreshToken = JWTService.generateRefreshToken({
@@ -231,6 +234,7 @@ router.post(
         firstName: user.firstName,
         lastName: user.lastName,
         role: user.role,
+        organisationId: user.organisationId,
       },
       token: accessToken,
       refreshToken,
@@ -285,6 +289,7 @@ router.post(
       email: user.email,
       role: user.role,
       permissions: getPermissionsForRole(user.role),
+      organisationId: '00000000-0000-0000-0000-000000000001',
     });
     
     // Generate new refresh token (optional - can reuse old one)
@@ -465,6 +470,7 @@ router.get(
       firstName: user.firstName,
       lastName: user.lastName,
       role: user.role,
+      organisationId: user.organisationId,
       permissions: req.user.permissions,
       isActive: user.isActive,
       emailVerified: user.emailVerified,

@@ -36,8 +36,6 @@ import {
   FilterList as FilterIcon,
   MoreVert as MoreVertIcon,
   Warning as WarningIcon,
-  TrendingUp as TrendingUpIcon,
-  TrendingDown as TrendingDownIcon,
   Edit as EditIcon,
   Delete as DeleteIcon,
   Visibility as VisibilityIcon,
@@ -46,7 +44,18 @@ import {
 import { riskService, Risk } from '../../services/riskService'
 import HeatMap, { generateSampleHeatMap } from '../../components/HeatMap'
 
-const emptyForm = {
+interface RiskForm {
+  title: string
+  description: string
+  category: string
+  severity: string
+  likelihood: string
+  impact: string
+  mitigation: string
+  department: string
+}
+
+const emptyForm: RiskForm = {
   title: '',
   description: '',
   category: '',
@@ -54,6 +63,51 @@ const emptyForm = {
   likelihood: '',
   impact: '',
   mitigation: '',
+  department: '',
+}
+
+const getSeverityColor = (severity: string) => {
+  switch (severity.toLowerCase()) {
+    case 'critical': return '#B71C1C'
+    case 'high': return '#F44336'
+    case 'medium': return '#FF9800'
+    case 'low': return '#4CAF50'
+    default: return '#9E9E9E'
+  }
+}
+
+const getStatusColor = (status: string) => {
+  switch (status.toLowerCase()) {
+    case 'identified':
+    case 'open': return '#F44336'
+    case 'assessed':
+    case 'in_review': return '#FF9800'
+    case 'in_treatment':
+    case 'in_progress': return '#2196F3'
+    case 'monitoring': return '#9C27B0'
+    case 'closed':
+    case 'archived': return '#4CAF50'
+    default: return '#9E9E9E'
+  }
+}
+
+const formatStatus = (status: string) => {
+  return status.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
+}
+
+const formatDate = (dateStr?: string) => {
+  if (!dateStr) return ''
+  try {
+    return new Date(dateStr).toLocaleDateString()
+  } catch {
+    return dateStr
+  }
+}
+
+const getOwnerDisplay = (risk: Risk): string => {
+  if (!risk.owner) return '-'
+  if (typeof risk.owner === 'string') return String(risk.owner)
+  return `${risk.owner.firstName || ''} ${risk.owner.lastName || ''}`.trim() || risk.ownerId?.substring(0, 8) + '...' || '-'
 }
 
 const RiskManagement = () => {
@@ -68,9 +122,8 @@ const RiskManagement = () => {
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
   const [heatMapView, setHeatMapView] = useState(false)
-  const [formData, setFormData] = useState(emptyForm)
+  const [formData, setFormData] = useState<RiskForm>(emptyForm)
   const [saving, setSaving] = useState(false)
-  const [deleteLoading, setDeleteLoading] = useState(false)
   const [error, setError] = useState('')
 
   useEffect(() => {
@@ -107,19 +160,18 @@ const RiskManagement = () => {
     setSaving(true)
     setError('')
     try {
-      const newRisk = await riskService.createRisk({
+      const payload: Record<string, any> = {
         title: formData.title,
         description: formData.description,
         category: formData.category,
-        severity: formData.severity as Risk['severity'],
-        likelihood: formData.likelihood as Risk['likelihood'] || 'medium',
-        impact: formData.impact as Risk['impact'] || 'medium',
-        status: 'open',
-        department: '',
-        assignedTo: '',
-        owner: '',
-        mitigation: formData.mitigation,
-      })
+        severity: formData.severity,
+      }
+      if (formData.likelihood) payload.likelihood = formData.likelihood
+      if (formData.impact) payload.impactDescription = formData.impact
+      if (formData.department) payload.department = formData.department
+      if (formData.mitigation) payload.existingControls = formData.mitigation
+
+      const newRisk = await riskService.createRisk(payload as any)
       setRisks(prev => [newRisk, ...prev])
       handleCloseDialog()
     } catch (err: any) {
@@ -129,7 +181,7 @@ const RiskManagement = () => {
     }
   }
 
-  const handleChangePage = (event: unknown, newPage: number) => {
+  const handleChangePage = (_event: unknown, newPage: number) => {
     setPage(newPage)
   }
 
@@ -166,8 +218,9 @@ const RiskManagement = () => {
         category: risk.category,
         severity: risk.severity,
         likelihood: risk.likelihood || '',
-        impact: risk.impact || '',
-        mitigation: risk.mitigation || '',
+        impact: risk.impactDescription || '',
+        mitigation: risk.existingControls || '',
+        department: risk.department || '',
       })
       setSelectedRisk(risk.id)
       setOpenDialog(true)
@@ -179,35 +232,11 @@ const RiskManagement = () => {
     const riskId = selectedRisk
     handleMenuClose()
     if (!riskId) return
-    setDeleteLoading(true)
     try {
       await riskService.deleteRisk(riskId)
       setRisks(prev => prev.filter(r => r.id !== riskId))
     } catch (err: any) {
       setError(err.message || 'Failed to delete risk')
-    } finally {
-      setDeleteLoading(false)
-    }
-  }
-
-  const getSeverityColor = (severity: string) => {
-    switch (severity.toLowerCase()) {
-      case 'critical': return '#B71C1C'
-      case 'high': return '#F44336'
-      case 'medium': return '#FF9800'
-      case 'low': return '#4CAF50'
-      default: return '#9E9E9E'
-    }
-  }
-
-  const getStatusColor = (status: string) => {
-    switch (status.toLowerCase()) {
-      case 'open': return '#F44336'
-      case 'in_progress':
-      case 'in review': return '#FF9800'
-      case 'closed':
-      case 'mitigated': return '#4CAF50'
-      default: return '#9E9E9E'
     }
   }
 
@@ -215,8 +244,8 @@ const RiskManagement = () => {
     ? risks.filter(r =>
         r.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
         r.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        r.owner?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        r.department?.toLowerCase().includes(searchQuery.toLowerCase())
+        getOwnerDisplay(r).toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (r.department || '').toLowerCase().includes(searchQuery.toLowerCase())
       )
     : risks
 
@@ -262,7 +291,7 @@ const RiskManagement = () => {
         <Grid item xs={12} sm={6} md={3}>
           <Card>
             <CardContent>
-              <Typography variant="body2" color="text.secondary" gutterBottom>High Severity</Typography>
+              <Typography variant="body2" color="text.secondary" gutterBottom>Critical / High</Typography>
               <Typography variant="h4" sx={{ fontWeight: 700 }}>
                 {risks.filter(r => r.severity === 'high' || r.severity === 'critical').length}
               </Typography>
@@ -276,9 +305,9 @@ const RiskManagement = () => {
         <Grid item xs={12} sm={6} md={3}>
           <Card>
             <CardContent>
-              <Typography variant="body2" color="text.secondary" gutterBottom>Mitigated</Typography>
+              <Typography variant="body2" color="text.secondary" gutterBottom>Closed</Typography>
               <Typography variant="h4" sx={{ fontWeight: 700 }}>
-                {risks.filter(r => r.status === 'mitigated' || r.status === 'closed').length}
+                {risks.filter(r => r.status === 'closed' || r.status === 'archived').length}
               </Typography>
             </CardContent>
           </Card>
@@ -288,7 +317,7 @@ const RiskManagement = () => {
             <CardContent>
               <Typography variant="body2" color="text.secondary" gutterBottom>Open Risks</Typography>
               <Typography variant="h4" sx={{ fontWeight: 700 }}>
-                {risks.filter(r => r.status === 'open' || r.status === 'in_progress').length}
+                {risks.filter(r => !['closed', 'archived'].includes(r.status)).length}
               </Typography>
             </CardContent>
           </Card>
@@ -356,7 +385,7 @@ const RiskManagement = () => {
                     <TableCell>
                       <Typography variant="body2" sx={{ fontWeight: 600 }}>{risk.title}</Typography>
                       <Typography variant="caption" color="text.secondary">
-                        Last updated: {risk.lastUpdated || risk.createdAt}
+                        Updated: {formatDate(risk.updatedAt || risk.createdAt)}
                       </Typography>
                     </TableCell>
                     <TableCell><Chip label={risk.category} size="small" /></TableCell>
@@ -369,12 +398,12 @@ const RiskManagement = () => {
                     </TableCell>
                     <TableCell>
                       <Chip
-                        label={risk.status}
+                        label={formatStatus(risk.status)}
                         size="small"
                         sx={{ bgcolor: `${getStatusColor(risk.status)}15`, color: getStatusColor(risk.status) }}
                       />
                     </TableCell>
-                    <TableCell>{risk.owner || '-'}</TableCell>
+                    <TableCell>{getOwnerDisplay(risk)}</TableCell>
                     <TableCell>
                       <IconButton size="small" onClick={(e) => handleMenuOpen(e, risk.id)}>
                         <MoreVertIcon />
@@ -446,11 +475,12 @@ const RiskManagement = () => {
                     onChange={(e) => setFormData({ ...formData, category: e.target.value })}
                   >
                     <MenuItem value=""><em>Select category</em></MenuItem>
-                    <MenuItem value="cybersecurity">Cybersecurity</MenuItem>
+                    <MenuItem value="information_security">Information Security</MenuItem>
                     <MenuItem value="compliance">Compliance</MenuItem>
                     <MenuItem value="operational">Operational</MenuItem>
                     <MenuItem value="financial">Financial</MenuItem>
                     <MenuItem value="reputational">Reputational</MenuItem>
+                    <MenuItem value="strategic">Strategic</MenuItem>
                   </Select>
                 </FormControl>
               </Grid>
@@ -472,16 +502,18 @@ const RiskManagement = () => {
               </Grid>
               <Grid item xs={12} md={6}>
                 <FormControl fullWidth>
-                  <InputLabel>Probability</InputLabel>
+                  <InputLabel>Likelihood</InputLabel>
                   <Select
                     value={formData.likelihood}
-                    label="Probability"
+                    label="Likelihood"
                     onChange={(e) => setFormData({ ...formData, likelihood: e.target.value })}
                   >
-                    <MenuItem value=""><em>Select probability</em></MenuItem>
-                    <MenuItem value="high">High</MenuItem>
-                    <MenuItem value="medium">Medium</MenuItem>
-                    <MenuItem value="low">Low</MenuItem>
+                    <MenuItem value=""><em>Select likelihood</em></MenuItem>
+                    <MenuItem value="certain">Certain</MenuItem>
+                    <MenuItem value="likely">Likely</MenuItem>
+                    <MenuItem value="possible">Possible</MenuItem>
+                    <MenuItem value="unlikely">Unlikely</MenuItem>
+                    <MenuItem value="rare">Rare</MenuItem>
                   </Select>
                 </FormControl>
               </Grid>
@@ -494,9 +526,28 @@ const RiskManagement = () => {
                     onChange={(e) => setFormData({ ...formData, impact: e.target.value })}
                   >
                     <MenuItem value=""><em>Select impact</em></MenuItem>
+                    <MenuItem value="critical">Critical</MenuItem>
                     <MenuItem value="high">High</MenuItem>
                     <MenuItem value="medium">Medium</MenuItem>
                     <MenuItem value="low">Low</MenuItem>
+                  </Select>
+                </FormControl>
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <FormControl fullWidth>
+                  <InputLabel>Department</InputLabel>
+                  <Select
+                    value={formData.department}
+                    label="Department"
+                    onChange={(e) => setFormData({ ...formData, department: e.target.value })}
+                  >
+                    <MenuItem value=""><em>Select department</em></MenuItem>
+                    <MenuItem value="IT">IT</MenuItem>
+                    <MenuItem value="Finance">Finance</MenuItem>
+                    <MenuItem value="Legal">Legal</MenuItem>
+                    <MenuItem value="Operations">Operations</MenuItem>
+                    <MenuItem value="HR">HR</MenuItem>
+                    <MenuItem value="Security">Security</MenuItem>
                   </Select>
                 </FormControl>
               </Grid>
@@ -509,9 +560,9 @@ const RiskManagement = () => {
               </Grid>
               <Grid item xs={12}>
                 <TextField
-                  fullWidth label="Mitigation Strategy" multiline rows={3} value={formData.mitigation}
+                  fullWidth label="Existing Controls / Mitigation" multiline rows={3} value={formData.mitigation}
                   onChange={(e) => setFormData({ ...formData, mitigation: e.target.value })}
-                  placeholder="Describe the mitigation strategy"
+                  placeholder="Describe existing controls or mitigation strategy"
                 />
               </Grid>
             </Grid>
@@ -550,22 +601,22 @@ const RiskManagement = () => {
                 <Grid item xs={12} md={4}>
                   <Typography variant="caption" color="text.secondary">Status</Typography>
                   <Typography variant="body1">
-                    <Chip label={viewingRisk.status} size="small"
+                    <Chip label={formatStatus(viewingRisk.status)} size="small"
                       sx={{ bgcolor: `${getStatusColor(viewingRisk.status)}15`, color: getStatusColor(viewingRisk.status) }}
                     />
                   </Typography>
                 </Grid>
                 <Grid item xs={12} md={4}>
-                  <Typography variant="caption" color="text.secondary">Probability</Typography>
+                  <Typography variant="caption" color="text.secondary">Likelihood</Typography>
                   <Typography variant="body1">{viewingRisk.likelihood || '-'}</Typography>
                 </Grid>
                 <Grid item xs={12} md={4}>
-                  <Typography variant="caption" color="text.secondary">Impact</Typography>
-                  <Typography variant="body1">{viewingRisk.impact || '-'}</Typography>
+                  <Typography variant="caption" color="text.secondary">Impact Description</Typography>
+                  <Typography variant="body1">{viewingRisk.impactDescription || '-'}</Typography>
                 </Grid>
                 <Grid item xs={12} md={4}>
-                  <Typography variant="caption" color="text.secondary">Owner</Typography>
-                  <Typography variant="body1">{viewingRisk.owner || '-'}</Typography>
+                  <Typography variant="caption" color="text.secondary">Department</Typography>
+                  <Typography variant="body1">{viewingRisk.department || '-'}</Typography>
                 </Grid>
                 {viewingRisk.description && (
                   <Grid item xs={12}>
@@ -573,12 +624,26 @@ const RiskManagement = () => {
                     <Typography variant="body1">{viewingRisk.description}</Typography>
                   </Grid>
                 )}
-                {viewingRisk.mitigation && (
+                {viewingRisk.existingControls && (
                   <Grid item xs={12}>
-                    <Typography variant="caption" color="text.secondary">Mitigation Strategy</Typography>
-                    <Typography variant="body1">{viewingRisk.mitigation}</Typography>
+                    <Typography variant="caption" color="text.secondary">Existing Controls</Typography>
+                    <Typography variant="body1">{viewingRisk.existingControls}</Typography>
                   </Grid>
                 )}
+                {viewingRisk.rootCause && (
+                  <Grid item xs={12}>
+                    <Typography variant="caption" color="text.secondary">Root Cause</Typography>
+                    <Typography variant="body1">{viewingRisk.rootCause}</Typography>
+                  </Grid>
+                )}
+                <Grid item xs={12} md={6}>
+                  <Typography variant="caption" color="text.secondary">Risk Score</Typography>
+                  <Typography variant="body1">{viewingRisk.riskScore ?? '-'}</Typography>
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <Typography variant="caption" color="text.secondary">Target Date</Typography>
+                  <Typography variant="body1">{viewingRisk.targetDate ? formatDate(viewingRisk.targetDate) : '-'}</Typography>
+                </Grid>
               </Grid>
             </Box>
           )}

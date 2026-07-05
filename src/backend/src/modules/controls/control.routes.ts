@@ -1,76 +1,218 @@
 import { Router, Request, Response } from 'express';
-import { asyncHandler } from '../../middleware/errorMiddleware';
+import InternalControl from '../../models/InternalControl';
+import User from '../../models/User';
 import { AuthMiddleware } from '../../middleware/auth.middleware';
+import { asyncHandler, sendSuccess, sendError } from '../../middleware/errorMiddleware';
+import { Op } from 'sequelize';
 
 const router = Router();
 
+// Initialize middleware
 let authMiddleware: AuthMiddleware;
 
 export const initializeControlRoutes = (redisClient: any) => {
   authMiddleware = new AuthMiddleware(redisClient);
 };
 
-router.use((req, res, next) => authMiddleware.verifyToken(req, res, next));
+const authGuard = (req: Request, res: Response, next: any) =>
+  authMiddleware ? authMiddleware.verifyToken(req, res, next) : next();
 
-// In-memory store seeded with demo data
-let items: any[] = [
-  { id: '1', title: 'Access Control Policy', description: 'Prevent unauthorized system access', category: 'security', type: 'preventive', status: 'active', effectiveness: 'high', owner: 'IT Security', department: 'IT', lastTested: '2026-05-01', nextTestDue: '2026-11-01', notes: '', createdAt: '2026-01-10T09:00:00Z' },
-  { id: '2', title: 'Segregation of Duties', description: 'Separation of conflicting responsibilities', category: 'financial', type: 'detective', status: 'active', effectiveness: 'high', owner: 'Finance', department: 'Finance', lastTested: '2026-04-15', nextTestDue: '2026-10-15', notes: '', createdAt: '2026-01-15T14:30:00Z' },
-  { id: '3', title: 'Quarterly Risk Assessment', description: 'Regular assessment of operational risks', category: 'operational', type: 'detective', status: 'active', effectiveness: 'medium', owner: 'Risk Management', department: 'Risk', lastTested: '2026-03-01', nextTestDue: '2026-06-01', notes: '', createdAt: '2026-02-01T11:00:00Z' },
-  { id: '4', title: 'Incident Response Plan', description: 'Plan for security incident response', category: 'security', type: 'corrective', status: 'inactive', effectiveness: 'low', owner: 'IT Security', department: 'IT', lastTested: '2026-01-01', nextTestDue: '2026-07-01', notes: 'Needs update', createdAt: '2026-01-05T08:00:00Z' },
-];
-let nextId = 5;
-
+/**
+ * @route   GET /api/v1/controls
+ * @desc    Get all controls for the current organisation
+ * @access  Private
+ */
 router.get(
   '/',
-  asyncHandler(async (_req: Request, res: Response) => {
-    res.json({ data: items });
+  authGuard,
+  asyncHandler(async (req: Request, res: Response) => {
+    const organisationId = (req as any).user.organisationId;
+
+    const controls = await InternalControl.findAll({
+      where: { organisationId },
+      include: [
+        {
+          model: User,
+          as: 'owner',
+          attributes: ['id', 'firstName', 'lastName', 'email'],
+        },
+      ],
+      order: [['createdAt', 'DESC']],
+    });
+
+    sendSuccess(res, controls, 'Controls retrieved successfully');
   })
 );
 
+/**
+ * @route   GET /api/v1/controls/summary
+ * @desc    Get control summary statistics for the current organisation
+ * @access  Private
+ */
 router.get(
   '/summary',
-  asyncHandler(async (_req: Request, res: Response) => {
-    res.json({ data: { total: 4, active: 3, inactive: 1, highEffectiveness: 2, mediumEffectiveness: 1, lowEffectiveness: 1 } });
+  authGuard,
+  asyncHandler(async (req: Request, res: Response) => {
+    const organisationId = (req as any).user.organisationId;
+
+    const [total, statusCounts, effectivenessCounts] = await Promise.all([
+      InternalControl.count({ where: { organisationId } }),
+      InternalControl.findAll({
+        where: { organisationId },
+        attributes: ['status', [InternalControl.sequelize!.fn('COUNT', InternalControl.sequelize!.col('id')), 'count']],
+        group: ['status'],
+        raw: true,
+      }),
+      InternalControl.findAll({
+        where: { organisationId },
+        attributes: [
+          'designEffectiveness',
+          [InternalControl.sequelize!.fn('COUNT', InternalControl.sequelize!.col('id')), 'count'],
+        ],
+        group: ['designEffectiveness'],
+        raw: true,
+      }),
+    ]);
+
+    const statusMap: Record<string, number> = {};
+    for (const row of statusCounts as any[]) {
+      statusMap[row.status || 'unknown'] = parseInt(row.count, 10);
+    }
+
+    const effectivenessMap: Record<string, number> = {};
+    for (const row of effectivenessCounts as any[]) {
+      effectivenessMap[row.designEffectiveness || 'not_rated'] = parseInt(row.count, 10);
+    }
+
+    sendSuccess(res, {
+      total,
+      byStatus: statusMap,
+      byDesignEffectiveness: effectivenessMap,
+    }, 'Control summary retrieved successfully');
   })
 );
 
+/**
+ * @route   GET /api/v1/controls/:id
+ * @desc    Get control by ID (scoped to organisation)
+ * @access  Private
+ */
+router.get(
+  '/:id',
+  authGuard,
+  asyncHandler(async (req: Request, res: Response) => {
+    const organisationId = (req as any).user.organisationId;
+
+    const control = await InternalControl.findOne({
+      where: {
+        id: req.params.id,
+        organisationId,
+      },
+      include: [
+        {
+          model: User,
+          as: 'owner',
+          attributes: ['id', 'firstName', 'lastName', 'email'],
+        },
+      ],
+    });
+
+    if (!control) {
+      sendError(res, 404, 'Control not found', 'NOT_FOUND');
+      return;
+    }
+
+    sendSuccess(res, control, 'Control retrieved successfully');
+  })
+);
+
+/**
+ * @route   POST /api/v1/controls
+ * @desc    Create a new control
+ * @access  Private
+ */
 router.post(
   '/',
+  authGuard,
   asyncHandler(async (req: Request, res: Response) => {
-    const newItem = {
-      id: `ctrl_${nextId++}`,
+    const user = (req as any).user;
+
+    const newControl = await InternalControl.create({
       ...req.body,
-      createdAt: new Date().toISOString(),
-    };
-    items.unshift(newItem);
-    res.status(201).json({ data: newItem });
+      createdBy: user.userId,
+      organisationId: user.organisationId,
+    });
+
+    sendSuccess(res, newControl, 'Control created successfully', 201);
   })
 );
 
+/**
+ * @route   PUT /api/v1/controls/:id
+ * @desc    Update a control (scoped to organisation)
+ * @access  Private
+ */
 router.put(
   '/:id',
+  authGuard,
   asyncHandler(async (req: Request, res: Response) => {
-    const index = items.findIndex(i => i.id === req.params.id);
-    if (index === -1) {
-      res.status(404).json({ message: 'Control not found' });
+    const organisationId = (req as any).user.organisationId;
+
+    const control = await InternalControl.findOne({
+      where: {
+        id: req.params.id,
+        organisationId,
+      },
+    });
+
+    if (!control) {
+      sendError(res, 404, 'Control not found', 'NOT_FOUND');
       return;
     }
-    items[index] = { ...items[index], ...req.body, id: items[index].id };
-    res.json({ data: items[index] });
+
+    await control.update(req.body);
+
+    // Re-fetch to get the updated record with associations
+    const updatedControl = await InternalControl.findByPk(control.id, {
+      include: [
+        {
+          model: User,
+          as: 'owner',
+          attributes: ['id', 'firstName', 'lastName', 'email'],
+        },
+      ],
+    });
+
+    sendSuccess(res, updatedControl, 'Control updated successfully');
   })
 );
 
+/**
+ * @route   DELETE /api/v1/controls/:id
+ * @desc    Delete a control (scoped to organisation)
+ * @access  Private
+ */
 router.delete(
   '/:id',
+  authGuard,
   asyncHandler(async (req: Request, res: Response) => {
-    const index = items.findIndex(i => i.id === req.params.id);
-    if (index === -1) {
-      res.status(404).json({ message: 'Control not found' });
+    const organisationId = (req as any).user.organisationId;
+
+    const control = await InternalControl.findOne({
+      where: {
+        id: req.params.id,
+        organisationId,
+      },
+    });
+
+    if (!control) {
+      sendError(res, 404, 'Control not found', 'NOT_FOUND');
       return;
     }
-    items.splice(index, 1);
-    res.json({ message: 'Control deleted successfully' });
+
+    await control.destroy();
+
+    sendSuccess(res, null, 'Control deleted successfully');
   })
 );
 

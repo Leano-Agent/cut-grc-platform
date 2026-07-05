@@ -8,6 +8,7 @@ export interface TokenPayload {
   email: string;
   role: string;
   permissions: string[];
+  organisationId: string;
 }
 
 export interface RefreshTokenPayload {

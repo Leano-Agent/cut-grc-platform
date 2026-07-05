@@ -1,6 +1,9 @@
 import { Router, Request, Response } from 'express';
 import { AuthMiddleware } from '../../middleware/auth.middleware';
 import { asyncHandler } from '../../middleware/errorMiddleware';
+import bcrypt from 'bcryptjs';
+import User from '../../models/User';
+import Organisation from '../../models/Organisation';
 
 const router = Router();
 
@@ -16,36 +19,9 @@ const authGuard = (req: Request, res: Response, next: any) =>
 const adminGuard = (req: Request, res: Response, next: any) =>
   authMiddleware ? authMiddleware.requireAnyRole(['admin'])(req, res, next) : next();
 
-// In-memory store seeded with demo data
-let users: any[] = [
-  {
-    id: 'user_1',
-    email: 'grcadmin@tyriie.com',
-    firstName: 'Admin',
-    lastName: 'User',
-    role: 'admin',
-    department: 'IT',
-    isActive: true,
-    lastLogin: '2024-01-20T10:30:00Z',
-    createdAt: '2024-01-01T08:00:00Z',
-  },
-  {
-    id: 'user_2',
-    email: 'manager@municipal.gov',
-    firstName: 'Department',
-    lastName: 'Manager',
-    role: 'manager',
-    department: 'Finance',
-    isActive: true,
-    lastLogin: '2024-01-19T14:20:00Z',
-    createdAt: '2024-01-02T09:00:00Z',
-  },
-];
-let nextId = 3;
-
 /**
  * @route   GET /api/v1/users
- * @desc    Get all users (admin only)
+ * @desc    Get all users for the current organisation (admin only)
  * @access  Private (Admin)
  */
 router.get(
@@ -53,13 +29,20 @@ router.get(
   authGuard,
   adminGuard,
   asyncHandler(async (req: Request, res: Response) => {
+    const organisationId = req.user!.organisationId;
+
+    const users = await User.findAll({
+      where: { organisationId },
+      attributes: { exclude: ['passwordHash'] },
+    });
+
     res.json({ data: users });
   })
 );
 
 /**
  * @route   GET /api/v1/users/:id
- * @desc    Get user by ID
+ * @desc    Get user by ID within the current organisation
  * @access  Private (Admin)
  */
 router.get(
@@ -67,18 +50,25 @@ router.get(
   authGuard,
   adminGuard,
   asyncHandler(async (req: Request, res: Response) => {
-    const user = users.find(u => u.id === req.params.id);
+    const organisationId = req.user!.organisationId;
+
+    const user = await User.findOne({
+      where: { id: req.params.id, organisationId },
+      attributes: { exclude: ['passwordHash'] },
+    });
+
     if (!user) {
       res.status(404).json({ message: 'User not found' });
       return;
     }
+
     res.json({ data: user });
   })
 );
 
 /**
  * @route   POST /api/v1/users
- * @desc    Create a new user
+ * @desc    Create a new user within the current organisation
  * @access  Private (Admin)
  */
 router.post(
@@ -86,25 +76,42 @@ router.post(
   authGuard,
   adminGuard,
   asyncHandler(async (req: Request, res: Response) => {
-    const newUser = {
-      id: `user_${nextId++}`,
-      email: req.body.email,
-      firstName: req.body.firstName || '',
-      lastName: req.body.lastName || '',
-      role: req.body.role || 'user',
-      department: req.body.department || '',
-      isActive: true,
-      lastLogin: null,
-      createdAt: new Date().toISOString(),
-    };
-    users.unshift(newUser);
-    res.status(201).json({ data: newUser });
+    const organisationId = req.user!.organisationId;
+
+    const {
+      email,
+      password,
+      firstName,
+      lastName,
+      role,
+      orgRole,
+    } = req.body;
+
+    // Hash the password
+    const passwordHash = await bcrypt.hash(password, 12);
+
+    const newUser = await User.create({
+      email,
+      passwordHash,
+      firstName: firstName || '',
+      lastName: lastName || '',
+      role: role || 'staff',
+      organisationId,
+      orgRole: orgRole || 'member',
+    });
+
+    // Fetch without passwordHash for response
+    const user = await User.findByPk(newUser.id, {
+      attributes: { exclude: ['passwordHash'] },
+    });
+
+    res.status(201).json({ data: user });
   })
 );
 
 /**
  * @route   PUT /api/v1/users/:id
- * @desc    Update a user
+ * @desc    Update a user within the current organisation
  * @access  Private (Admin)
  */
 router.put(
@@ -112,19 +119,54 @@ router.put(
   authGuard,
   adminGuard,
   asyncHandler(async (req: Request, res: Response) => {
-    const index = users.findIndex(u => u.id === req.params.id);
-    if (index === -1) {
+    const organisationId = req.user!.organisationId;
+
+    const user = await User.findOne({
+      where: { id: req.params.id, organisationId },
+    });
+
+    if (!user) {
       res.status(404).json({ message: 'User not found' });
       return;
     }
-    users[index] = { ...users[index], ...req.body, id: users[index].id, createdAt: users[index].createdAt };
-    res.json({ data: users[index] });
+
+    const {
+      email,
+      password,
+      firstName,
+      lastName,
+      role,
+      orgRole,
+      isActive,
+    } = req.body;
+
+    const updateData: Record<string, unknown> = {};
+
+    if (email !== undefined) updateData.email = email;
+    if (firstName !== undefined) updateData.firstName = firstName;
+    if (lastName !== undefined) updateData.lastName = lastName;
+    if (role !== undefined) updateData.role = role;
+    if (orgRole !== undefined) updateData.orgRole = orgRole;
+    if (isActive !== undefined) updateData.isActive = isActive;
+
+    if (password) {
+      updateData.passwordHash = await bcrypt.hash(password, 12);
+    }
+
+    await user.update(updateData);
+
+    // Fetch fresh data without passwordHash
+    const updatedUser = await User.findByPk(user.id, {
+      attributes: { exclude: ['passwordHash'] },
+    });
+
+    res.json({ data: updatedUser });
   })
 );
 
 /**
  * @route   DELETE /api/v1/users/:id
- * @desc    Delete a user
+ * @desc    Delete a user within the current organisation
  * @access  Private (Admin)
  */
 router.delete(
@@ -132,19 +174,26 @@ router.delete(
   authGuard,
   adminGuard,
   asyncHandler(async (req: Request, res: Response) => {
-    const index = users.findIndex(u => u.id === req.params.id);
-    if (index === -1) {
+    const organisationId = req.user!.organisationId;
+
+    const user = await User.findOne({
+      where: { id: req.params.id, organisationId },
+    });
+
+    if (!user) {
       res.status(404).json({ message: 'User not found' });
       return;
     }
-    users.splice(index, 1);
+
+    await user.destroy();
+
     res.json({ message: 'User deleted successfully' });
   })
 );
 
 /**
  * @route   PUT /api/v1/users/:id/status
- * @desc    Toggle user active status
+ * @desc    Toggle user active status within the current organisation
  * @access  Private (Admin)
  */
 router.put(
@@ -152,13 +201,25 @@ router.put(
   authGuard,
   adminGuard,
   asyncHandler(async (req: Request, res: Response) => {
-    const index = users.findIndex(u => u.id === req.params.id);
-    if (index === -1) {
+    const organisationId = req.user!.organisationId;
+
+    const user = await User.findOne({
+      where: { id: req.params.id, organisationId },
+    });
+
+    if (!user) {
       res.status(404).json({ message: 'User not found' });
       return;
     }
-    users[index].isActive = !users[index].isActive;
-    res.json({ data: users[index] });
+
+    // Toggle isActive
+    await user.update({ isActive: !user.isActive });
+
+    const updatedUser = await User.findByPk(user.id, {
+      attributes: { exclude: ['passwordHash'] },
+    });
+
+    res.json({ data: updatedUser });
   })
 );
 

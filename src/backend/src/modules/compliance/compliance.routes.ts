@@ -1,90 +1,280 @@
 import { Router, Request, Response } from 'express';
-import { asyncHandler } from '../../middleware/errorMiddleware';
+import { Op } from 'sequelize';
+import ComplianceRequirement from '../../models/ComplianceRequirement';
+import User from '../../models/User';
 import { AuthMiddleware } from '../../middleware/auth.middleware';
+import { asyncHandler, sendSuccess, sendError } from '../../middleware/errorMiddleware';
 
 const router = Router();
 
+// Initialize middleware
 let authMiddleware: AuthMiddleware;
 
 export const initializeComplianceRoutes = (redisClient: any) => {
   authMiddleware = new AuthMiddleware(redisClient);
 };
 
-router.use((req, res, next) => authMiddleware.verifyToken(req, res, next));
+const authGuard = (req: Request, res: Response, next: any) =>
+  authMiddleware ? authMiddleware.verifyToken(req, res, next) : next();
 
-// In-memory store seeded with demo data
-let items: any[] = [
-  { id: '1', title: 'POPIA Data Protection', description: 'Personal Information Protection compliance requirements', regulation: 'POPIA', status: 'compliant', department: 'Legal', owner: 'Sarah Smith', dueDate: '2026-08-15', lastReviewed: '2026-05-15', nextReview: '2026-08-15', notes: '', createdAt: '2026-01-15T09:00:00Z' },
-  { id: '2', title: 'King IV Governance', description: 'Corporate governance code compliance', regulation: 'King IV', status: 'compliant', department: 'Board', owner: 'Lisa Brown', dueDate: '2026-07-01', lastReviewed: '2026-04-01', nextReview: '2026-07-01', notes: '', createdAt: '2026-02-10T14:30:00Z' },
-  { id: '3', title: 'FICA Compliance Program', description: 'Financial Intelligence Centre Act requirements', regulation: 'FICA', status: 'partial', department: 'Finance', owner: 'Mike Johnson', dueDate: '2026-06-15', lastReviewed: '2026-03-01', nextReview: '2026-06-15', notes: 'Pending review', createdAt: '2026-01-20T11:00:00Z' },
-  { id: '4', title: 'GDPR Data Privacy', description: 'General Data Protection Regulation compliance', regulation: 'GDPR', status: 'non_compliant', department: 'IT', owner: 'IT Security', dueDate: '2026-05-15', lastReviewed: '2026-02-01', nextReview: '2026-05-15', notes: 'Requires immediate action', createdAt: '2026-01-05T08:00:00Z' },
-];
-let nextId = 5;
-
+/**
+ * @route   GET /api/v1/compliance
+ * @desc    Get all compliance requirements for the current organisation
+ * @access  Private
+ */
 router.get(
   '/',
-  asyncHandler(async (_req: Request, res: Response) => {
-    res.json({ data: items });
+  authGuard,
+  asyncHandler(async (req: Request, res: Response) => {
+    const organisationId = (req as any).user.organisationId;
+
+    const items = await ComplianceRequirement.findAll({
+      where: { organisationId },
+      include: [
+        {
+          model: User,
+          as: 'owner',
+          attributes: ['id', 'firstName', 'lastName', 'email'],
+        },
+      ],
+      order: [['createdAt', 'DESC']],
+    });
+
+    sendSuccess(res, items, 'Compliance requirements retrieved successfully');
   })
 );
 
+/**
+ * @route   GET /api/v1/compliance/summary
+ * @desc    Get compliance summary counts for the current organisation
+ * @access  Private
+ */
 router.get(
   '/summary',
-  asyncHandler(async (_req: Request, res: Response) => {
-    res.json({ data: { total: 4, compliant: 2, partial: 1, nonCompliant: 1, overallScore: 72 } });
+  authGuard,
+  asyncHandler(async (req: Request, res: Response) => {
+    const organisationId = (req as any).user.organisationId;
+
+    const [total, compliant, nonCompliant, partial, notAssessed, underReview] =
+      await Promise.all([
+        ComplianceRequirement.count({ where: { organisationId } }),
+        ComplianceRequirement.count({
+          where: { organisationId, status: 'compliant' },
+        }),
+        ComplianceRequirement.count({
+          where: { organisationId, status: 'non_compliant' },
+        }),
+        ComplianceRequirement.count({
+          where: { organisationId, status: 'partial' },
+        }),
+        ComplianceRequirement.count({
+          where: { organisationId, status: 'not_assessed' },
+        }),
+        ComplianceRequirement.count({
+          where: { organisationId, status: 'under_review' },
+        }),
+      ]);
+
+    const overallScore =
+      total > 0 ? Math.round((compliant / total) * 100) : 0;
+
+    sendSuccess(res, {
+      total,
+      compliant,
+      nonCompliant,
+      partial,
+      notAssessed,
+      underReview,
+      overallScore,
+    }, 'Compliance summary retrieved successfully');
   })
 );
 
+/**
+ * @route   GET /api/v1/compliance/trends
+ * @desc    Get compliance trend scores by month (computed from last_reviewed_at dates)
+ * @access  Private
+ */
 router.get(
   '/trends',
-  asyncHandler(async (_req: Request, res: Response) => {
-    res.json({
-      data: [
-        { month: 'Jan', score: 68 },
-        { month: 'Feb', score: 70 },
-        { month: 'Mar', score: 69 },
-        { month: 'Apr', score: 72 },
+  authGuard,
+  asyncHandler(async (req: Request, res: Response) => {
+    const organisationId = (req as any).user.organisationId;
+
+    // Get all items with a lastReviewedAt to build trend data
+    const items = await ComplianceRequirement.findAll({
+      where: {
+        organisationId,
+        lastReviewedAt: { [Op.ne]: null },
+      },
+      attributes: ['status', 'lastReviewedAt'],
+    });
+
+    // Build month-to-month trend buckets based on lastReviewedAt
+    const monthBuckets: Record<string, { total: number; compliant: number }> =
+      {};
+
+    for (const item of items) {
+      if (!item.lastReviewedAt) continue;
+      const monthKey = `${item.lastReviewedAt.getFullYear()}-${String(
+        item.lastReviewedAt.getMonth() + 1
+      ).padStart(2, '0')}`;
+
+      if (!monthBuckets[monthKey]) {
+        monthBuckets[monthKey] = { total: 0, compliant: 0 };
+      }
+
+      monthBuckets[monthKey].total += 1;
+      if (item.status === 'compliant') {
+        monthBuckets[monthKey].compliant += 1;
+      }
+    }
+
+    const trends = Object.entries(monthBuckets)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([month, data]) => ({
+        month,
+        score: data.total > 0
+          ? Math.round((data.compliant / data.total) * 100)
+          : 0,
+      }));
+
+    sendSuccess(res, trends, 'Compliance trends retrieved successfully');
+  })
+);
+
+/**
+ * @route   GET /api/v1/compliance/:id
+ * @desc    Get compliance requirement by ID (scoped to organisation)
+ * @access  Private
+ */
+router.get(
+  '/:id',
+  authGuard,
+  asyncHandler(async (req: Request, res: Response) => {
+    const organisationId = (req as any).user.organisationId;
+
+    const item = await ComplianceRequirement.findOne({
+      where: {
+        id: req.params.id,
+        organisationId,
+      },
+      include: [
+        {
+          model: User,
+          as: 'owner',
+          attributes: ['id', 'firstName', 'lastName', 'email'],
+        },
       ],
     });
+
+    if (!item) {
+      sendError(res, 404, 'Compliance requirement not found', 'NOT_FOUND');
+      return;
+    }
+
+    sendSuccess(res, item, 'Compliance requirement retrieved successfully');
   })
 );
 
+/**
+ * @route   POST /api/v1/compliance
+ * @desc    Create a new compliance requirement
+ * @access  Private
+ */
 router.post(
   '/',
+  authGuard,
   asyncHandler(async (req: Request, res: Response) => {
-    const newItem = {
-      id: `comp_${nextId++}`,
+    const user = (req as any).user;
+
+    const newItem = await ComplianceRequirement.create({
       ...req.body,
-      createdAt: new Date().toISOString(),
-    };
-    items.unshift(newItem);
-    res.status(201).json({ data: newItem });
+      createdBy: user.userId,
+      organisationId: user.organisationId,
+    });
+
+    // Re-fetch to include the owner association
+    const createdItem = await ComplianceRequirement.findByPk(newItem.id, {
+      include: [
+        {
+          model: User,
+          as: 'owner',
+          attributes: ['id', 'firstName', 'lastName', 'email'],
+        },
+      ],
+    });
+
+    sendSuccess(res, createdItem, 'Compliance requirement created successfully', 201);
   })
 );
 
+/**
+ * @route   PUT /api/v1/compliance/:id
+ * @desc    Update a compliance requirement (scoped to organisation)
+ * @access  Private
+ */
 router.put(
   '/:id',
+  authGuard,
   asyncHandler(async (req: Request, res: Response) => {
-    const index = items.findIndex(i => i.id === req.params.id);
-    if (index === -1) {
-      res.status(404).json({ message: 'Compliance item not found' });
+    const organisationId = (req as any).user.organisationId;
+
+    const item = await ComplianceRequirement.findOne({
+      where: {
+        id: req.params.id,
+        organisationId,
+      },
+    });
+
+    if (!item) {
+      sendError(res, 404, 'Compliance requirement not found', 'NOT_FOUND');
       return;
     }
-    items[index] = { ...items[index], ...req.body, id: items[index].id };
-    res.json({ data: items[index] });
+
+    await item.update(req.body);
+
+    // Re-fetch to get the updated record with associations
+    const updatedItem = await ComplianceRequirement.findByPk(item.id, {
+      include: [
+        {
+          model: User,
+          as: 'owner',
+          attributes: ['id', 'firstName', 'lastName', 'email'],
+        },
+      ],
+    });
+
+    sendSuccess(res, updatedItem, 'Compliance requirement updated successfully');
   })
 );
 
+/**
+ * @route   DELETE /api/v1/compliance/:id
+ * @desc    Delete a compliance requirement (scoped to organisation)
+ * @access  Private
+ */
 router.delete(
   '/:id',
+  authGuard,
   asyncHandler(async (req: Request, res: Response) => {
-    const index = items.findIndex(i => i.id === req.params.id);
-    if (index === -1) {
-      res.status(404).json({ message: 'Compliance item not found' });
+    const organisationId = (req as any).user.organisationId;
+
+    const item = await ComplianceRequirement.findOne({
+      where: {
+        id: req.params.id,
+        organisationId,
+      },
+    });
+
+    if (!item) {
+      sendError(res, 404, 'Compliance requirement not found', 'NOT_FOUND');
       return;
     }
-    items.splice(index, 1);
-    res.json({ message: 'Compliance item deleted successfully' });
+
+    await item.destroy();
+
+    sendSuccess(res, null, 'Compliance requirement deleted successfully');
   })
 );
 
