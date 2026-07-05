@@ -81,13 +81,15 @@ export interface RegisterData {
   lastName: string
   role?: 'admin' | 'manager' | 'user'
   department?: string
+  organisationId?: string
 }
 
 class AuthService {
-  async login(email: string, password: string): Promise<LoginResponse> {
+  async login(email: string, password: string, organisationId?: string): Promise<LoginResponse> {
     const response = await api.post<LoginResponse>('/auth/login', {
       email,
       password,
+      organisationId,
     })
 
     // Store tokens

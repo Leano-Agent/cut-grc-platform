@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import bcrypt from 'bcryptjs';
+import { QueryTypes } from 'sequelize';
 import { JWTService, TokenBlacklist } from '../../utils/jwt';
 import { ValidationMiddleware } from '../../middleware/validation.middleware';
 import { AuthMiddleware } from '../../middleware/auth.middleware';
@@ -8,7 +9,7 @@ import { SecurityMiddleware } from '../../middleware/security.middleware';
 import { asyncHandler, sendSuccess, sendError } from '../../middleware/errorMiddleware';
 import logger, { logAuthentication } from '../../config/logger';
 import { emailService } from '../../services/email.service';
-import User from '../../models/User';
+import database from '../../config/database';
 
 const router = Router();
 
@@ -40,6 +41,7 @@ const registerSchema = z.object({
 const loginSchema = z.object({
   email: ValidationMiddleware.schemas.email,
   password: z.string().min(1, 'Password is required'),
+  organisationId: z.string().optional(),
 });
 
 const refreshTokenSchema = z.object({
@@ -72,13 +74,15 @@ router.post(
   SecurityMiddleware.xssProtection(),
   asyncHandler(async (req, res) => {
     const { email, password, firstName, lastName, role } = req.body;
+    const orgId = req.body.organisationId || DEFAULT_ORG_ID;
+    const sequelize = database.getSequelize();
     
-    // Schema is already applied by prod-migrate.js on startup
-    // User.sync({ alter: true }) removed — it blocks every request with ALTER TABLE scan
-    
-    // Check if user already exists
-    const existingUser = await User.findOne({ where: { email } });
-    if (existingUser) {
+    // Check if user already exists using raw SQL
+    const [existing] = await sequelize.query(
+      'SELECT id FROM users WHERE email = :email',
+      { replacements: { email }, type: QueryTypes.SELECT }
+    );
+    if (existing) {
       sendError(res, 409, 'A user with this email already exists', 'EMAIL_EXISTS');
       return;
     }
@@ -86,21 +90,34 @@ router.post(
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 12);
     
-    // Create user in database
-    const userId = `user_${Date.now()}`;
-    const user = await User.create({
-      id: userId,
-      email,
-      passwordHash: hashedPassword,
-      firstName,
-      lastName,
-      role: role || 'student',
-      organisationId: DEFAULT_ORG_ID,
-      isActive: true,
-      emailVerified: false,
-      failedLoginAttempts: 0,
-      refreshTokenVersion: 1,
-    });
+    // Create user using raw SQL
+    const userId = `user_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
+    await sequelize.query(
+      `INSERT INTO users (id, email, password_hash, first_name, last_name, role, organisation_id, is_active, email_verified, failed_login_attempts, refresh_token_version, created_at, updated_at)
+       VALUES (:id, :email, :hash, :first, :last, :role, :orgId, true, false, 0, 1, NOW(), NOW())`,
+      {
+        replacements: {
+          id: userId,
+          email,
+          hash: hashedPassword,
+          first: firstName || '',
+          last: lastName || '',
+          role: role || 'staff',
+          orgId,
+        }
+      }
+    );
+    
+    // Fetch created user
+    const [user] = await sequelize.query(
+      `SELECT id, email, first_name, last_name, role, organisation_id, is_active FROM users WHERE id = :id`,
+      { replacements: { id: userId }, type: QueryTypes.SELECT }
+    ) as any[];
+    
+    if (!user) {
+      sendError(res, 500, 'Failed to create user', 'CREATE_FAILED');
+      return;
+    }
     
     // Generate tokens
     const accessToken = JWTService.generateAccessToken({
@@ -108,12 +125,12 @@ router.post(
       email: user.email,
       role: user.role,
       permissions: getPermissionsForRole(user.role),
-      organisationId: user.organisationId,
+      organisationId: user.organisation_id,
     });
     
     const refreshToken = JWTService.generateRefreshToken({
       userId: user.id,
-      tokenVersion: user.refreshTokenVersion,
+      tokenVersion: 1,
     });
     
     logAuthentication('register', userId, req.ip || 'unknown', true, { role });
@@ -127,10 +144,10 @@ router.post(
       user: {
         id: user.id,
         email: user.email,
-        firstName: user.firstName,
-        lastName: user.lastName,
+        firstName: user.first_name,
+        lastName: user.last_name,
         role: user.role,
-        organisationId: user.organisationId,
+        organisationId: user.organisation_id,
       },
       token: accessToken,
       refreshToken,
@@ -152,12 +169,22 @@ router.post(
   SecurityMiddleware.xssProtection(),
   asyncHandler(async (req, res) => {
     const { email, password } = req.body;
+    const orgId = req.body.organisationId || null;
+    const sequelize = database.getSequelize();
     
-    // Schema is already applied by prod-migrate.js on startup
-    // User.sync({ alter: true }) removed — it blocks every request with ALTER TABLE scan
+    // Build query: if orgId provided, scope by org; otherwise find any matching email
+    let userQuery: string;
+    let replacements: Record<string, any> = { email };
     
-    // Find user by email
-    const user = await User.findOne({ where: { email, isActive: true } });
+    if (orgId) {
+      userQuery = 'SELECT * FROM users WHERE email = :email AND organisation_id = :orgId AND is_active = true';
+      replacements.orgId = orgId;
+    } else {
+      userQuery = 'SELECT * FROM users WHERE email = :email AND is_active = true ORDER BY created_at DESC LIMIT 1';
+    }
+    
+    const [rows] = await sequelize.query(userQuery, { replacements, type: QueryTypes.SELECT }) as any[];
+    const user = rows || null;
     
     if (!user) {
       logAuthentication('login', 'unknown', req.ip || 'unknown', false, { reason: 'user_not_found', email });
@@ -166,25 +193,30 @@ router.post(
     }
     
     // Check if account is locked
-    if (user.lockedUntil && new Date(user.lockedUntil) > new Date()) {
+    if (user.locked_until && new Date(user.locked_until) > new Date()) {
       logAuthentication('login', user.id, req.ip || 'unknown', false, { reason: 'account_locked' });
       sendError(res, 423, 'Account is temporarily locked. Try again later.', 'ACCOUNT_LOCKED');
       return;
     }
     
     // Verify password
-    const isPasswordValid = await bcrypt.compare(password, user.passwordHash);
+    const isPasswordValid = await bcrypt.compare(password, user.password_hash);
     
     if (!isPasswordValid) {
-      const failedAttempts = user.failedLoginAttempts + 1;
-      const updates: any = { failedLoginAttempts: failedAttempts };
+      const failedAttempts = (user.failed_login_attempts || 0) + 1;
       
       // Lock account after 5 failed attempts
       if (failedAttempts >= 5) {
-        updates.lockedUntil = new Date(Date.now() + 30 * 60 * 1000); // 30 min lockout
+        await sequelize.query(
+          'UPDATE users SET failed_login_attempts = :attempts, locked_until = NOW() + INTERVAL \'30 minutes\' WHERE id = :id',
+          { replacements: { id: user.id, attempts: failedAttempts } }
+        );
+      } else {
+        await sequelize.query(
+          'UPDATE users SET failed_login_attempts = :attempts WHERE id = :id',
+          { replacements: { id: user.id, attempts: failedAttempts } }
+        );
       }
-      
-      await User.update(updates, { where: { id: user.id } });
       
       logAuthentication('login', user.id, req.ip || 'unknown', false, { 
         reason: 'invalid_password',
@@ -195,9 +227,9 @@ router.post(
     }
     
     // Reset failed login attempts on successful login
-    await User.update(
-      { failedLoginAttempts: 0, lockedUntil: null, lastLoginAt: new Date() },
-      { where: { id: user.id } }
+    await sequelize.query(
+      'UPDATE users SET failed_login_attempts = 0, locked_until = NULL, last_login_at = NOW() WHERE id = :id',
+      { replacements: { id: user.id } }
     );
     
     // Generate tokens
@@ -206,12 +238,12 @@ router.post(
       email: user.email,
       role: user.role,
       permissions: getPermissionsForRole(user.role),
-      organisationId: user.organisationId,
+      organisationId: user.organisation_id,
     });
     
     const refreshToken = JWTService.generateRefreshToken({
       userId: user.id,
-      tokenVersion: user.refreshTokenVersion,
+      tokenVersion: user.refresh_token_version || 1,
     });
     
     // Reset brute force counter
@@ -456,8 +488,13 @@ router.get(
       return;
     }
     
-    // Get real user from database
-    const user = await User.findByPk(req.user.userId);
+    // Get real user from database using raw SQL
+    const sequelize = database.getSequelize();
+    const [rows] = await sequelize.query(
+      'SELECT id, email, first_name, last_name, role, organisation_id, is_active, email_verified, last_login_at, created_at FROM users WHERE id = :id',
+      { replacements: { id: req.user.userId }, type: QueryTypes.SELECT }
+    ) as any[];
+    const user = rows || null;
     
     if (!user) {
       sendError(res, 404, 'User not found', 'USER_NOT_FOUND');
@@ -467,15 +504,15 @@ router.get(
     res.status(200).json({
       id: user.id,
       email: user.email,
-      firstName: user.firstName,
-      lastName: user.lastName,
+      firstName: user.first_name,
+      lastName: user.last_name,
       role: user.role,
-      organisationId: user.organisationId,
+      organisationId: user.organisation_id,
       permissions: req.user.permissions,
-      isActive: user.isActive,
-      emailVerified: user.emailVerified,
-      lastLoginAt: user.lastLoginAt,
-      createdAt: user.createdAt,
+      isActive: user.is_active,
+      emailVerified: user.email_verified,
+      lastLoginAt: user.last_login_at,
+      createdAt: user.created_at,
     });
   })
 );

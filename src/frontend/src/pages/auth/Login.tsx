@@ -15,6 +15,7 @@ import {
   VisibilityOff,
   Email,
   Lock,
+  Business,
   Login as LoginIcon,
 } from '@mui/icons-material'
 import { useForm, Controller } from 'react-hook-form'
@@ -28,6 +29,7 @@ import { useUI } from '../../hooks/useUI'
 const loginSchema = z.object({
   email: z.string().email('Please enter a valid email address'),
   password: z.string().min(6, 'Password must be at least 6 characters'),
+  organisationId: z.string().optional(),
   rememberMe: z.boolean().optional(),
 })
 
@@ -49,16 +51,17 @@ const Login = () => {
     defaultValues: {
       email: '',
       password: '',
+      organisationId: '',
       rememberMe: false,
     },
   })
 
   const onSubmit = async (data: LoginFormData) => {
     setIsSubmitting(true)
-    
+
     try {
-      const result = await login(data.email, data.password)
-      
+      const result = await login(data.email, data.password, data.organisationId || undefined)
+
       if (result.success) {
         showSuccess('Login successful!')
         // Navigate immediately — Redux state is already updated by the thunk
@@ -86,10 +89,36 @@ const Login = () => {
       <Typography variant="h5" component="h2" sx={{ mb: 3, textAlign: 'center', fontWeight: 600 }}>
         Welcome Back
       </Typography>
-      
+
       <Typography variant="body2" color="text.secondary" sx={{ mb: 3, textAlign: 'center' }}>
         Sign in to your account to continue
       </Typography>
+
+      {/* Organisation ID Field */}
+      <Controller
+        name="organisationId"
+        control={control}
+        render={({ field }) => (
+          <TextField
+            {...field}
+            margin="normal"
+            fullWidth
+            id="organisationId"
+            label="Organisation ID (optional)"
+            placeholder="e.g. 00000000-0000-0000-0000-000000000001"
+            error={!!errors.organisationId}
+            helperText={errors.organisationId?.message || 'Leave blank for default organisation'}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <Business color="action" />
+                </InputAdornment>
+              ),
+            }}
+            disabled={isSubmitting}
+          />
+        )}
+      />
 
       {/* Email Field */}
       <Controller

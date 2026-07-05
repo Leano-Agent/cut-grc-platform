@@ -19,18 +19,18 @@ export const useAuth = () => {
     }
   }, [token, user, isLoading, dispatch])
 
-  const login = async (email: string, password: string) => {
+  const login = async (email: string, password: string, organisationId?: string) => {
     try {
-      const result = await dispatch(loginThunk({ email, password })).unwrap()
+      const result = await dispatch(loginThunk({ email, password, organisationId })).unwrap()
       return { success: true, data: result }
     } catch (error: any) {
       return { success: false, error: error.message || 'Login failed. Please check your credentials.' }
     }
   }
 
-  const register = async (email: string, password: string, firstName: string, lastName: string) => {
+  const register = async (email: string, password: string, firstName: string, lastName: string, organisationId?: string) => {
     try {
-      const result = await dispatch(registerThunk({ email, password, firstName, lastName })).unwrap()
+      const result = await dispatch(registerThunk({ email, password, firstName, lastName, organisationId })).unwrap()
       return { success: true, data: result }
     } catch (error: any) {
       return { success: false, error: error.message || 'Registration failed.' }

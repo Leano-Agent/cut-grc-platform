@@ -31,9 +31,9 @@ const initialState: AuthState = {
 // Async thunks
 export const login = createAsyncThunk(
   'auth/login',
-  async (credentials: { email: string; password: string }, { rejectWithValue }) => {
+  async (credentials: { email: string; password: string; organisationId?: string }, { rejectWithValue }) => {
     try {
-      const response = await authService.login(credentials.email, credentials.password)
+      const response = await authService.login(credentials.email, credentials.password, credentials.organisationId)
       return response
     } catch (error: any) {
       return rejectWithValue(error.message || 'Login failed')
@@ -43,7 +43,7 @@ export const login = createAsyncThunk(
 
 export const register = createAsyncThunk(
   'auth/register',
-  async (data: { email: string; password: string; firstName: string; lastName: string }, { rejectWithValue }) => {
+  async (data: { email: string; password: string; firstName: string; lastName: string; organisationId?: string }, { rejectWithValue }) => {
     try {
       const response = await authService.register(data)
       return response
