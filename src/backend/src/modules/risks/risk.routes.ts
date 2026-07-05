@@ -1,12 +1,10 @@
 import { Router, Request, Response } from 'express';
-import Risk from '../../models/Risk';
 import { AuthMiddleware } from '../../middleware/auth.middleware';
 import { asyncHandler, sendSuccess, sendError } from '../../middleware/errorMiddleware';
 import database from '../../config/database';
 
 const router = Router();
 
-// Initialize middleware
 let authMiddleware: AuthMiddleware;
 
 export const initializeRiskRoutes = (redisClient: any) => {
@@ -26,15 +24,14 @@ router.get(
   authGuard,
   asyncHandler(async (req: Request, res: Response) => {
     const organisationId = (req as any).user.organisationId;
-
-    // Use raw query to get risks with owner name (avoids Sequelize association issues)
     const sequelize = database.getSequelize();
+    
     const [results] = await sequelize.query(
       `SELECT r.*, 
-              u.first_name AS "owner.firstName", 
-              u.last_name AS "owner.lastName",
-              u.email AS "owner.email",
-              u.id AS "owner.id"
+              u.id AS owner__id, 
+              u.first_name AS owner__firstName, 
+              u.last_name AS owner__lastName,
+              u.email AS owner__email
        FROM risks r
        LEFT JOIN users u ON r.owner_id = u.id
        WHERE r.organisation_id = :orgId
@@ -42,17 +39,42 @@ router.get(
       { replacements: { orgId: organisationId } }
     );
 
-    // Format the results: flatten owner.* into nested owner object
+    // Build owner object from flattened fields
     const formatted = (results as any[]).map(r => {
-      const owner = r['owner.id'] ? {
-        id: r['owner.id'],
-        firstName: r['owner.firstName'],
-        lastName: r['owner.lastName'],
-        email: r['owner.email'],
+      const owner = r.owner__id ? {
+        id: r.owner__id,
+        firstName: r.owner__firstName,
+        lastName: r.owner__lastName,
+        email: r.owner__email,
       } : null;
-      // Remove the flattened fields
-      const { 'owner.firstName': _1, 'owner.lastName': _2, 'owner.email': _3, 'owner.id': _4, ...rest } = r as any;
-      return { ...rest, owner };
+      return {
+        id: r.id,
+        title: r.title,
+        description: r.description,
+        category: r.category,
+        severity: r.severity,
+        likelihood: r.likelihood,
+        riskScore: r.risk_score,
+        status: r.status,
+        department: r.department,
+        ownerId: r.owner_id,
+        owner,
+        source: r.source,
+        impactDescription: r.impact_description,
+        rootCause: r.root_cause,
+        existingControls: r.existing_controls,
+        treatmentStrategy: r.treatment_strategy,
+        residualSeverity: r.residual_severity,
+        residualLikelihood: r.residual_likelihood,
+        targetDate: r.target_date,
+        closedAt: r.closed_at,
+        tags: r.tags,
+        metadata: r.metadata,
+        createdBy: r.created_by,
+        organisationId: r.organisation_id,
+        createdAt: r.created_at,
+        updatedAt: r.updated_at,
+      };
     });
 
     sendSuccess(res, formatted, 'Risks retrieved successfully');
@@ -69,14 +91,19 @@ router.get(
   authGuard,
   asyncHandler(async (req: Request, res: Response) => {
     const organisationId = (req as any).user.organisationId;
-    const risk = await Risk.findOne({ where: { id: req.params.id, organisationId } });
+    const sequelize = database.getSequelize();
+    
+    const [results] = await sequelize.query(
+      `SELECT * FROM risks WHERE id = :id AND organisation_id = :orgId`,
+      { replacements: { id: req.params.id, orgId: organisationId } }
+    );
 
-    if (!risk) {
+    if (!(results as any[]).length) {
       sendError(res, 404, 'Risk not found', 'RISK_NOT_FOUND');
       return;
     }
 
-    sendSuccess(res, risk, 'Risk retrieved successfully');
+    sendSuccess(res, (results as any[])[0], 'Risk retrieved successfully');
   })
 );
 
@@ -90,14 +117,33 @@ router.post(
   authGuard,
   asyncHandler(async (req: Request, res: Response) => {
     const user = (req as any).user;
+    const sequelize = database.getSequelize();
     
-    const risk = await Risk.create({
-      ...req.body,
-      createdBy: user.userId,
-      organisationId: user.organisationId,
-    });
+    const id = `risk_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+    
+    await sequelize.query(
+      `INSERT INTO risks (id, title, description, category, severity, likelihood, status, department, owner_id, impact_description, existing_controls, created_by, organisation_id, created_at, updated_at)
+       VALUES (:id, :title, :description, :category, :severity, :likelihood, 'identified', :department, :ownerId, :impactDescription, :existingControls, :createdBy, :orgId, NOW(), NOW())`,
+      {
+        replacements: {
+          id,
+          title: req.body.title || '',
+          description: req.body.description || null,
+          category: req.body.category || null,
+          severity: req.body.severity || 'medium',
+          likelihood: req.body.likelihood || 'possible',
+          department: req.body.department || null,
+          ownerId: user.userId,
+          impactDescription: req.body.impactDescription || null,
+          existingControls: req.body.existingControls || null,
+          createdBy: user.userId,
+          orgId: user.organisationId,
+        }
+      }
+    );
 
-    sendSuccess(res, risk, 'Risk created successfully');
+    const [rows] = await sequelize.query(`SELECT * FROM risks WHERE id = :id`, { replacements: { id } });
+    sendSuccess(res, (rows as any[])[0], 'Risk created successfully');
   })
 );
 
@@ -111,15 +157,40 @@ router.put(
   authGuard,
   asyncHandler(async (req: Request, res: Response) => {
     const organisationId = (req as any).user.organisationId;
-    const risk = await Risk.findOne({ where: { id: req.params.id, organisationId } });
+    const sequelize = database.getSequelize();
 
-    if (!risk) {
+    // Build SET clause dynamically from req.body
+    const fields = ['title', 'description', 'category', 'severity', 'likelihood', 'status', 'department', 'owner_id', 'impact_description', 'existing_controls', 'treatment_strategy'];
+    const updates: string[] = [];
+    const replacements: any = { id: req.params.id, orgId: organisationId };
+    
+    for (const f of fields) {
+      const camelField = f.replace(/_([a-z])/g, (_, c) => c.toUpperCase());
+      if (req.body[camelField] !== undefined) {
+        updates.push(`${f} = :${f}`);
+        replacements[f] = req.body[camelField];
+      }
+    }
+    const setClause = updates.join(', ');
+
+    if (setClause) {
+      await sequelize.query(
+        `UPDATE risks SET ${setClause}, updated_at = NOW() WHERE id = :id AND organisation_id = :orgId`,
+        { replacements }
+      );
+    }
+
+    const [rows] = await sequelize.query(
+      `SELECT * FROM risks WHERE id = :id AND organisation_id = :orgId`,
+      { replacements: { id: req.params.id, orgId: organisationId } }
+    );
+
+    if (!(rows as any[]).length) {
       sendError(res, 404, 'Risk not found', 'RISK_NOT_FOUND');
       return;
     }
 
-    await risk.update(req.body);
-    sendSuccess(res, risk, 'Risk updated successfully');
+    sendSuccess(res, (rows as any[])[0], 'Risk updated successfully');
   })
 );
 
@@ -133,14 +204,18 @@ router.delete(
   authGuard,
   asyncHandler(async (req: Request, res: Response) => {
     const organisationId = (req as any).user.organisationId;
-    const risk = await Risk.findOne({ where: { id: req.params.id, organisationId } });
+    const sequelize = database.getSequelize();
+    
+    const [rows] = await sequelize.query(
+      `DELETE FROM risks WHERE id = :id AND organisation_id = :orgId RETURNING id`,
+      { replacements: { id: req.params.id, orgId: organisationId } }
+    );
 
-    if (!risk) {
+    if (!(rows as any[]).length) {
       sendError(res, 404, 'Risk not found', 'RISK_NOT_FOUND');
       return;
     }
 
-    await risk.destroy();
     sendSuccess(res, null, 'Risk deleted successfully');
   })
 );

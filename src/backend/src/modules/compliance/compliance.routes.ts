@@ -1,13 +1,10 @@
 import { Router, Request, Response } from 'express';
-import { Op } from 'sequelize';
-import ComplianceRequirement from '../../models/ComplianceRequirement';
-import User from '../../models/User';
 import { AuthMiddleware } from '../../middleware/auth.middleware';
 import { asyncHandler, sendSuccess, sendError } from '../../middleware/errorMiddleware';
+import database from '../../config/database';
 
 const router = Router();
 
-// Initialize middleware
 let authMiddleware: AuthMiddleware;
 
 export const initializeComplianceRoutes = (redisClient: any) => {
@@ -17,230 +14,154 @@ export const initializeComplianceRoutes = (redisClient: any) => {
 const authGuard = (req: Request, res: Response, next: any) =>
   authMiddleware ? authMiddleware.verifyToken(req, res, next) : next();
 
-/**
- * @route   GET /api/v1/compliance
- * @desc    Get all compliance requirements for the current organisation
- * @access  Private
- */
+const ORG_ID = '00000000-0000-0000-0000-000000000001';
+const db = () => database.getSequelize();
+
 router.get(
   '/',
   authGuard,
   asyncHandler(async (req: Request, res: Response) => {
-    const organisationId = (req as any).user.organisationId;
-
-    const items = await ComplianceRequirement.findAll({
-      where: { organisationId },
-      order: [['createdAt', 'DESC']],
-    });
-
-    sendSuccess(res, items, 'Compliance requirements retrieved successfully');
+    const orgId = (req as any).user?.organisationId || ORG_ID;
+    const [rows] = await db().query(
+      `SELECT * FROM compliance_requirements WHERE organisation_id = :orgId ORDER BY created_at DESC`,
+      { replacements: { orgId } }
+    );
+    sendSuccess(res, rows, 'Compliance requirements retrieved successfully');
   })
 );
 
-/**
- * @route   GET /api/v1/compliance/summary
- * @desc    Get compliance summary counts for the current organisation
- * @access  Private
- */
 router.get(
   '/summary',
   authGuard,
   asyncHandler(async (req: Request, res: Response) => {
-    const organisationId = (req as any).user.organisationId;
-
-    const [total, compliant, nonCompliant, partial, notAssessed, underReview] =
-      await Promise.all([
-        ComplianceRequirement.count({ where: { organisationId } }),
-        ComplianceRequirement.count({
-          where: { organisationId, status: 'compliant' },
-        }),
-        ComplianceRequirement.count({
-          where: { organisationId, status: 'non_compliant' },
-        }),
-        ComplianceRequirement.count({
-          where: { organisationId, status: 'partial' },
-        }),
-        ComplianceRequirement.count({
-          where: { organisationId, status: 'not_assessed' },
-        }),
-        ComplianceRequirement.count({
-          where: { organisationId, status: 'under_review' },
-        }),
-      ]);
-
-    const overallScore =
-      total > 0 ? Math.round((compliant / total) * 100) : 0;
-
+    const orgId = (req as any).user?.organisationId || ORG_ID;
+    const [rows] = await db().query(
+      `SELECT status, COUNT(*)::int as count FROM compliance_requirements WHERE organisation_id = :orgId GROUP BY status`,
+      { replacements: { orgId } }
+    );
+    const counts: Record<string, number> = {};
+    let total = 0;
+    for (const r of rows as any[]) {
+      counts[r.status] = r.count;
+      total += r.count;
+    }
     sendSuccess(res, {
       total,
-      compliant,
-      nonCompliant,
-      partial,
-      notAssessed,
-      underReview,
-      overallScore,
+      compliant: counts['compliant'] || 0,
+      nonCompliant: counts['non_compliant'] || 0,
+      partial: counts['partial'] || 0,
+      notAssessed: counts['not_assessed'] || 0,
+      underReview: counts['under_review'] || 0,
+      overallScore: total > 0 ? Math.round(((counts['compliant'] || 0) / total) * 100) : 0,
     }, 'Compliance summary retrieved successfully');
   })
 );
 
-/**
- * @route   GET /api/v1/compliance/trends
- * @desc    Get compliance trend scores by month (computed from last_reviewed_at dates)
- * @access  Private
- */
 router.get(
   '/trends',
   authGuard,
   asyncHandler(async (req: Request, res: Response) => {
-    const organisationId = (req as any).user.organisationId;
-
-    // Get all items with a lastReviewedAt to build trend data
-    const items = await ComplianceRequirement.findAll({
-      where: {
-        organisationId,
-        lastReviewedAt: { [Op.ne]: null },
-      },
-      attributes: ['status', 'lastReviewedAt'],
-    });
-
-    // Build month-to-month trend buckets based on lastReviewedAt
-    const monthBuckets: Record<string, { total: number; compliant: number }> =
-      {};
-
-    for (const item of items) {
-      if (!item.lastReviewedAt) continue;
-      const monthKey = `${item.lastReviewedAt.getFullYear()}-${String(
-        item.lastReviewedAt.getMonth() + 1
-      ).padStart(2, '0')}`;
-
-      if (!monthBuckets[monthKey]) {
-        monthBuckets[monthKey] = { total: 0, compliant: 0 };
-      }
-
-      monthBuckets[monthKey].total += 1;
-      if (item.status === 'compliant') {
-        monthBuckets[monthKey].compliant += 1;
-      }
+    const orgId = (req as any).user?.organisationId || ORG_ID;
+    const [rows] = await db().query(
+      `SELECT to_char(last_reviewed_at, 'YYYY-MM') as month, status 
+       FROM compliance_requirements 
+       WHERE organisation_id = :orgId AND last_reviewed_at IS NOT NULL
+       ORDER BY last_reviewed_at`,
+      { replacements: { orgId } }
+    );
+    const buckets: Record<string, { total: number; compliant: number }> = {};
+    for (const r of rows as any[]) {
+      if (!buckets[r.month]) buckets[r.month] = { total: 0, compliant: 0 };
+      buckets[r.month].total++;
+      if (r.status === 'compliant') buckets[r.month].compliant++;
     }
-
-    const trends = Object.entries(monthBuckets)
+    const trends = Object.entries(buckets)
       .sort(([a], [b]) => a.localeCompare(b))
-      .map(([month, data]) => ({
-        month,
-        score: data.total > 0
-          ? Math.round((data.compliant / data.total) * 100)
-          : 0,
-      }));
-
+      .map(([month, d]) => ({ month, score: d.total > 0 ? Math.round((d.compliant / d.total) * 100) : 0 }));
     sendSuccess(res, trends, 'Compliance trends retrieved successfully');
   })
 );
 
-/**
- * @route   GET /api/v1/compliance/:id
- * @desc    Get compliance requirement by ID (scoped to organisation)
- * @access  Private
- */
 router.get(
   '/:id',
   authGuard,
   asyncHandler(async (req: Request, res: Response) => {
-    const organisationId = (req as any).user.organisationId;
-
-    const item = await ComplianceRequirement.findOne({
-      where: {
-        id: req.params.id,
-        organisationId,
-      },
-    });
-
-    if (!item) {
+    const orgId = (req as any).user?.organisationId || ORG_ID;
+    const [rows] = await db().query(
+      `SELECT * FROM compliance_requirements WHERE id = :id AND organisation_id = :orgId`,
+      { replacements: { id: req.params.id, orgId } }
+    );
+    if (!(rows as any[]).length) {
       sendError(res, 404, 'Compliance requirement not found', 'NOT_FOUND');
       return;
     }
-
-    sendSuccess(res, item, 'Compliance requirement retrieved successfully');
+    sendSuccess(res, (rows as any[])[0], 'Compliance requirement retrieved successfully');
   })
 );
 
-/**
- * @route   POST /api/v1/compliance
- * @desc    Create a new compliance requirement
- * @access  Private
- */
 router.post(
   '/',
   authGuard,
   asyncHandler(async (req: Request, res: Response) => {
     const user = (req as any).user;
-
-    const newItem = await ComplianceRequirement.create({
-      ...req.body,
-      createdBy: user.userId,
-      organisationId: user.organisationId,
-    });
-
-    // Re-fetch to return the created item
-    const createdItem = await ComplianceRequirement.findByPk(newItem.id);
-
-    sendSuccess(res, createdItem, 'Compliance requirement created successfully', 201);
+    const orgId = user?.organisationId || ORG_ID;
+    const id = `comp_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+    await db().query(
+      `INSERT INTO compliance_requirements (id, title, description, regulation_source, category, status, department, owner_id, created_by, organisation_id, created_at, updated_at)
+       VALUES (:id, :title, :desc, :src, :cat, :status, :dept, :ownerId, :createdBy, :orgId, NOW(), NOW())`,
+      { replacements: { id, title: req.body.title || '', desc: req.body.description || null, src: req.body.regulationSource || null, cat: req.body.category || null, status: req.body.status || 'not_assessed', dept: req.body.department || null, ownerId: user?.userId || null, createdBy: user?.userId || null, orgId } }
+    );
+    const [rows] = await db().query(`SELECT * FROM compliance_requirements WHERE id = :id`, { replacements: { id } });
+    sendSuccess(res, (rows as any[])[0], 'Compliance requirement created successfully', 201);
   })
 );
 
-/**
- * @route   PUT /api/v1/compliance/:id
- * @desc    Update a compliance requirement (scoped to organisation)
- * @access  Private
- */
 router.put(
   '/:id',
   authGuard,
   asyncHandler(async (req: Request, res: Response) => {
-    const organisationId = (req as any).user.organisationId;
-
-    const item = await ComplianceRequirement.findOne({
-      where: {
-        id: req.params.id,
-        organisationId,
-      },
-    });
-
-    if (!item) {
+    const orgId = (req as any).user?.organisationId || ORG_ID;
+    const allowed = ['title', 'description', 'regulation_source', 'category', 'status', 'department', 'owner_id'];
+    const updates: string[] = [];
+    const replacements: any = { id: req.params.id, orgId };
+    for (const f of allowed) {
+      const camel = f.replace(/_([a-z])/g, (_, c) => c.toUpperCase());
+      if (req.body[camel] !== undefined) {
+        updates.push(`${f} = :${f}`);
+        replacements[f] = req.body[camel];
+      }
+    }
+    if (updates.length) {
+      await db().query(
+        `UPDATE compliance_requirements SET ${updates.join(', ')}, updated_at = NOW() WHERE id = :id AND organisation_id = :orgId`,
+        { replacements }
+      );
+    }
+    const [rows] = await db().query(
+      `SELECT * FROM compliance_requirements WHERE id = :id AND organisation_id = :orgId`,
+      { replacements: { id: req.params.id, orgId } }
+    );
+    if (!(rows as any[]).length) {
       sendError(res, 404, 'Compliance requirement not found', 'NOT_FOUND');
       return;
     }
-
-    await item.update(req.body);
-
-    sendSuccess(res, item, 'Compliance requirement updated successfully');
+    sendSuccess(res, (rows as any[])[0], 'Compliance requirement updated successfully');
   })
 );
 
-/**
- * @route   DELETE /api/v1/compliance/:id
- * @desc    Delete a compliance requirement (scoped to organisation)
- * @access  Private
- */
 router.delete(
   '/:id',
   authGuard,
   asyncHandler(async (req: Request, res: Response) => {
-    const organisationId = (req as any).user.organisationId;
-
-    const item = await ComplianceRequirement.findOne({
-      where: {
-        id: req.params.id,
-        organisationId,
-      },
-    });
-
-    if (!item) {
+    const orgId = (req as any).user?.organisationId || ORG_ID;
+    const [rows] = await db().query(
+      `DELETE FROM compliance_requirements WHERE id = :id AND organisation_id = :orgId RETURNING id`,
+      { replacements: { id: req.params.id, orgId } }
+    );
+    if (!(rows as any[]).length) {
       sendError(res, 404, 'Compliance requirement not found', 'NOT_FOUND');
       return;
     }
-
-    await item.destroy();
-
     sendSuccess(res, null, 'Compliance requirement deleted successfully');
   })
 );

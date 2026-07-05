@@ -1,13 +1,9 @@
 import { Router, Request, Response } from 'express';
-import InternalControl from '../../models/InternalControl';
-import User from '../../models/User';
 import { AuthMiddleware } from '../../middleware/auth.middleware';
 import { asyncHandler, sendSuccess, sendError } from '../../middleware/errorMiddleware';
-import { Op } from 'sequelize';
+import database from '../../config/database';
 
 const router = Router();
-
-// Initialize middleware
 let authMiddleware: AuthMiddleware;
 
 export const initializeControlRoutes = (redisClient: any) => {
@@ -17,176 +13,106 @@ export const initializeControlRoutes = (redisClient: any) => {
 const authGuard = (req: Request, res: Response, next: any) =>
   authMiddleware ? authMiddleware.verifyToken(req, res, next) : next();
 
-/**
- * @route   GET /api/v1/controls
- * @desc    Get all controls for the current organisation
- * @access  Private
- */
+const ORG_ID = '00000000-0000-0000-0000-000000000001';
+const db = () => database.getSequelize();
+
 router.get(
   '/',
   authGuard,
   asyncHandler(async (req: Request, res: Response) => {
-    const organisationId = (req as any).user.organisationId;
-
-    const controls = await InternalControl.findAll({
-      where: { organisationId },
-      order: [['createdAt', 'DESC']],
-    });
-
-    sendSuccess(res, controls, 'Controls retrieved successfully');
+    const orgId = (req as any).user?.organisationId || ORG_ID;
+    const [rows] = await db().query(
+      `SELECT * FROM internal_controls WHERE organisation_id = :orgId ORDER BY created_at DESC`,
+      { replacements: { orgId } }
+    );
+    sendSuccess(res, rows, 'Controls retrieved successfully');
   })
 );
 
-/**
- * @route   GET /api/v1/controls/summary
- * @desc    Get control summary statistics for the current organisation
- * @access  Private
- */
 router.get(
   '/summary',
   authGuard,
   asyncHandler(async (req: Request, res: Response) => {
-    const organisationId = (req as any).user.organisationId;
-
-    const [total, statusCounts, effectivenessCounts] = await Promise.all([
-      InternalControl.count({ where: { organisationId } }),
-      InternalControl.findAll({
-        where: { organisationId },
-        attributes: ['status', [InternalControl.sequelize!.fn('COUNT', InternalControl.sequelize!.col('id')), 'count']],
-        group: ['status'],
-        raw: true,
-      }),
-      InternalControl.findAll({
-        where: { organisationId },
-        attributes: [
-          'designEffectiveness',
-          [InternalControl.sequelize!.fn('COUNT', InternalControl.sequelize!.col('id')), 'count'],
-        ],
-        group: ['designEffectiveness'],
-        raw: true,
-      }),
-    ]);
-
-    const statusMap: Record<string, number> = {};
-    for (const row of statusCounts as any[]) {
-      statusMap[row.status || 'unknown'] = parseInt(row.count, 10);
-    }
-
-    const effectivenessMap: Record<string, number> = {};
-    for (const row of effectivenessCounts as any[]) {
-      effectivenessMap[row.designEffectiveness || 'not_rated'] = parseInt(row.count, 10);
-    }
-
-    sendSuccess(res, {
-      total,
-      byStatus: statusMap,
-      byDesignEffectiveness: effectivenessMap,
-    }, 'Control summary retrieved successfully');
+    const orgId = (req as any).user?.organisationId || ORG_ID;
+    const [statusRows] = await db().query(
+      `SELECT status, COUNT(*)::int as count FROM internal_controls WHERE organisation_id = :orgId GROUP BY status`,
+      { replacements: { orgId } }
+    );
+    const [effRows] = await db().query(
+      `SELECT design_effectiveness, COUNT(*)::int as count FROM internal_controls WHERE organisation_id = :orgId AND design_effectiveness IS NOT NULL GROUP BY design_effectiveness`,
+      { replacements: { orgId } }
+    );
+    const byStatus: Record<string, number> = {};
+    const byEff: Record<string, number> = {};
+    let total = 0;
+    for (const r of statusRows as any[]) { byStatus[r.status] = r.count; total += r.count; }
+    for (const r of effRows as any[]) { byEff[r.design_effectiveness] = r.count; }
+    sendSuccess(res, { total, byStatus, byDesignEffectiveness: byEff }, 'Control summary retrieved');
   })
 );
 
-/**
- * @route   GET /api/v1/controls/:id
- * @desc    Get control by ID (scoped to organisation)
- * @access  Private
- */
 router.get(
   '/:id',
   authGuard,
   asyncHandler(async (req: Request, res: Response) => {
-    const organisationId = (req as any).user.organisationId;
-
-    const control = await InternalControl.findOne({
-      where: {
-        id: req.params.id,
-        organisationId,
-      },
-    });
-
-    if (!control) {
-      sendError(res, 404, 'Control not found', 'NOT_FOUND');
-      return;
-    }
-
-    sendSuccess(res, control, 'Control retrieved successfully');
+    const orgId = (req as any).user?.organisationId || ORG_ID;
+    const [rows] = await db().query(
+      `SELECT * FROM internal_controls WHERE id = :id AND organisation_id = :orgId`,
+      { replacements: { id: req.params.id, orgId } }
+    );
+    if (!(rows as any[]).length) { sendError(res, 404, 'Control not found', 'NOT_FOUND'); return; }
+    sendSuccess(res, (rows as any[])[0], 'Control retrieved successfully');
   })
 );
 
-/**
- * @route   POST /api/v1/controls
- * @desc    Create a new control
- * @access  Private
- */
 router.post(
   '/',
   authGuard,
   asyncHandler(async (req: Request, res: Response) => {
     const user = (req as any).user;
-
-    const newControl = await InternalControl.create({
-      ...req.body,
-      createdBy: user.userId,
-      organisationId: user.organisationId,
-    });
-
-    sendSuccess(res, newControl, 'Control created successfully', 201);
+    const orgId = user?.organisationId || ORG_ID;
+    const id = `ctrl_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+    await db().query(
+      `INSERT INTO internal_controls (id, title, description, control_type, frequency, status, department, owner_id, risk_id, design_effectiveness, operational_effectiveness, created_by, organisation_id, created_at, updated_at)
+       VALUES (:id, :title, :desc, :type, :freq, 'active', :dept, :ownerId, :riskId, :designEff, :operEff, :userId, :orgId, NOW(), NOW())`,
+      { replacements: { id, title: req.body.title || '', desc: req.body.description || null, type: req.body.controlType || 'preventive', freq: req.body.frequency || 'monthly', dept: req.body.department || null, ownerId: user?.userId || null, riskId: req.body.riskId || null, designEff: req.body.designEffectiveness || null, operEff: req.body.operationalEffectiveness || null, userId: user?.userId || null, orgId } }
+    );
+    const [rows] = await db().query(`SELECT * FROM internal_controls WHERE id = :id`, { replacements: { id } });
+    sendSuccess(res, (rows as any[])[0], 'Control created successfully', 201);
   })
 );
 
-/**
- * @route   PUT /api/v1/controls/:id
- * @desc    Update a control (scoped to organisation)
- * @access  Private
- */
 router.put(
   '/:id',
   authGuard,
   asyncHandler(async (req: Request, res: Response) => {
-    const organisationId = (req as any).user.organisationId;
-
-    const control = await InternalControl.findOne({
-      where: {
-        id: req.params.id,
-        organisationId,
-      },
-    });
-
-    if (!control) {
-      sendError(res, 404, 'Control not found', 'NOT_FOUND');
-      return;
+    const orgId = (req as any).user?.organisationId || ORG_ID;
+    const allowed = ['title', 'description', 'control_type', 'frequency', 'status', 'department', 'owner_id', 'design_effectiveness', 'operational_effectiveness'];
+    const updates: string[] = [];
+    const replacements: any = { id: req.params.id, orgId };
+    for (const f of allowed) {
+      const camel = f.replace(/_([a-z])/g, (_, c) => c.toUpperCase());
+      if (req.body[camel] !== undefined) {
+        updates.push(`${f} = :${f}`);
+        replacements[f] = req.body[camel];
+      }
     }
-
-    await control.update(req.body);
-
-    sendSuccess(res, control, 'Control updated successfully');
+    if (updates.length) {
+      await db().query(`UPDATE internal_controls SET ${updates.join(', ')}, updated_at = NOW() WHERE id = :id AND organisation_id = :orgId`, { replacements });
+    }
+    const [rows] = await db().query(`SELECT * FROM internal_controls WHERE id = :id AND organisation_id = :orgId`, { replacements: { id: req.params.id, orgId } });
+    if (!(rows as any[]).length) { sendError(res, 404, 'Control not found', 'NOT_FOUND'); return; }
+    sendSuccess(res, (rows as any[])[0], 'Control updated successfully');
   })
 );
 
-/**
- * @route   DELETE /api/v1/controls/:id
- * @desc    Delete a control (scoped to organisation)
- * @access  Private
- */
 router.delete(
   '/:id',
   authGuard,
   asyncHandler(async (req: Request, res: Response) => {
-    const organisationId = (req as any).user.organisationId;
-
-    const control = await InternalControl.findOne({
-      where: {
-        id: req.params.id,
-        organisationId,
-      },
-    });
-
-    if (!control) {
-      sendError(res, 404, 'Control not found', 'NOT_FOUND');
-      return;
-    }
-
-    await control.destroy();
-
+    const orgId = (req as any).user?.organisationId || ORG_ID;
+    const [rows] = await db().query(`DELETE FROM internal_controls WHERE id = :id AND organisation_id = :orgId RETURNING id`, { replacements: { id: req.params.id, orgId } });
+    if (!(rows as any[]).length) { sendError(res, 404, 'Control not found', 'NOT_FOUND'); return; }
     sendSuccess(res, null, 'Control deleted successfully');
   })
 );
