@@ -4,6 +4,7 @@ import {
   InputAdornment, IconButton, Chip, Table, TableBody, TableCell,
   TableContainer, TableHead, TableRow, TablePagination, Paper,
   LinearProgress, Avatar, Dialog, DialogTitle, DialogContent, DialogActions,
+  MenuItem, Alert, Snackbar,
 } from '@mui/material'
 import {
   Add as AddIcon, Search as SearchIcon, FilterList as FilterIcon,
@@ -12,6 +13,22 @@ import {
 } from '@mui/icons-material'
 import { auditService, Audit } from '../../services/auditService'
 
+const initialForm = {
+  title: '',
+  description: '',
+  type: '' as Audit['type'] | '',
+  status: 'planned' as Audit['status'],
+  priority: 'medium' as Audit['priority'],
+  scope: '',
+  department: '',
+  auditor: '',
+  auditee: '',
+  scheduledStart: '',
+  scheduledEnd: '',
+  findings: 0,
+  recommendations: 0,
+}
+
 const AuditManagement = () => {
   const [page, setPage] = useState(0)
   const [rowsPerPage, setRowsPerPage] = useState(10)
@@ -19,6 +36,10 @@ const AuditManagement = () => {
   const [audits, setAudits] = useState<Audit[]>([])
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
+  const [formData, setFormData] = useState(initialForm)
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
+  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as 'success' | 'error' })
 
   useEffect(() => {
     const fetchData = async () => {
@@ -48,6 +69,66 @@ const AuditManagement = () => {
   const handleChangeRowsPerPage = (e: React.ChangeEvent<HTMLInputElement>) => {
     setRowsPerPage(parseInt(e.target.value, 10))
     setPage(0)
+  }
+
+  const handleOpenDialog = () => {
+    setFormData(initialForm)
+    setError('')
+    setOpenDialog(true)
+  }
+
+  const handleCloseDialog = () => {
+    setOpenDialog(false)
+    setError('')
+  }
+
+  const handleFieldChange = (field: string) => (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
+    setFormData(prev => ({ ...prev, [field]: e.target.value }))
+  }
+
+  const handleCreate = async () => {
+    if (!formData.title.trim()) {
+      setError('Audit title is required')
+      return
+    }
+    if (!formData.type) {
+      setError('Audit type is required')
+      return
+    }
+    if (!formData.scope.trim()) {
+      setError('Audit scope is required')
+      return
+    }
+    setSaving(true)
+    setError('')
+    try {
+      const newAudit = await auditService.createAudit({
+        title: formData.title.trim(),
+        description: formData.description.trim(),
+        type: formData.type as Audit['type'],
+        status: formData.status,
+        priority: formData.priority,
+        scope: formData.scope.trim(),
+        department: formData.department.trim(),
+        auditor: formData.auditor.trim(),
+        auditee: formData.auditee.trim(),
+        scheduledStart: formData.scheduledStart,
+        scheduledEnd: formData.scheduledEnd,
+        findings: formData.findings,
+        recommendations: formData.recommendations,
+      })
+      setAudits(prev => [newAudit, ...prev])
+      handleCloseDialog()
+      setSnackbar({ open: true, message: 'Audit created successfully', severity: 'success' })
+    } catch (err: any) {
+      const message = err?.response?.data?.message || err?.message || 'Failed to create audit'
+      setError(message)
+      setSnackbar({ open: true, message, severity: 'error' })
+    } finally {
+      setSaving(false)
+    }
   }
 
   const getStatusColor = (s: string) => {
@@ -80,7 +161,7 @@ const AuditManagement = () => {
           <Typography variant="h4" sx={{ fontWeight:700, mb:1 }}>Audit Management</Typography>
           <Typography variant="body1" color="text.secondary">Plan, execute, and track audit activities</Typography>
         </Box>
-        <Button variant="contained" startIcon={<AddIcon />} onClick={() => setOpenDialog(true)}>Schedule Audit</Button>
+        <Button variant="contained" startIcon={<AddIcon />} onClick={handleOpenDialog}>Schedule Audit</Button>
       </Box>
 
       <Grid container spacing={3} sx={{ mb:4 }}>
@@ -129,7 +210,7 @@ const AuditManagement = () => {
       <Box sx={{ display:'flex', gap:2, mb:3 }}>
         <TextField placeholder="Search audits..." fullWidth
           value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
-          slotProps={{ input: { startAdornment: <InputAdornment position="start"><SearchIcon /></InputAdornment> } }} />
+          InputProps={{ startAdornment: <InputAdornment position="start"><SearchIcon /></InputAdornment> }} />
         <IconButton><FilterIcon /></IconButton>
       </Box>
 
@@ -198,33 +279,167 @@ const AuditManagement = () => {
           rowsPerPage={rowsPerPage} page={page} onPageChange={handleChangePage} onRowsPerPageChange={handleChangeRowsPerPage} />
       </CardContent></Card>
 
-      <Dialog open={openDialog} onClose={() => setOpenDialog(false)} maxWidth="md" fullWidth>
+      {/* Create Audit Dialog */}
+      <Dialog open={openDialog} onClose={handleCloseDialog} maxWidth="md" fullWidth>
         <DialogTitle>Schedule New Audit</DialogTitle>
         <DialogContent>
-          <Box sx={{ pt:2 }}>
+          {error && (
+            <Alert severity="error" sx={{ mt: 2, mb: 1 }} onClose={() => setError('')}>
+              {error}
+            </Alert>
+          )}
+          <Box sx={{ pt: 2 }}>
             <Grid container spacing={2}>
-              <Grid item xs={12}><TextField fullWidth label="Audit Title" placeholder="Enter audit title" /></Grid>
+              <Grid item xs={12}>
+                <TextField
+                  fullWidth
+                  label="Audit Title *"
+                  placeholder="Enter audit title"
+                  value={formData.title}
+                  onChange={handleFieldChange('title')}
+                  required
+                />
+              </Grid>
               <Grid item xs={12} md={6}>
-                <TextField fullWidth label="Audit Type" select SelectProps={{ native:true }}>
-                  <option value="">Select type</option>
-                  <option value="internal">Internal</option>
-                  <option value="external">External</option>
-                  <option value="compliance">Compliance</option>
+                <TextField
+                  fullWidth
+                  label="Audit Type *"
+                  select
+                  value={formData.type}
+                  onChange={handleFieldChange('type')}
+                  required
+                >
+                  <MenuItem value="">Select type</MenuItem>
+                  <MenuItem value="internal">Internal</MenuItem>
+                  <MenuItem value="external">External</MenuItem>
+                  <MenuItem value="compliance">Compliance</MenuItem>
+                  <MenuItem value="financial">Financial</MenuItem>
+                  <MenuItem value="operational">Operational</MenuItem>
                 </TextField>
               </Grid>
-              <Grid item xs={12} md={6}><TextField fullWidth label="Scope" placeholder="Enter audit scope" /></Grid>
-              <Grid item xs={12} md={6}><TextField fullWidth label="Start Date" type="date" slotProps={{ inputLabel: { shrink:true } }} /></Grid>
-              <Grid item xs={12} md={6}><TextField fullWidth label="End Date" type="date" slotProps={{ inputLabel: { shrink:true } }} /></Grid>
-              <Grid item xs={12}><TextField fullWidth label="Auditor" placeholder="Enter auditor name" /></Grid>
-              <Grid item xs={12}><TextField fullWidth label="Description" multiline rows={3} placeholder="Describe the audit scope and objectives" /></Grid>
+              <Grid item xs={12} md={6}>
+                <TextField
+                  fullWidth
+                  label="Priority"
+                  select
+                  value={formData.priority}
+                  onChange={handleFieldChange('priority')}
+                >
+                  <MenuItem value="low">Low</MenuItem>
+                  <MenuItem value="medium">Medium</MenuItem>
+                  <MenuItem value="high">High</MenuItem>
+                  <MenuItem value="critical">Critical</MenuItem>
+                </TextField>
+              </Grid>
+              <Grid item xs={12}>
+                <TextField
+                  fullWidth
+                  label="Scope *"
+                  placeholder="Enter audit scope"
+                  value={formData.scope}
+                  onChange={handleFieldChange('scope')}
+                  required
+                />
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <TextField
+                  fullWidth
+                  label="Department"
+                  placeholder="e.g. Finance, IT, Operations"
+                  value={formData.department}
+                  onChange={handleFieldChange('department')}
+                />
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <TextField
+                  fullWidth
+                  label="Auditor"
+                  placeholder="Enter auditor name"
+                  value={formData.auditor}
+                  onChange={handleFieldChange('auditor')}
+                />
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <TextField
+                  fullWidth
+                  label="Auditee"
+                  placeholder="Enter auditee name"
+                  value={formData.auditee}
+                  onChange={handleFieldChange('auditee')}
+                />
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <TextField
+                  fullWidth
+                  label="Status"
+                  select
+                  value={formData.status}
+                  onChange={handleFieldChange('status')}
+                >
+                  <MenuItem value="planned">Planned</MenuItem>
+                  <MenuItem value="in_progress">In Progress</MenuItem>
+                  <MenuItem value="completed">Completed</MenuItem>
+                  <MenuItem value="overdue">Overdue</MenuItem>
+                  <MenuItem value="cancelled">Cancelled</MenuItem>
+                </TextField>
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <TextField
+                  fullWidth
+                  label="Start Date"
+                  type="date"
+                  value={formData.scheduledStart}
+                  onChange={handleFieldChange('scheduledStart')}
+                  InputLabelProps={{ shrink: true }}
+                />
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <TextField
+                  fullWidth
+                  label="End Date"
+                  type="date"
+                  value={formData.scheduledEnd}
+                  onChange={handleFieldChange('scheduledEnd')}
+                />
+              </Grid>
+              <Grid item xs={12}>
+                <TextField
+                  fullWidth
+                  label="Description"
+                  multiline
+                  rows={3}
+                  placeholder="Describe the audit scope and objectives"
+                  value={formData.description}
+                  onChange={handleFieldChange('description')}
+                />
+              </Grid>
             </Grid>
           </Box>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setOpenDialog(false)}>Cancel</Button>
-          <Button variant="contained" onClick={() => setOpenDialog(false)}>Schedule Audit</Button>
+          <Button onClick={handleCloseDialog}>Cancel</Button>
+          <Button variant="contained" onClick={handleCreate} disabled={saving}>
+            {saving ? 'Creating...' : 'Schedule Audit'}
+          </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Snackbar notifications */}
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={5000}
+        onClose={() => setSnackbar(prev => ({ ...prev, open: false }))}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert
+          onClose={() => setSnackbar(prev => ({ ...prev, open: false }))}
+          severity={snackbar.severity}
+          variant="filled"
+          sx={{ width: '100%' }}
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </Box>
   )
 }

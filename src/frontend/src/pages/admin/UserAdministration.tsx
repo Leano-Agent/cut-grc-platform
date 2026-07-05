@@ -5,6 +5,7 @@ import {
   TableContainer, TableHead, TableRow, TablePagination, Paper,
   Avatar, Switch, Dialog, DialogTitle, DialogContent, DialogActions,
   Menu, MenuItem, ListItemIcon, ListItemText, FormControlLabel, LinearProgress,
+  Alert, Snackbar,
 } from '@mui/material'
 import {
   Add as AddIcon, Search as SearchIcon, FilterList as FilterIcon,
@@ -14,6 +15,16 @@ import {
   Email as EmailIcon, ManageAccounts as ManageAccountsIcon,
 } from '@mui/icons-material'
 import { userService, SystemUser } from '../../services/userService'
+import api from '../../services/apiClient'
+
+const emptyForm = {
+  firstName: '',
+  lastName: '',
+  email: '',
+  password: '',
+  role: 'user' as SystemUser['role'],
+  department: '',
+}
 
 const UserAdministration = () => {
   const [page, setPage] = useState(0)
@@ -25,6 +36,10 @@ const UserAdministration = () => {
   const [users, setUsers] = useState<SystemUser[]>([])
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
+  const [formData, setFormData] = useState(emptyForm)
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
+  const [successMsg, setSuccessMsg] = useState('')
 
   useEffect(() => {
     const fetchData = async () => {
@@ -77,7 +92,45 @@ const UserAdministration = () => {
 
   const handleAdd = () => {
     setDialogMode('add')
+    setFormData(emptyForm)
+    setError('')
     setOpenDialog(true)
+  }
+
+  const handleCreate = async () => {
+    if (!formData.firstName || !formData.lastName || !formData.email || !formData.password) {
+      setError('Please fill in all required fields')
+      return
+    }
+    setSaving(true)
+    setError('')
+    try {
+      // Use auth/register endpoint since backend has no POST /users
+      const response = await api.post('/auth/register', {
+        email: formData.email,
+        password: formData.password,
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        role: formData.role,
+      })
+      const newUser = response.data.user || response.data
+      setUsers(prev => [{
+        id: newUser.id,
+        email: newUser.email,
+        firstName: newUser.firstName,
+        lastName: newUser.lastName,
+        role: newUser.role,
+        department: formData.department,
+        isActive: true,
+        createdAt: new Date().toISOString(),
+      }, ...prev])
+      setSuccessMsg('User created successfully')
+      setOpenDialog(false)
+    } catch (err: any) {
+      setError(err.response?.data?.message || err.message || 'Failed to create user')
+    } finally {
+      setSaving(false)
+    }
   }
 
   const handleDelete = () => {
@@ -543,8 +596,8 @@ const UserAdministration = () => {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setOpenDialog(false)}>Cancel</Button>
-          <Button variant="contained" onClick={() => setOpenDialog(false)}>
-            {dialogMode === 'add' ? 'Create User' : 'Update User'}
+          <Button variant="contained" onClick={handleCreate} disabled={saving}>
+            {saving ? 'Creating...' : dialogMode === 'add' ? 'Create User' : 'Update User'}
           </Button>
         </DialogActions>
       </Dialog>

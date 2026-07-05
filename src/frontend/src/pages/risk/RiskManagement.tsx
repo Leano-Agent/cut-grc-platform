@@ -25,6 +25,7 @@ import {
   DialogContent,
   DialogActions,
   ListItemIcon,
+  Alert,
 } from '@mui/material'
 import {
   Add as AddIcon,
@@ -42,6 +43,16 @@ import {
 import { riskService, Risk } from '../../services/riskService'
 import HeatMap, { generateSampleHeatMap } from '../../components/HeatMap'
 
+const emptyForm = {
+  title: '',
+  description: '',
+  category: '',
+  severity: '',
+  likelihood: '',
+  impact: '',
+  mitigation: '',
+}
+
 const RiskManagement = () => {
   const [page, setPage] = useState(0)
   const [rowsPerPage, setRowsPerPage] = useState(10)
@@ -52,8 +63,10 @@ const RiskManagement = () => {
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
   const [heatMapView, setHeatMapView] = useState(false)
+  const [formData, setFormData] = useState(emptyForm)
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
 
-  // Fetch risks on mount
   useEffect(() => {
     const fetchRisks = async () => {
       try {
@@ -67,6 +80,49 @@ const RiskManagement = () => {
     }
     fetchRisks()
   }, [])
+
+  const handleOpenDialog = () => {
+    setSelectedRisk(null)
+    setFormData(emptyForm)
+    setError('')
+    setOpenDialog(true)
+  }
+
+  const handleCloseDialog = () => {
+    setOpenDialog(false)
+    setError('')
+  }
+
+  const handleCreate = async () => {
+    if (!formData.title || !formData.category || !formData.severity) {
+      setError('Please fill in all required fields (Title, Category, Severity)')
+      return
+    }
+    setSaving(true)
+    setError('')
+    try {
+      const newRisk = await riskService.createRisk({
+        title: formData.title,
+        description: formData.description,
+        category: formData.category,
+        severity: formData.severity as Risk['severity'],
+        likelihood: formData.likelihood as Risk['likelihood'] || 'medium',
+        impact: formData.impact as Risk['impact'] || 'medium',
+        status: 'open',
+        department: '',
+        assignedTo: '',
+        owner: '',
+        mitigation: formData.mitigation,
+        createdAt: new Date().toISOString(),
+      })
+      setRisks(prev => [newRisk, ...prev])
+      handleCloseDialog()
+    } catch (err: any) {
+      setError(err.message || 'Failed to create risk')
+    } finally {
+      setSaving(false)
+    }
+  }
 
   const handleChangePage = (event: unknown, newPage: number) => {
     setPage(newPage)
@@ -88,18 +144,15 @@ const RiskManagement = () => {
   }
 
   const handleView = () => {
-    // Navigate to risk detail view
     handleMenuClose()
   }
 
   const handleEdit = () => {
-    // Open edit dialog
     handleMenuClose()
     setOpenDialog(true)
   }
 
   const handleDelete = () => {
-    // Delete risk
     handleMenuClose()
   }
 
@@ -124,7 +177,6 @@ const RiskManagement = () => {
     }
   }
 
-  // Filter risks based on search query
   const filteredRisks = searchQuery
     ? risks.filter(r =>
         r.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -157,7 +209,7 @@ const RiskManagement = () => {
         <Button
           variant="contained"
           startIcon={<AddIcon />}
-          onClick={() => setOpenDialog(true)}
+          onClick={handleOpenDialog}
         >
           Add New Risk
         </Button>
@@ -168,35 +220,21 @@ const RiskManagement = () => {
         <Grid item xs={12} sm={6} md={3}>
           <Card>
             <CardContent>
-              <Typography variant="body2" color="text.secondary" gutterBottom>
-                Total Risks
-              </Typography>
-              <Typography variant="h4" sx={{ fontWeight: 700 }}>
-                42
-              </Typography>
-              <Box sx={{ display: 'flex', alignItems: 'center', mt: 1 }}>
-                <TrendingUpIcon sx={{ color: '#F44336', fontSize: 16, mr: 0.5 }} />
-                <Typography variant="body2" sx={{ color: '#F44336', fontWeight: 600 }}>
-                  +12%
-                </Typography>
-              </Box>
+              <Typography variant="body2" color="text.secondary" gutterBottom>Total Risks</Typography>
+              <Typography variant="h4" sx={{ fontWeight: 700 }}>{risks.length}</Typography>
             </CardContent>
           </Card>
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
           <Card>
             <CardContent>
-              <Typography variant="body2" color="text.secondary" gutterBottom>
-                High Severity
-              </Typography>
+              <Typography variant="body2" color="text.secondary" gutterBottom>High Severity</Typography>
               <Typography variant="h4" sx={{ fontWeight: 700 }}>
-                8
+                {risks.filter(r => r.severity === 'high' || r.severity === 'critical').length}
               </Typography>
               <Box sx={{ display: 'flex', alignItems: 'center', mt: 1 }}>
                 <WarningIcon sx={{ color: '#F44336', fontSize: 16, mr: 0.5 }} />
-                <Typography variant="body2" sx={{ color: '#F44336', fontWeight: 600 }}>
-                  Requires Attention
-                </Typography>
+                <Typography variant="body2" sx={{ color: '#F44336', fontWeight: 600 }}>Requires Attention</Typography>
               </Box>
             </CardContent>
           </Card>
@@ -204,36 +242,20 @@ const RiskManagement = () => {
         <Grid item xs={12} sm={6} md={3}>
           <Card>
             <CardContent>
-              <Typography variant="body2" color="text.secondary" gutterBottom>
-                Mitigation Rate
-              </Typography>
+              <Typography variant="body2" color="text.secondary" gutterBottom>Mitigated</Typography>
               <Typography variant="h4" sx={{ fontWeight: 700 }}>
-                68%
+                {risks.filter(r => r.status === 'mitigated' || r.status === 'closed').length}
               </Typography>
-              <Box sx={{ display: 'flex', alignItems: 'center', mt: 1 }}>
-                <TrendingUpIcon sx={{ color: '#4CAF50', fontSize: 16, mr: 0.5 }} />
-                <Typography variant="body2" sx={{ color: '#4CAF50', fontWeight: 600 }}>
-                  +5%
-                </Typography>
-              </Box>
             </CardContent>
           </Card>
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
           <Card>
             <CardContent>
-              <Typography variant="body2" color="text.secondary" gutterBottom>
-                Overdue Risks
-              </Typography>
+              <Typography variant="body2" color="text.secondary" gutterBottom>Open Risks</Typography>
               <Typography variant="h4" sx={{ fontWeight: 700 }}>
-                3
+                {risks.filter(r => r.status === 'open' || r.status === 'in_progress').length}
               </Typography>
-              <Box sx={{ display: 'flex', alignItems: 'center', mt: 1 }}>
-                <TrendingDownIcon sx={{ color: '#FF9800', fontSize: 16, mr: 0.5 }} />
-                <Typography variant="body2" sx={{ color: '#FF9800', fontWeight: 600 }}>
-                  -2
-                </Typography>
-              </Box>
             </CardContent>
           </Card>
         </Grid>
@@ -256,9 +278,7 @@ const RiskManagement = () => {
             },
           }}
         />
-        <IconButton>
-          <FilterIcon />
-        </IconButton>
+        <IconButton><FilterIcon /></IconButton>
         <Button
           variant={heatMapView ? 'contained' : 'outlined'}
           size="small"
@@ -273,9 +293,7 @@ const RiskManagement = () => {
       {heatMapView && (
         <Card sx={{ mb: 3 }}>
           <CardContent>
-            <Typography variant="h6" gutterBottom>
-              5×5 Risk Matrix
-            </Typography>
+            <Typography variant="h6" gutterBottom>5×5 Risk Matrix</Typography>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
               Likelihood × Impact matrix showing risk distribution. Click a cell to see details.
             </Typography>
@@ -304,48 +322,43 @@ const RiskManagement = () => {
                 {filteredRisks.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map((risk) => (
                   <TableRow key={risk.id} hover>
                     <TableCell>
-                      <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                        {risk.title}
-                      </Typography>
+                      <Typography variant="body2" sx={{ fontWeight: 600 }}>{risk.title}</Typography>
                       <Typography variant="caption" color="text.secondary">
-                        Last updated: {risk.lastUpdated}
+                        Last updated: {risk.lastUpdated || risk.createdAt}
                       </Typography>
                     </TableCell>
-                    <TableCell>
-                      <Chip label={risk.category} size="small" />
-                    </TableCell>
+                    <TableCell><Chip label={risk.category} size="small" /></TableCell>
                     <TableCell>
                       <Chip
                         label={risk.severity}
                         size="small"
-                        sx={{
-                          bgcolor: `${getSeverityColor(risk.severity)}15`,
-                          color: getSeverityColor(risk.severity),
-                          fontWeight: 600,
-                        }}
+                        sx={{ bgcolor: `${getSeverityColor(risk.severity)}15`, color: getSeverityColor(risk.severity), fontWeight: 600 }}
                       />
                     </TableCell>
                     <TableCell>
                       <Chip
                         label={risk.status}
                         size="small"
-                        sx={{
-                          bgcolor: `${getStatusColor(risk.status)}15`,
-                          color: getStatusColor(risk.status),
-                        }}
+                        sx={{ bgcolor: `${getStatusColor(risk.status)}15`, color: getStatusColor(risk.status) }}
                       />
                     </TableCell>
-                    <TableCell>{risk.owner}</TableCell>
+                    <TableCell>{risk.owner || '-'}</TableCell>
                     <TableCell>
-                      <IconButton
-                        size="small"
-                        onClick={(e) => handleMenuOpen(e, risk.id)}
-                      >
+                      <IconButton size="small" onClick={(e) => handleMenuOpen(e, risk.id)}>
                         <MoreVertIcon />
                       </IconButton>
                     </TableCell>
                   </TableRow>
                 ))}
+                {filteredRisks.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={6} align="center">
+                      <Typography variant="body2" color="text.secondary" sx={{ py: 4 }}>
+                        No risks found. Click "Add New Risk" to create one.
+                      </Typography>
+                    </TableCell>
+                  </TableRow>
+                )}
               </TableBody>
             </Table>
           </TableContainer>
@@ -363,54 +376,40 @@ const RiskManagement = () => {
       )}
 
       {/* Risk Menu */}
-      <Menu
-        anchorEl={anchorEl}
-        open={Boolean(anchorEl)}
-        onClose={handleMenuClose}
-      >
+      <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={handleMenuClose}>
         <MenuItem onClick={handleView}>
-          <ListItemIcon>
-            <VisibilityIcon fontSize="small" />
-          </ListItemIcon>
+          <ListItemIcon><VisibilityIcon fontSize="small" /></ListItemIcon>
           View Details
         </MenuItem>
         <MenuItem onClick={handleEdit}>
-          <ListItemIcon>
-            <EditIcon fontSize="small" />
-          </ListItemIcon>
+          <ListItemIcon><EditIcon fontSize="small" /></ListItemIcon>
           Edit
         </MenuItem>
         <MenuItem onClick={handleDelete}>
-          <ListItemIcon>
-            <DeleteIcon fontSize="small" />
-          </ListItemIcon>
+          <ListItemIcon><DeleteIcon fontSize="small" /></ListItemIcon>
           Delete
         </MenuItem>
       </Menu>
 
-      {/* Add/Edit Dialog */}
-      <Dialog open={openDialog} onClose={() => setOpenDialog(false)} maxWidth="md" fullWidth>
-        <DialogTitle>
-          {selectedRisk ? 'Edit Risk' : 'Add New Risk'}
-        </DialogTitle>
+      {/* Add Risk Dialog */}
+      <Dialog open={openDialog} onClose={handleCloseDialog} maxWidth="md" fullWidth>
+        <DialogTitle>{selectedRisk ? 'Edit Risk' : 'Add New Risk'}</DialogTitle>
         <DialogContent>
+          {error && <Alert severity="error" sx={{ mb: 2, mt: 1 }}>{error}</Alert>}
           <Box sx={{ pt: 2 }}>
             <Grid container spacing={2}>
               <Grid item xs={12}>
                 <TextField
-                  fullWidth
-                  label="Risk Title"
+                  fullWidth required label="Risk Title" value={formData.title}
+                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                   placeholder="Enter risk title"
                 />
               </Grid>
               <Grid item xs={12} md={6}>
                 <TextField
-                  fullWidth
-                  label="Category"
-                  select
-                  SelectProps={{
-                    native: true,
-                  }}
+                  fullWidth required label="Category" select value={formData.category}
+                  onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                  slotProps={{ select: { native: true } }}
                 >
                   <option value="">Select category</option>
                   <option value="cybersecurity">Cybersecurity</option>
@@ -422,14 +421,12 @@ const RiskManagement = () => {
               </Grid>
               <Grid item xs={12} md={6}>
                 <TextField
-                  fullWidth
-                  label="Severity"
-                  select
-                  SelectProps={{
-                    native: true,
-                  }}
+                  fullWidth required label="Severity" select value={formData.severity}
+                  onChange={(e) => setFormData({ ...formData, severity: e.target.value })}
+                  slotProps={{ select: { native: true } }}
                 >
                   <option value="">Select severity</option>
+                  <option value="critical">Critical</option>
                   <option value="high">High</option>
                   <option value="medium">Medium</option>
                   <option value="low">Low</option>
@@ -437,12 +434,9 @@ const RiskManagement = () => {
               </Grid>
               <Grid item xs={12} md={6}>
                 <TextField
-                  fullWidth
-                  label="Probability"
-                  select
-                  SelectProps={{
-                    native: true,
-                  }}
+                  fullWidth label="Probability" select value={formData.likelihood}
+                  onChange={(e) => setFormData({ ...formData, likelihood: e.target.value })}
+                  slotProps={{ select: { native: true } }}
                 >
                   <option value="">Select probability</option>
                   <option value="high">High</option>
@@ -452,12 +446,9 @@ const RiskManagement = () => {
               </Grid>
               <Grid item xs={12} md={6}>
                 <TextField
-                  fullWidth
-                  label="Impact"
-                  select
-                  SelectProps={{
-                    native: true,
-                  }}
+                  fullWidth label="Impact" select value={formData.impact}
+                  onChange={(e) => setFormData({ ...formData, impact: e.target.value })}
+                  slotProps={{ select: { native: true } }}
                 >
                   <option value="">Select impact</option>
                   <option value="high">High</option>
@@ -467,19 +458,15 @@ const RiskManagement = () => {
               </Grid>
               <Grid item xs={12}>
                 <TextField
-                  fullWidth
-                  label="Description"
-                  multiline
-                  rows={4}
+                  fullWidth label="Description" multiline rows={4} value={formData.description}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                   placeholder="Describe the risk in detail"
                 />
               </Grid>
               <Grid item xs={12}>
                 <TextField
-                  fullWidth
-                  label="Mitigation Strategy"
-                  multiline
-                  rows={3}
+                  fullWidth label="Mitigation Strategy" multiline rows={3} value={formData.mitigation}
+                  onChange={(e) => setFormData({ ...formData, mitigation: e.target.value })}
                   placeholder="Describe the mitigation strategy"
                 />
               </Grid>
@@ -487,9 +474,9 @@ const RiskManagement = () => {
           </Box>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setOpenDialog(false)}>Cancel</Button>
-          <Button variant="contained" onClick={() => setOpenDialog(false)}>
-            {selectedRisk ? 'Update' : 'Create'} Risk
+          <Button onClick={handleCloseDialog}>Cancel</Button>
+          <Button variant="contained" onClick={handleCreate} disabled={saving}>
+            {saving ? 'Creating...' : 'Create Risk'}
           </Button>
         </DialogActions>
       </Dialog>

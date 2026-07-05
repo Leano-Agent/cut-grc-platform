@@ -25,6 +25,9 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
+  Alert,
+  Snackbar,
+  MenuItem,
 } from '@mui/material'
 import {
   Add as AddIcon,
@@ -41,6 +44,30 @@ import {
 
 import { controlService, Control } from '../../services/controlService'
 
+interface FormState {
+  title: string
+  description: string
+  category: string
+  type: string
+  status: string
+  effectiveness: string
+  owner: string
+  department: string
+  notes: string
+}
+
+const initialFormState: FormState = {
+  title: '',
+  description: '',
+  category: '',
+  type: '',
+  status: 'draft',
+  effectiveness: 'medium',
+  owner: '',
+  department: '',
+  notes: '',
+}
+
 const InternalControls = () => {
   const [page, setPage] = useState(0)
   const [rowsPerPage, setRowsPerPage] = useState(10)
@@ -48,6 +75,14 @@ const InternalControls = () => {
   const [controls, setControls] = useState<Control[]>([])
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
+  const [form, setForm] = useState<FormState>(initialFormState)
+  const [submitting, setSubmitting] = useState(false)
+  const [errors, setErrors] = useState<Partial<Record<keyof FormState, string>>>({})
+  const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' }>({
+    open: false,
+    message: '',
+    severity: 'success',
+  })
 
   useEffect(() => {
     const fetchData = async () => {
@@ -71,6 +106,39 @@ const InternalControls = () => {
   const avgEffectiveness = controls.length > 0
     ? Math.round(controls.reduce((sum, c) => sum + (c.effectiveness === 'high' ? 90 : c.effectiveness === 'medium' ? 70 : 40), 0) / controls.length)
     : 88
+
+  // Category counts from real data
+  const categoryCounts = controls.reduce<Record<string, number>>((acc, c) => {
+    acc[c.category] = (acc[c.category] || 0) + 1
+    return acc
+  }, {})
+
+  const categoryColors: Record<string, string> = {
+    security: '#F44336',
+    financial: '#4CAF50',
+    it: '#2196F3',
+    operational: '#FF9800',
+    third_party: '#9C27B0',
+  }
+
+  const categoryLabels: Record<string, string> = {
+    security: 'Security',
+    financial: 'Financial',
+    it: 'IT',
+    operational: 'Operational',
+    third_party: 'Third Party',
+  }
+
+  const categoryEntries = Object.entries(categoryCounts)
+    .filter(([_, count]) => count > 0)
+    .sort((a, b) => b[1] - a[1])
+    .map(([key, count]) => ({
+      category: categoryLabels[key] || key.charAt(0).toUpperCase() + key.slice(1),
+      count,
+      color: categoryColors[key] || '#757575',
+    }))
+
+  const maxCategoryCount = Math.max(...categoryEntries.map(e => e.count), 1)
 
   // Filter
   const filteredControls = searchQuery
@@ -118,6 +186,62 @@ const InternalControls = () => {
     }
   }
 
+  const handleFieldChange = (field: keyof FormState) => (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
+    setForm(prev => ({ ...prev, [field]: e.target.value }))
+    // Clear error on change
+    if (errors[field]) {
+      setErrors(prev => ({ ...prev, [field]: undefined }))
+    }
+  }
+
+  const validate = (): boolean => {
+    const newErrors: Partial<Record<keyof FormState, string>> = {}
+    if (!form.title.trim()) {
+      newErrors.title = 'Control name is required'
+    }
+    if (!form.type) {
+      newErrors.type = 'Control type is required'
+    }
+    setErrors(newErrors)
+    return Object.keys(newErrors).length === 0
+  }
+
+  const handleCreate = async () => {
+    if (!validate()) return
+
+    setSubmitting(true)
+    try {
+      const newControl = await controlService.createControl({
+        title: form.title.trim(),
+        description: form.description.trim() || undefined,
+        category: form.category || 'general',
+        type: form.type as Control['type'],
+        status: form.status as Control['status'],
+        effectiveness: form.effectiveness as Control['effectiveness'],
+        owner: form.owner.trim() || 'Unassigned',
+        department: form.department.trim() || 'General',
+        notes: form.notes.trim() || undefined,
+      })
+      setControls(prev => [newControl, ...prev])
+      setOpenDialog(false)
+      setForm(initialFormState)
+      setSnackbar({ open: true, message: 'Control created successfully', severity: 'success' })
+    } catch (err: any) {
+      const message = err?.response?.data?.message || err?.message || 'Failed to create control'
+      setSnackbar({ open: true, message, severity: 'error' })
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  const handleCloseDialog = () => {
+    setOpenDialog(false)
+    setForm(initialFormState)
+    setErrors({})
+  }
+
   if (loading) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
@@ -161,7 +285,7 @@ const InternalControls = () => {
               <Box sx={{ display: 'flex', alignItems: 'center', mt: 1 }}>
                 <AssignmentIcon sx={{ color: 'primary.main', fontSize: 16, mr: 0.5 }} />
                 <Typography variant="body2" sx={{ color: 'primary.main', fontWeight: 600 }}>
-                  +12 this month
+                  +{activeControls} active
                 </Typography>
               </Box>
             </CardContent>
@@ -215,7 +339,7 @@ const InternalControls = () => {
               <Box sx={{ display: 'flex', alignItems: 'center', mt: 1 }}>
                 <WarningIcon sx={{ color: '#FF9800', fontSize: 16, mr: 0.5 }} />
                 <Typography variant="body2" sx={{ color: '#FF9800', fontWeight: 600 }}>
-                  Overdue: 5
+                  Overdue: {controls.filter(c => c.status === 'inactive').length}
                 </Typography>
               </Box>
             </CardContent>
@@ -374,34 +498,34 @@ const InternalControls = () => {
                 Control Categories
               </Typography>
               <Box sx={{ mt: 2 }}>
-                {[
-                  { category: 'Security', count: 42, color: '#F44336' },
-                  { category: 'Financial', count: 38, color: '#4CAF50' },
-                  { category: 'IT', count: 35, color: '#2196F3' },
-                  { category: 'Operational', count: 28, color: '#FF9800' },
-                  { category: 'Third Party', count: 13, color: '#9C27B0' },
-                ].map((item) => (
-                  <Box key={item.category} sx={{ mb: 2 }}>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
-                      <Typography variant="body2">{item.category}</Typography>
-                      <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                        {item.count} controls
-                      </Typography>
+                {categoryEntries.length > 0 ? (
+                  categoryEntries.map((item) => (
+                    <Box key={item.category} sx={{ mb: 2 }}>
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
+                        <Typography variant="body2">{item.category}</Typography>
+                        <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                          {item.count} controls
+                        </Typography>
+                      </Box>
+                      <LinearProgress
+                        variant="determinate"
+                        value={(item.count / maxCategoryCount) * 100}
+                        sx={{
+                          height: 6,
+                          borderRadius: 3,
+                          bgcolor: '#E0E0E0',
+                          '& .MuiLinearProgress-bar': {
+                            bgcolor: item.color,
+                          },
+                        }}
+                      />
                     </Box>
-                    <LinearProgress
-                      variant="determinate"
-                      value={(item.count / 156) * 100}
-                      sx={{
-                        height: 6,
-                        borderRadius: 3,
-                        bgcolor: '#E0E0E0',
-                        '& .MuiLinearProgress-bar': {
-                          bgcolor: item.color,
-                        },
-                      }}
-                    />
-                  </Box>
-                ))}
+                  ))
+                ) : (
+                  <Typography variant="body2" color="text.secondary">
+                    No controls yet. Add your first control to see category distribution.
+                  </Typography>
+                )}
               </Box>
             </CardContent>
           </Card>
@@ -452,7 +576,7 @@ const InternalControls = () => {
       </Grid>
 
       {/* Add Control Dialog */}
-      <Dialog open={openDialog} onClose={() => setOpenDialog(false)} maxWidth="md" fullWidth>
+      <Dialog open={openDialog} onClose={handleCloseDialog} maxWidth="md" fullWidth>
         <DialogTitle>Add New Control</DialogTitle>
         <DialogContent>
           <Box sx={{ pt: 2 }}>
@@ -460,65 +584,13 @@ const InternalControls = () => {
               <Grid item xs={12}>
                 <TextField
                   fullWidth
+                  required
                   label="Control Name"
                   placeholder="Enter control name"
-                />
-              </Grid>
-              <Grid item xs={12} md={6}>
-                <TextField
-                  fullWidth
-                  label="Category"
-                  select
-                  SelectProps={{
-                    native: true,
-                  }}
-                >
-                  <option value="">Select category</option>
-                  <option value="security">Security</option>
-                  <option value="financial">Financial</option>
-                  <option value="it">IT</option>
-                  <option value="operational">Operational</option>
-                  <option value="third_party">Third Party</option>
-                </TextField>
-              </Grid>
-              <Grid item xs={12} md={6}>
-                <TextField
-                  fullWidth
-                  label="Control Type"
-                  select
-                  SelectProps={{
-                    native: true,
-                  }}
-                >
-                  <option value="">Select type</option>
-                  <option value="preventive">Preventive</option>
-                  <option value="detective">Detective</option>
-                  <option value="corrective">Corrective</option>
-                </TextField>
-              </Grid>
-              <Grid item xs={12} md={6}>
-                <TextField
-                  fullWidth
-                  label="Frequency"
-                  select
-                  SelectProps={{
-                    native: true,
-                  }}
-                >
-                  <option value="">Select frequency</option>
-                  <option value="continuous">Continuous</option>
-                  <option value="daily">Daily</option>
-                  <option value="weekly">Weekly</option>
-                  <option value="monthly">Monthly</option>
-                  <option value="quarterly">Quarterly</option>
-                  <option value="annually">Annually</option>
-                </TextField>
-              </Grid>
-              <Grid item xs={12} md={6}>
-                <TextField
-                  fullWidth
-                  label="Owner"
-                  placeholder="Enter control owner"
+                  value={form.title}
+                  onChange={handleFieldChange('title')}
+                  error={!!errors.title}
+                  helperText={errors.title}
                 />
               </Grid>
               <Grid item xs={12}>
@@ -528,33 +600,129 @@ const InternalControls = () => {
                   multiline
                   rows={3}
                   placeholder="Describe the control in detail"
+                  value={form.description}
+                  onChange={handleFieldChange('description')}
+                />
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <TextField
+                  fullWidth
+                  label="Category"
+                  select
+                  value={form.category}
+                  onChange={handleFieldChange('category')}
+                >
+                  <MenuItem value="">Select category</MenuItem>
+                  <MenuItem value="security">Security</MenuItem>
+                  <MenuItem value="financial">Financial</MenuItem>
+                  <MenuItem value="it">IT</MenuItem>
+                  <MenuItem value="operational">Operational</MenuItem>
+                  <MenuItem value="third_party">Third Party</MenuItem>
+                </TextField>
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <TextField
+                  fullWidth
+                  required
+                  label="Control Type"
+                  select
+                  value={form.type}
+                  onChange={handleFieldChange('type')}
+                  error={!!errors.type}
+                  helperText={errors.type}
+                >
+                  <MenuItem value="">Select type</MenuItem>
+                  <MenuItem value="preventive">Preventive</MenuItem>
+                  <MenuItem value="detective">Detective</MenuItem>
+                  <MenuItem value="corrective">Corrective</MenuItem>
+                  <MenuItem value="directive">Directive</MenuItem>
+                </TextField>
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <TextField
+                  fullWidth
+                  label="Status"
+                  select
+                  value={form.status}
+                  onChange={handleFieldChange('status')}
+                >
+                  <MenuItem value="draft">Draft</MenuItem>
+                  <MenuItem value="active">Active</MenuItem>
+                  <MenuItem value="review">Review</MenuItem>
+                  <MenuItem value="inactive">Inactive</MenuItem>
+                  <MenuItem value="archived">Archived</MenuItem>
+                </TextField>
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <TextField
+                  fullWidth
+                  label="Effectiveness"
+                  select
+                  value={form.effectiveness}
+                  onChange={handleFieldChange('effectiveness')}
+                >
+                  <MenuItem value="high">High</MenuItem>
+                  <MenuItem value="medium">Medium</MenuItem>
+                  <MenuItem value="low">Low</MenuItem>
+                  <MenuItem value="not_rated">Not Rated</MenuItem>
+                </TextField>
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <TextField
+                  fullWidth
+                  label="Owner"
+                  placeholder="Enter control owner"
+                  value={form.owner}
+                  onChange={handleFieldChange('owner')}
+                />
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <TextField
+                  fullWidth
+                  label="Department"
+                  placeholder="Enter department"
+                  value={form.department}
+                  onChange={handleFieldChange('department')}
                 />
               </Grid>
               <Grid item xs={12}>
                 <TextField
                   fullWidth
-                  label="Testing Procedure"
+                  label="Notes"
                   multiline
-                  rows={3}
-                  placeholder="Describe how to test this control"
-                />
-              </Grid>
-              <Grid item xs={12}>
-                <FormControlLabel
-                  control={<Switch />}
-                  label="Automated Control"
+                  rows={2}
+                  placeholder="Additional notes"
+                  value={form.notes}
+                  onChange={handleFieldChange('notes')}
                 />
               </Grid>
             </Grid>
           </Box>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setOpenDialog(false)}>Cancel</Button>
-          <Button variant="contained" onClick={() => setOpenDialog(false)}>
-            Create Control
+          <Button onClick={handleCloseDialog} disabled={submitting}>Cancel</Button>
+          <Button variant="contained" onClick={handleCreate} disabled={submitting}>
+            {submitting ? 'Creating...' : 'Create Control'}
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Snackbar feedback */}
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={4000}
+        onClose={() => setSnackbar(prev => ({ ...prev, open: false }))}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert
+          onClose={() => setSnackbar(prev => ({ ...prev, open: false }))}
+          severity={snackbar.severity}
+          variant="filled"
+          sx={{ width: '100%' }}
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </Box>
   )
 }

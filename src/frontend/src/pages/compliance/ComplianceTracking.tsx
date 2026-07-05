@@ -20,6 +20,15 @@ import {
   Paper,
   LinearProgress,
   Avatar,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Select,
+  MenuItem,
+  FormControl,
+  InputLabel,
+  FormHelperText,
 } from '@mui/material'
 import {
   Add as AddIcon,
@@ -36,6 +45,30 @@ import { complianceService, ComplianceItem } from '../../services/complianceServ
 import ComplianceDashboard from '../../components/ComplianceDashboard'
 import { exportCSV } from '../../utils/exportUtils'
 
+type FormStatus = '' | 'compliant' | 'non_compliant' | 'in_progress' | 'pending_review' | 'not_applicable'
+
+interface FormState {
+  title: string
+  description: string
+  regulation: string
+  status: FormStatus
+  department: string
+  owner: string
+  dueDate: string
+  notes: string
+}
+
+const emptyForm: FormState = {
+  title: '',
+  description: '',
+  regulation: '',
+  status: '',
+  department: '',
+  owner: '',
+  dueDate: '',
+  notes: '',
+}
+
 const ComplianceTracking = () => {
   const [page, setPage] = useState(0)
   const [rowsPerPage, setRowsPerPage] = useState(10)
@@ -43,6 +76,12 @@ const ComplianceTracking = () => {
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
   const [dashboardView, setDashboardView] = useState(false)
+
+  // Dialog state
+  const [dialogOpen, setDialogOpen] = useState(false)
+  const [form, setForm] = useState<FormState>(emptyForm)
+  const [formErrors, setFormErrors] = useState<{ title?: string; regulation?: string }>({})
+  const [submitting, setSubmitting] = useState(false)
 
   useEffect(() => {
     const fetchItems = async () => {
@@ -58,13 +97,12 @@ const ComplianceTracking = () => {
     fetchItems()
   }, [])
 
-  // Mock data for fallback display
   const [filteredItems, setFilteredItems] = useState<ComplianceItem[]>([])
-  
+
   useEffect(() => {
     const filtered = searchQuery
       ? items.filter(i =>
-          i.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          i.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
           i.regulation.toLowerCase().includes(searchQuery.toLowerCase()) ||
           i.owner.toLowerCase().includes(searchQuery.toLowerCase())
         )
@@ -78,6 +116,10 @@ const ComplianceTracking = () => {
   const totalItems = displayItems.length
   const compliantCount = displayItems.filter(i => i.status === 'compliant').length
   const nonCompliantCount = displayItems.filter(i => i.status === 'non_compliant').length
+  const upcomingDeadlinesCount = displayItems.filter(i =>
+    i.dueDate && new Date(i.dueDate) > new Date() &&
+    new Date(i.dueDate) <= new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+  ).length
   const overallRate = totalItems > 0 ? Math.round((compliantCount / totalItems) * 100) : 85
 
   const handleChangePage = (event: unknown, newPage: number) => {
@@ -106,6 +148,58 @@ const ComplianceTracking = () => {
     return '#F44336'
   }
 
+  // Dialog handlers
+  const handleOpenDialog = () => {
+    setForm(emptyForm)
+    setFormErrors({})
+    setDialogOpen(true)
+  }
+
+  const handleCloseDialog = () => {
+    setDialogOpen(false)
+    setFormErrors({})
+  }
+
+  const handleFormChange = (field: keyof FormState) => (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement> | { target: { value: string } }
+  ) => {
+    setForm(prev => ({ ...prev, [field]: e.target.value }))
+    // Clear field error on change
+    if (formErrors[field as keyof typeof formErrors]) {
+      setFormErrors(prev => ({ ...prev, [field]: undefined }))
+    }
+  }
+
+  const handleCreate = async () => {
+    // Validate
+    const errors: { title?: string; regulation?: string } = {}
+    if (!form.title.trim()) errors.title = 'Title is required'
+    if (!form.regulation.trim()) errors.regulation = 'Regulation is required'
+    setFormErrors(errors)
+    if (Object.keys(errors).length > 0) return
+
+    setSubmitting(true)
+    try {
+      const newItem = await complianceService.createComplianceItem({
+        title: form.title,
+        description: form.description || undefined,
+        regulation: form.regulation,
+        status: form.status || 'in_progress' as any,
+        department: form.department || 'General',
+        owner: form.owner || 'Unassigned',
+        dueDate: form.dueDate || undefined,
+        notes: form.notes || undefined,
+        lastReviewed: new Date().toISOString().split('T')[0],
+      })
+      setItems(prev => [...prev, newItem])
+      handleCloseDialog()
+    } catch {
+      // API error — silently fail for now
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
   if (loading) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
@@ -129,6 +223,7 @@ const ComplianceTracking = () => {
         <Button
           variant="contained"
           startIcon={<AddIcon />}
+          onClick={handleOpenDialog}
         >
           Add Requirement
         </Button>
@@ -166,7 +261,7 @@ const ComplianceTracking = () => {
               <Box sx={{ display: 'flex', alignItems: 'center', mt: 1 }}>
                 <CheckCircleIcon sx={{ color: '#4CAF50', fontSize: 16, mr: 0.5 }} />
                 <Typography variant="body2" sx={{ color: '#4CAF50', fontWeight: 600 }}>
-                  65% of total
+                  {totalItems > 0 ? Math.round((compliantCount / totalItems) * 100) + '% of total' : 'No items'}
                 </Typography>
               </Box>
             </CardContent>
@@ -179,7 +274,7 @@ const ComplianceTracking = () => {
                 Non-Compliant
               </Typography>
               <Typography variant="h4" sx={{ fontWeight: 700 }}>
-                8
+                {nonCompliantCount}
               </Typography>
               <Box sx={{ display: 'flex', alignItems: 'center', mt: 1 }}>
                 <WarningIcon sx={{ color: '#F44336', fontSize: 16, mr: 0.5 }} />
@@ -197,7 +292,7 @@ const ComplianceTracking = () => {
                 Upcoming Deadlines
               </Typography>
               <Typography variant="h4" sx={{ fontWeight: 700 }}>
-                12
+                {upcomingDeadlinesCount}
               </Typography>
               <Box sx={{ display: 'flex', alignItems: 'center', mt: 1 }}>
                 <ScheduleIcon sx={{ color: '#FF9800', fontSize: 16, mr: 0.5 }} />
@@ -215,6 +310,8 @@ const ComplianceTracking = () => {
         <TextField
           placeholder="Search compliance items..."
           fullWidth
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
           InputProps={{
             startAdornment: (
               <InputAdornment position="start">
@@ -273,7 +370,7 @@ const ComplianceTracking = () => {
                     </TableCell>
                     <TableCell>
                       <Typography variant="body2">
-                        {item.requirement}
+                        {item.title || item.requirement}
                       </Typography>
                     </TableCell>
                     <TableCell>
@@ -292,13 +389,13 @@ const ComplianceTracking = () => {
                         <Box sx={{ flexGrow: 1 }}>
                           <LinearProgress
                             variant="determinate"
-                            value={item.complianceLevel}
+                            value={item.complianceLevel || 0}
                             sx={{
                               height: 8,
                               borderRadius: 4,
                               bgcolor: '#E0E0E0',
                               '& .MuiLinearProgress-bar': {
-                                bgcolor: getComplianceColor(item.complianceLevel),
+                                bgcolor: getComplianceColor(item.complianceLevel || 0),
                               },
                             }}
                           />
@@ -307,11 +404,11 @@ const ComplianceTracking = () => {
                           variant="body2"
                           sx={{
                             fontWeight: 600,
-                            color: getComplianceColor(item.complianceLevel),
+                            color: getComplianceColor(item.complianceLevel || 0),
                             minWidth: 40,
                           }}
                         >
-                          {item.complianceLevel}%
+                          {item.complianceLevel || 0}%
                         </Typography>
                       </Box>
                     </TableCell>
@@ -320,12 +417,12 @@ const ComplianceTracking = () => {
                         {item.dueDate}
                       </Typography>
                       <Typography variant="caption" color="text.secondary">
-                        {new Date(item.dueDate) > new Date() ? 'Due' : 'Overdue'}
+                        {item.dueDate && new Date(item.dueDate) > new Date() ? 'Due' : 'Overdue'}
                       </Typography>
                     </TableCell>
                     <TableCell>
                       <Typography variant="body2">
-                        {item.lastAudit}
+                        {item.lastAudit || item.lastReviewed}
                       </Typography>
                     </TableCell>
                     <TableCell>
@@ -436,6 +533,94 @@ const ComplianceTracking = () => {
           </Card>
         </Grid>
       </Grid>
+
+      {/* Create Requirement Dialog */}
+      <Dialog open={dialogOpen} onClose={handleCloseDialog} maxWidth="sm" fullWidth>
+        <DialogTitle>Add Compliance Requirement</DialogTitle>
+        <DialogContent>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 1 }}>
+            <TextField
+              label="Title *"
+              fullWidth
+              required
+              value={form.title}
+              onChange={handleFormChange('title')}
+              error={!!formErrors.title}
+              helperText={formErrors.title}
+            />
+            <TextField
+              label="Description"
+              fullWidth
+              multiline
+              rows={3}
+              value={form.description}
+              onChange={handleFormChange('description')}
+            />
+            <TextField
+              label="Regulation *"
+              fullWidth
+              required
+              value={form.regulation}
+              onChange={handleFormChange('regulation')}
+              error={!!formErrors.regulation}
+              helperText={formErrors.regulation}
+            />
+            <FormControl fullWidth>
+              <InputLabel>Status</InputLabel>
+              <Select
+                label="Status"
+                value={form.status}
+                onChange={(e) => setForm(prev => ({ ...prev, status: e.target.value as FormStatus }))}
+              >
+                <MenuItem value=""><em>Select status</em></MenuItem>
+                <MenuItem value="compliant">Compliant</MenuItem>
+                <MenuItem value="non_compliant">Non-Compliant</MenuItem>
+                <MenuItem value="in_progress">In Progress</MenuItem>
+                <MenuItem value="pending_review">Pending Review</MenuItem>
+                <MenuItem value="not_applicable">Not Applicable</MenuItem>
+              </Select>
+            </FormControl>
+            <TextField
+              label="Department"
+              fullWidth
+              value={form.department}
+              onChange={handleFormChange('department')}
+            />
+            <TextField
+              label="Owner"
+              fullWidth
+              value={form.owner}
+              onChange={handleFormChange('owner')}
+            />
+            <TextField
+              label="Due Date"
+              type="date"
+              fullWidth
+              value={form.dueDate}
+              onChange={handleFormChange('dueDate')}
+              InputLabelProps={{ shrink: true }}
+            />
+            <TextField
+              label="Notes"
+              fullWidth
+              multiline
+              rows={2}
+              value={form.notes}
+              onChange={handleFormChange('notes')}
+            />
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseDialog} disabled={submitting}>Cancel</Button>
+          <Button
+            variant="contained"
+            onClick={handleCreate}
+            disabled={submitting}
+          >
+            {submitting ? 'Creating...' : 'Create'}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   )
 }
