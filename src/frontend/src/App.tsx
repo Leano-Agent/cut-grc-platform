@@ -7,6 +7,7 @@ import AuthLayout from './layouts/AuthLayout'
 
 // Pages
 import Login from './pages/auth/Login'
+import Register from './pages/auth/Register'
 import DiagnosticsPage from './pages/diagnostics/DiagnosticsPage';
 import Dashboard from './pages/dashboard/Dashboard'
 import RiskManagement from './pages/risk/RiskManagement'
@@ -43,6 +44,7 @@ function App() {
       {/* Auth Routes */}
       <Route element={<AuthLayout />}>
         <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
         <Route path="/diagnostics" element={<DiagnosticsPage />} />
       </Route>
 

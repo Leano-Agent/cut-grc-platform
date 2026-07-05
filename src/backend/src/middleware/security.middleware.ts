@@ -229,7 +229,15 @@ export class SecurityMiddleware {
   static corsConfig = () => {
     return (req: Request, res: Response, next: NextFunction): void => {
       // Allow specific origins - SECURITY FIX: Never allow wildcard in production
-      const allowedOrigins = config.corsOrigin.split(',').map(origin => origin.trim());
+      const configuredOrigins = config.corsOrigin.split(',').map(origin => origin.trim());
+      // Known frontend domains — these always work regardless of CORS_ORIGIN env var
+      const knownOrigins = [
+        'http://localhost:5173',
+        'http://localhost:4173',
+        'https://ngome-frontend.vercel.app',
+        'https://cut-grc-frontend.vercel.app',
+      ];
+      const allowedOrigins = [...new Set([...configuredOrigins, ...knownOrigins])];
       const origin = req.headers.origin;
       
       // SECURITY FIX: Only allow specific origins, never wildcard

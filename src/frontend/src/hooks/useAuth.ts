@@ -2,8 +2,7 @@ import { useEffect } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
 import { useNavigate } from 'react-router-dom'
 import { RootState, AppDispatch } from '../store'
-import { getCurrentUser, logout as logoutAction } from '../store/slices/authSlice'
-import { authService } from '../services/authService'
+import { login as loginThunk, register as registerThunk, getCurrentUser, logout as logoutAction } from '../store/slices/authSlice'
 
 export const useAuth = () => {
   const dispatch = useDispatch<AppDispatch>()
@@ -22,11 +21,19 @@ export const useAuth = () => {
 
   const login = async (email: string, password: string) => {
     try {
-      const response = await authService.login(email, password)
-      // The login thunk will handle updating the store
-      return { success: true, data: response }
+      const result = await dispatch(loginThunk({ email, password })).unwrap()
+      return { success: true, data: result }
     } catch (error: any) {
-      return { success: false, error: error.message }
+      return { success: false, error: error.message || 'Login failed. Please check your credentials.' }
+    }
+  }
+
+  const register = async (email: string, password: string, firstName: string, lastName: string) => {
+    try {
+      const result = await dispatch(registerThunk({ email, password, firstName, lastName })).unwrap()
+      return { success: true, data: result }
+    } catch (error: any) {
+      return { success: false, error: error.message || 'Registration failed.' }
     }
   }
 
@@ -87,6 +94,7 @@ export const useAuth = () => {
     error,
     isAuthenticated,
     login,
+    register,
     logout,
     checkPermission,
     hasPermission,

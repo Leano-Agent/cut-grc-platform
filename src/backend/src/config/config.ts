@@ -32,7 +32,7 @@ const envSchema = z.object({
   JWT_REFRESH_EXPIRES_IN: z.string().default('7d'),
   
   // CORS
-  CORS_ORIGIN: z.string().default('http://localhost:5173'),
+  CORS_ORIGIN: z.string().default('http://localhost:5173,https://ngome-frontend.vercel.app,https://cut-grc-frontend.vercel.app'),
   
   // Email
   SMTP_HOST: z.string().optional(),

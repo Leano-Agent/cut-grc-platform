@@ -6,7 +6,6 @@ import {
   TextField,
   Typography,
   Link,
-  Alert,
   InputAdornment,
   IconButton,
   CircularProgress,
@@ -61,11 +60,9 @@ const Login = () => {
       const result = await login(data.email, data.password)
       
       if (result.success) {
-        showSuccess('Login successful! Redirecting to dashboard...')
-        // Navigate after a short delay to show success message
-        setTimeout(() => {
-          navigate('/dashboard')
-        }, 1000)
+        showSuccess('Login successful!')
+        // Navigate immediately — Redux state is already updated by the thunk
+        navigate('/dashboard')
       } else {
         showError(result.error || 'Login failed. Please check your credentials.')
       }
@@ -84,34 +81,6 @@ const Login = () => {
     event.preventDefault()
   }
 
-  // Demo credentials for testing
-  const handleDemoLogin = (role: 'admin' | 'manager' | 'user') => {
-    const credentials = {
-      admin: { email: 'admin@cutgrc.co.za', password: 'Admin123!' },
-      manager: { email: 'manager@cutgrc.co.za', password: 'Admin123!' },
-      user: { email: 'user@cutgrc.co.za', password: 'Admin123!' },
-    }
-
-    const { email, password } = credentials[role]
-    
-    // Set form values
-    const event = {
-      target: {
-        name: 'email',
-        value: email,
-      },
-    } as React.ChangeEvent<HTMLInputElement>
-    
-    // This would need to be handled differently in a real app
-    // For now, we'll just show a message
-    showInfo(`Demo login for ${role}: ${email} / ${password}\n\nNote: All demo accounts use password: Admin123!`)
-  }
-
-  const showInfo = (message: string) => {
-    // Using alert for demo purposes
-    alert(message)
-  }
-
   return (
     <Box component="form" onSubmit={handleSubmit(onSubmit)} noValidate>
       <Typography variant="h5" component="h2" sx={{ mb: 3, textAlign: 'center', fontWeight: 600 }}>
@@ -121,39 +90,6 @@ const Login = () => {
       <Typography variant="body2" color="text.secondary" sx={{ mb: 3, textAlign: 'center' }}>
         Sign in to your account to continue
       </Typography>
-
-      {/* Demo Login Buttons */}
-      <Box sx={{ mb: 3 }}>
-        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
-          Try demo accounts:
-        </Typography>
-        <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-          <Button
-            size="small"
-            variant="outlined"
-            onClick={() => handleDemoLogin('admin')}
-            sx={{ flex: 1, minWidth: 100 }}
-          >
-            Admin
-          </Button>
-          <Button
-            size="small"
-            variant="outlined"
-            onClick={() => handleDemoLogin('manager')}
-            sx={{ flex: 1, minWidth: 100 }}
-          >
-            Manager
-          </Button>
-          <Button
-            size="small"
-            variant="outlined"
-            onClick={() => handleDemoLogin('user')}
-            sx={{ flex: 1, minWidth: 100 }}
-          >
-            User
-          </Button>
-        </Box>
-      </Box>
 
       {/* Email Field */}
       <Controller
@@ -263,19 +199,6 @@ const Login = () => {
           </Link>
         </Typography>
       </Box>
-
-      {/* Security Notice */}
-      <Alert
-        severity="info"
-        sx={{ mt: 3 }}
-        icon={false}
-      >
-        <Typography variant="caption">
-          <strong>Demo Notice:</strong> This free-tier version uses an in-memory database. 
-          User data is lost when the service restarts. All demo accounts use password: <strong>Admin123!</strong>
-          For production use, upgrade to PostgreSQL and implement proper user management.
-        </Typography>
-      </Alert>
     </Box>
   )
 }
