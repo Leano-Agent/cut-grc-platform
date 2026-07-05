@@ -180,7 +180,7 @@ router.post(
       userQuery = 'SELECT * FROM users WHERE email = :email AND organisation_id = :orgId';
       replacements.orgId = orgId;
     } else {
-      userQuery = 'SELECT * FROM users WHERE email = :email ORDER BY created_at DESC LIMIT 1';
+      userQuery = 'SELECT * FROM users WHERE email = :email LIMIT 1';
     }
     
     let user: any = null;
