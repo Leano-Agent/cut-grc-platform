@@ -1,17 +1,13 @@
 // GRC Export Utilities — CSV, XLSX, and PDF report generation
 
-interface ExportRow {
-  [key: string]: string | number | boolean | undefined | null
-}
-
 /**
  * Export data as CSV file download
  */
 export function exportCSV(
   filename: string,
   headers: string[],
-  rows: ExportRow[],
-  mapRow: (row: ExportRow) => (string | number | boolean | undefined | null)[]
+  rows: any[],
+  mapRow: (row: any) => (string | number | boolean | undefined | null)[]
 ): void {
   const csvContent = [
     headers.join(','),
@@ -39,8 +35,8 @@ export function exportCSV(
 export function generateHTMLTable(
   title: string,
   headers: string[],
-  rows: ExportRow[],
-  mapRow: (row: ExportRow) => (string | number | boolean | undefined | null)[]
+  rows: any[],
+  mapRow: (row: any) => (string | number | boolean | undefined | null)[]
 ): string {
   const headerRow = headers.map(h => `<th style="padding:8px 12px;border:1px solid #ddd;background:#f5f5f5;font-weight:700;text-align:left">${h}</th>`).join('')
   const dataRows = rows.map(r => {
@@ -66,8 +62,8 @@ export function generateHTMLTable(
 export function printReport(
   title: string,
   headers: string[],
-  rows: ExportRow[],
-  mapRow: (row: ExportRow) => (string | number | boolean | undefined | null)[]
+  rows: any[],
+  mapRow: (row: any) => (string | number | boolean | undefined | null)[]
 ): void {
   const html = generateHTMLTable(title, headers, rows, mapRow)
   const win = window.open('', '_blank')
@@ -85,8 +81,8 @@ export function downloadHTML(
   filename: string,
   title: string,
   headers: string[],
-  rows: ExportRow[],
-  mapRow: (row: ExportRow) => (string | number | boolean | undefined | null)[]
+  rows: any[],
+  mapRow: (row: any) => (string | number | boolean | undefined | null)[]
 ): void {
   const html = generateHTMLTable(title, headers, rows, mapRow)
   const blob = new Blob([html], { type: 'text/html;charset=utf-8;' })

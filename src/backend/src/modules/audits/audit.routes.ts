@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { AuthMiddleware } from '../../middleware/auth.middleware';
 import { asyncHandler, sendSuccess, sendError } from '../../middleware/errorMiddleware';
+import database from '../../config/database';
 
 const router = Router();
 
@@ -13,37 +14,8 @@ export const initializeAuditRoutes = (redisClient: any) => {
 const authGuard = (req: Request, res: Response, next: any) =>
   authMiddleware ? authMiddleware.verifyToken(req, res, next) : next();
 
-/**
- * In-memory store seeded with demo data, filtered by organisationId.
- * Audit here refers to "audit cycle management" (not immutable audit_logs).
- */
-
-interface AuditItem {
-  id: string;
-  title: string;
-  type: string;
-  status: string;
-  priority: string;
-  scope: string;
-  department: string;
-  auditor: string;
-  auditee: string;
-  scheduledStart: string;
-  scheduledEnd: string;
-  findings: number;
-  recommendations: number;
-  dueDate: string;
-  createdAt: string;
-  organisationId: string;
-}
-
-// Seed data with org scoping
-let items: AuditItem[] = [
-  { id: '1', title: 'Financial Audit Q2', type: 'financial', status: 'in_progress', priority: 'high', scope: 'Financial statements and controls', department: 'Finance', auditor: 'Audit Team A', auditee: 'Finance Dept', scheduledStart: '2026-05-01', scheduledEnd: '2026-06-30', findings: 12, recommendations: 8, dueDate: '2026-06-30', createdAt: '2026-05-01T09:00:00Z', organisationId: 'org_default' },
-  { id: '2', title: 'IT Security Audit', type: 'external', status: 'completed', priority: 'high', scope: 'Network security and access controls', department: 'IT', auditor: 'External Auditor', auditee: 'IT Dept', scheduledStart: '2026-04-01', scheduledEnd: '2026-05-15', findings: 7, recommendations: 5, dueDate: '2026-05-15', createdAt: '2026-04-01T14:00:00Z', organisationId: 'org_default' },
-  { id: '3', title: 'Compliance Review', type: 'compliance', status: 'planned', priority: 'medium', scope: 'Regulatory compliance assessment', department: 'Compliance', auditor: 'Compliance Dept', auditee: 'All Departments', scheduledStart: '2026-07-01', scheduledEnd: '2026-08-01', findings: 0, recommendations: 0, dueDate: '2026-08-01', createdAt: '2026-06-01T11:00:00Z', organisationId: 'org_default' },
-];
-let nextId = 4;
+const ORG_ID = '00000000-0000-0000-0000-000000000001';
+const db = () => database.getSequelize();
 
 /**
  * @route   GET /api/v1/audits/summary
@@ -54,17 +26,28 @@ router.get(
   '/summary',
   authGuard,
   asyncHandler(async (req: Request, res: Response) => {
-    const organisationId = (req as any).user.organisationId;
-    const orgItems = items.filter(i => i.organisationId === organisationId);
-    const now = new Date().toISOString();
-
-    const total = orgItems.length;
-    const completed = orgItems.filter(i => i.status === 'completed').length;
-    const inProgress = orgItems.filter(i => i.status === 'in_progress').length;
-    const planned = orgItems.filter(i => i.status === 'planned').length;
-    const overdue = orgItems.filter(i => i.status !== 'completed' && i.dueDate < now).length;
-
-    sendSuccess(res, { total, completed, inProgress, planned, overdue }, 'Audit summary retrieved successfully');
+    const orgId = (req as any).user?.organisationId || ORG_ID;
+    const [statusRows] = await db().query(
+      `SELECT status, COUNT(*)::int as count FROM audits WHERE organisation_id = :orgId GROUP BY status`,
+      { replacements: { orgId } }
+    );
+    const [overdueRows] = await db().query(
+      `SELECT COUNT(*)::int as count FROM audits WHERE organisation_id = :orgId AND status != 'completed' AND due_date < NOW()`,
+      { replacements: { orgId } }
+    );
+    const counts: Record<string, number> = {};
+    let total = 0;
+    for (const r of statusRows as any[]) {
+      counts[r.status] = r.count;
+      total += r.count;
+    }
+    sendSuccess(res, {
+      total,
+      completed: counts['completed'] || 0,
+      inProgress: counts['in_progress'] || 0,
+      planned: counts['planned'] || 0,
+      overdue: (overdueRows as any[])[0]?.count || 0,
+    }, 'Audit summary retrieved successfully');
   })
 );
 
@@ -77,9 +60,12 @@ router.get(
   '/',
   authGuard,
   asyncHandler(async (req: Request, res: Response) => {
-    const organisationId = (req as any).user.organisationId;
-    const orgItems = items.filter(i => i.organisationId === organisationId);
-    sendSuccess(res, orgItems, 'Audits retrieved successfully');
+    const orgId = (req as any).user?.organisationId || ORG_ID;
+    const [rows] = await db().query(
+      `SELECT * FROM audits WHERE organisation_id = :orgId ORDER BY created_at DESC`,
+      { replacements: { orgId } }
+    );
+    sendSuccess(res, rows, 'Audits retrieved successfully');
   })
 );
 
@@ -92,16 +78,35 @@ router.post(
   '/',
   authGuard,
   asyncHandler(async (req: Request, res: Response) => {
-    const organisationId = (req as any).user.organisationId;
-
-    const newItem: AuditItem = {
-      id: `audit_${nextId++}`,
-      ...req.body,
-      organisationId,
-      createdAt: new Date().toISOString(),
-    };
-    items.unshift(newItem);
-    sendSuccess(res, newItem, 'Audit created successfully', 201);
+    const user = (req as any).user;
+    const orgId = user?.organisationId || ORG_ID;
+    const id = `audit_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+    await db().query(
+      `INSERT INTO audits (id, title, type, status, priority, scope, department, auditor, auditee, scheduled_start, scheduled_end, findings, recommendations, due_date, created_by, organisation_id, created_at, updated_at)
+       VALUES (:id, :title, :type, :status, :priority, :scope, :department, :auditor, :auditee, :scheduledStart, :scheduledEnd, :findings, :recommendations, :dueDate, :userId, :orgId, NOW(), NOW())`,
+      {
+        replacements: {
+          id,
+          title: req.body.title || '',
+          type: req.body.type || 'internal',
+          status: req.body.status || 'planned',
+          priority: req.body.priority || 'medium',
+          scope: req.body.scope || null,
+          department: req.body.department || null,
+          auditor: req.body.auditor || null,
+          auditee: req.body.auditee || null,
+          scheduledStart: req.body.scheduledStart || null,
+          scheduledEnd: req.body.scheduledEnd || null,
+          findings: req.body.findings != null ? req.body.findings : 0,
+          recommendations: req.body.recommendations != null ? req.body.recommendations : 0,
+          dueDate: req.body.dueDate || null,
+          userId: user?.userId || null,
+          orgId,
+        },
+      }
+    );
+    const [rows] = await db().query(`SELECT * FROM audits WHERE id = :id`, { replacements: { id } });
+    sendSuccess(res, (rows as any[])[0], 'Audit created successfully', 201);
   })
 );
 
@@ -114,16 +119,32 @@ router.put(
   '/:id',
   authGuard,
   asyncHandler(async (req: Request, res: Response) => {
-    const organisationId = (req as any).user.organisationId;
-    const index = items.findIndex(i => i.id === req.params.id && i.organisationId === organisationId);
-
-    if (index === -1) {
+    const orgId = (req as any).user?.organisationId || ORG_ID;
+    const allowed = ['title', 'type', 'status', 'priority', 'scope', 'department', 'auditor', 'auditee', 'scheduled_start', 'scheduled_end', 'findings', 'recommendations', 'due_date'];
+    const updates: string[] = [];
+    const replacements: any = { id: req.params.id, orgId };
+    for (const f of allowed) {
+      const camel = f.replace(/_([a-z])/g, (_, c) => c.toUpperCase());
+      if (req.body[camel] !== undefined) {
+        updates.push(`${f} = :${f}`);
+        replacements[f] = req.body[camel];
+      }
+    }
+    if (updates.length) {
+      await db().query(
+        `UPDATE audits SET ${updates.join(', ')}, updated_at = NOW() WHERE id = :id AND organisation_id = :orgId`,
+        { replacements }
+      );
+    }
+    const [rows] = await db().query(
+      `SELECT * FROM audits WHERE id = :id AND organisation_id = :orgId`,
+      { replacements: { id: req.params.id, orgId } }
+    );
+    if (!(rows as any[]).length) {
       sendError(res, 404, 'Audit not found', 'NOT_FOUND');
       return;
     }
-
-    items[index] = { ...items[index], ...req.body, id: items[index].id, organisationId: items[index].organisationId };
-    sendSuccess(res, items[index], 'Audit updated successfully');
+    sendSuccess(res, (rows as any[])[0], 'Audit updated successfully');
   })
 );
 
@@ -136,15 +157,15 @@ router.delete(
   '/:id',
   authGuard,
   asyncHandler(async (req: Request, res: Response) => {
-    const organisationId = (req as any).user.organisationId;
-    const index = items.findIndex(i => i.id === req.params.id && i.organisationId === organisationId);
-
-    if (index === -1) {
+    const orgId = (req as any).user?.organisationId || ORG_ID;
+    const [rows] = await db().query(
+      `DELETE FROM audits WHERE id = :id AND organisation_id = :orgId RETURNING id`,
+      { replacements: { id: req.params.id, orgId } }
+    );
+    if (!(rows as any[]).length) {
       sendError(res, 404, 'Audit not found', 'NOT_FOUND');
       return;
     }
-
-    items.splice(index, 1);
     sendSuccess(res, null, 'Audit deleted successfully');
   })
 );

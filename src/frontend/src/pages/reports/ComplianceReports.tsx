@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import {
   Box,
   Typography,
@@ -18,6 +18,7 @@ import {
   IconButton,
   Menu,
   MenuItem,
+  CircularProgress,
 } from '@mui/material'
 import {
   Download as DownloadIcon,
@@ -34,42 +35,7 @@ import {
   Legend,
   Tooltip,
 } from 'recharts'
-
-/* ------------------------------------------------------------------ */
-/*  Mock data                                                         */
-/* ------------------------------------------------------------------ */
-
-interface ComplianceReport {
-  id: string
-  name: string
-  regulation: string
-  period: string
-  status: 'compliant' | 'non_compliant' | 'pending'
-  generated: string
-}
-
-const mockReports: ComplianceReport[] = [
-  { id: 'cr-1', name: 'Q3 2025 POPIA Compliance Report', regulation: 'POPIA', period: 'Q3 2025', status: 'compliant', generated: '2025-10-02' },
-  { id: 'cr-2', name: 'FICA Regulatory Review - September', regulation: 'FICA', period: 'Sep 2025', status: 'compliant', generated: '2025-09-28' },
-  { id: 'cr-3', name: 'GDPR Data Protection Assessment', regulation: 'GDPR', period: 'Q3 2025', status: 'non_compliant', generated: '2025-09-20' },
-  { id: 'cr-4', name: 'ISO 27001 Compliance Audit', regulation: 'ISO 27001', period: 'Annual 2025', status: 'pending', generated: '2025-09-15' },
-  { id: 'cr-5', name: 'King IV Governance Report', regulation: 'King IV', period: 'H1 2025', status: 'compliant', generated: '2025-08-30' },
-  { id: 'cr-6', name: 'CCPA Readiness Assessment', regulation: 'CCPA', period: 'Q3 2025', status: 'non_compliant', generated: '2025-08-25' },
-  { id: 'cr-7', name: 'SOX Internal Controls Review', regulation: 'SOX', period: 'FY 2025', status: 'pending', generated: '2025-08-18' },
-  { id: 'cr-8', name: 'PCI DSS Compliance Scan', regulation: 'PCI DSS', period: 'Jul 2025', status: 'compliant', generated: '2025-07-30' },
-]
-
-interface ComplianceDistribution {
-  name: string
-  value: number
-  color: string
-}
-
-const mockDistribution: ComplianceDistribution[] = [
-  { name: 'Compliant', value: 4, color: '#4CAF50' },
-  { name: 'Non-Compliant', value: 2, color: '#F44336' },
-  { name: 'Pending', value: 2, color: '#FF9800' },
-]
+import { complianceService, ComplianceItem } from '../../services/complianceService'
 
 /* ------------------------------------------------------------------ */
 /*  Helpers                                                           */
@@ -79,17 +45,31 @@ const getStatusColor = (status: string) => {
   switch (status) {
     case 'compliant': return '#4CAF50'
     case 'non_compliant': return '#F44336'
-    case 'pending': return '#FF9800'
+    case 'partial': return '#FF9800'
+    case 'not_assessed': return '#9E9E9E'
+    case 'under_review': return '#2196F3'
     default: return '#9E9E9E'
   }
 }
 
-const totalOverdue = mockReports.filter(r => r.status === 'non_compliant').length
-const totalPassing = mockReports.filter(r => r.status === 'compliant').length
-const totalNonCompliant = mockReports.filter(r => r.status === 'non_compliant').length
-const overallRate = mockReports.length > 0
-  ? Math.round((totalPassing / mockReports.length) * 100)
-  : 0
+const statusDisplayName = (status: string) => {
+  switch (status) {
+    case 'compliant': return 'Compliant'
+    case 'non_compliant': return 'Non-Compliant'
+    case 'partial': return 'Partial'
+    case 'not_assessed': return 'Not Assessed'
+    case 'under_review': return 'Under Review'
+    default: return status.replace('_', ' ')
+  }
+}
+
+const distributionColors: Record<string, string> = {
+  compliant: '#4CAF50',
+  non_compliant: '#F44336',
+  partial: '#FF9800',
+  not_assessed: '#9E9E9E',
+  under_review: '#2196F3',
+}
 
 /* ------------------------------------------------------------------ */
 /*  Page component                                                    */
@@ -99,6 +79,31 @@ const ComplianceReports = () => {
   const [dateFrom, setDateFrom] = useState('')
   const [dateTo, setDateTo] = useState('')
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null)
+  const [items, setItems] = useState<ComplianceItem[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    let cancelled = false
+    const fetchData = async () => {
+      try {
+        const data = await complianceService.getComplianceItems()
+        if (!cancelled) setItems(data || [])
+      } catch {
+        if (!cancelled) setItems([])
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    }
+    fetchData()
+    return () => { cancelled = true }
+  }, [])
+
+  const totalOverdue = items.filter(r => r.status === 'non_compliant').length
+  const totalPassing = items.filter(r => r.status === 'compliant').length
+  const totalNonCompliant = items.filter(r => r.status === 'non_compliant').length
+  const overallRate = items.length > 0
+    ? Math.round((totalPassing / items.length) * 100)
+    : 0
 
   const handleMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget)
@@ -112,28 +117,39 @@ const ComplianceReports = () => {
     handleMenuClose()
   }
 
+  /* Build distribution data from real items */
+  const statusCounts: Record<string, number> = {}
+  for (const item of items) {
+    statusCounts[item.status] = (statusCounts[item.status] || 0) + 1
+  }
+  const distribution = Object.entries(statusCounts).map(([status, count]) => ({
+    name: statusDisplayName(status),
+    value: count,
+    color: distributionColors[status] || '#9E9E9E',
+  }))
+
   const statsCards = [
     {
       title: 'Overall Compliance Rate',
-      value: `${overallRate}%`,
+      value: loading ? '...' : `${overallRate}%`,
       color: 'primary.main',
       icon: null,
     },
     {
       title: 'Overdue Items',
-      value: totalOverdue,
+      value: loading ? '...' : totalOverdue,
       color: '#F44336',
       icon: <WarningIcon sx={{ color: '#F44336', fontSize: 16, mr: 0.5 }} />,
     },
     {
       title: 'Passing Items',
-      value: totalPassing,
+      value: loading ? '...' : totalPassing,
       color: '#4CAF50',
       icon: <CheckIcon sx={{ color: '#4CAF50', fontSize: 16, mr: 0.5 }} />,
     },
     {
       title: 'Non-Compliant',
-      value: totalNonCompliant,
+      value: loading ? '...' : totalNonCompliant,
       color: '#F44336',
       icon: <GavelIcon sx={{ color: '#F44336', fontSize: 16, mr: 0.5 }} />,
     },
@@ -184,10 +200,16 @@ const ComplianceReports = () => {
                 <Typography variant="body2" color="text.secondary" gutterBottom>
                   {card.title}
                 </Typography>
-                <Typography variant="h4" sx={{ fontWeight: 700, color: card.color }}>
-                  {card.value}
-                </Typography>
-                {card.icon && (
+                {loading ? (
+                  <Box sx={{ display: 'flex', alignItems: 'center', height: 40 }}>
+                    <CircularProgress size={20} />
+                  </Box>
+                ) : (
+                  <Typography variant="h4" sx={{ fontWeight: 700, color: card.color }}>
+                    {card.value}
+                  </Typography>
+                )}
+                {card.icon && !loading && (
                   <Box sx={{ display: 'flex', alignItems: 'center', mt: 1 }}>
                     {card.icon}
                     <Typography variant="body2" sx={{ color: card.color, fontWeight: 600 }}>
@@ -209,35 +231,41 @@ const ComplianceReports = () => {
           <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
             Compliance Status Distribution
           </Typography>
-          <ResponsiveContainer width="100%" height={300}>
-            <PieChart>
-              <Pie
-                data={mockDistribution}
-                cx="50%"
-                cy="50%"
-                innerRadius={70}
-                outerRadius={110}
-                dataKey="value"
-                paddingAngle={3}
-              >
-                {mockDistribution.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={entry.color} />
-                ))}
-              </Pie>
-              <Tooltip
-                contentStyle={{ borderRadius: 8, border: '1px solid #E0E0E0' }}
-              />
-              <Legend
-                verticalAlign="bottom"
-                height={36}
-                formatter={(value: string) => (
-                  <Typography variant="body2" component="span" sx={{ color: 'text.primary' }}>
-                    {value}
-                  </Typography>
-                )}
-              />
-            </PieChart>
-          </ResponsiveContainer>
+          {loading ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
+              <CircularProgress />
+            </Box>
+          ) : (
+            <ResponsiveContainer width="100%" height={300}>
+              <PieChart>
+                <Pie
+                  data={distribution}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={70}
+                  outerRadius={110}
+                  dataKey="value"
+                  paddingAngle={3}
+                >
+                  {distribution.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={entry.color} />
+                  ))}
+                </Pie>
+                <Tooltip
+                  contentStyle={{ borderRadius: 8, border: '1px solid #E0E0E0' }}
+                />
+                <Legend
+                  verticalAlign="bottom"
+                  height={36}
+                  formatter={(value: string) => (
+                    <Typography variant="body2" component="span" sx={{ color: 'text.primary' }}>
+                      {value}
+                    </Typography>
+                  )}
+                />
+              </PieChart>
+            </ResponsiveContainer>
+          )}
         </CardContent>
       </Card>
 
@@ -266,41 +294,15 @@ const ComplianceReports = () => {
                 </TableRow>
               </TableHead>
               <TableBody>
-                {mockReports.map((report) => (
-                  <TableRow key={report.id} hover>
-                    <TableCell>
-                      <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                        {report.name}
-                      </Typography>
-                    </TableCell>
-                    <TableCell>
-                      <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                        <GavelIcon sx={{ mr: 1, color: 'primary.main', fontSize: 18 }} />
-                        <Typography variant="body2">{report.regulation}</Typography>
+                {loading ? (
+                  <TableRow>
+                    <TableCell colSpan={6} align="center">
+                      <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+                        <CircularProgress />
                       </Box>
                     </TableCell>
-                    <TableCell>{report.period}</TableCell>
-                    <TableCell>
-                      <Chip
-                        label={report.status.replace('_', ' ')}
-                        size="small"
-                        sx={{
-                          bgcolor: `${getStatusColor(report.status)}18`,
-                          color: getStatusColor(report.status),
-                          fontWeight: 600,
-                          textTransform: 'capitalize',
-                        }}
-                      />
-                    </TableCell>
-                    <TableCell>{report.generated}</TableCell>
-                    <TableCell align="right">
-                      <IconButton size="small" onClick={(e) => handleMenuOpen(e)}>
-                        <MoreVertIcon />
-                      </IconButton>
-                    </TableCell>
                   </TableRow>
-                ))}
-                {mockReports.length === 0 && (
+                ) : items.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={6} align="center">
                       <Typography variant="body2" color="text.secondary" sx={{ py: 4 }}>
@@ -308,6 +310,45 @@ const ComplianceReports = () => {
                       </Typography>
                     </TableCell>
                   </TableRow>
+                ) : (
+                  items.map((item) => (
+                    <TableRow key={item.id} hover>
+                      <TableCell>
+                        <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                          {item.title}
+                        </Typography>
+                      </TableCell>
+                      <TableCell>
+                        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                          <GavelIcon sx={{ mr: 1, color: 'primary.main', fontSize: 18 }} />
+                          <Typography variant="body2">{item.regulationSource || 'N/A'}</Typography>
+                        </Box>
+                      </TableCell>
+                      <TableCell>{item.department || item.category || 'N/A'}</TableCell>
+                      <TableCell>
+                        <Chip
+                          label={statusDisplayName(item.status)}
+                          size="small"
+                          sx={{
+                            bgcolor: `${getStatusColor(item.status)}18`,
+                            color: getStatusColor(item.status),
+                            fontWeight: 600,
+                            textTransform: 'capitalize',
+                          }}
+                        />
+                      </TableCell>
+                      <TableCell>
+                        {item.createdAt
+                          ? new Date(item.createdAt).toISOString().split('T')[0]
+                          : 'N/A'}
+                      </TableCell>
+                      <TableCell align="right">
+                        <IconButton size="small" onClick={(e) => handleMenuOpen(e)}>
+                          <MoreVertIcon />
+                        </IconButton>
+                      </TableCell>
+                    </TableRow>
+                  ))
                 )}
               </TableBody>
             </Table>

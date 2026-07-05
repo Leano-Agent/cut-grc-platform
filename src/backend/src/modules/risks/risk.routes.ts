@@ -1,4 +1,5 @@
 import { Router, Request, Response } from 'express';
+import { QueryTypes } from 'sequelize';
 import { AuthMiddleware } from '../../middleware/auth.middleware';
 import { asyncHandler, sendSuccess, sendError } from '../../middleware/errorMiddleware';
 import database from '../../config/database';
@@ -27,57 +28,14 @@ router.get(
     const sequelize = database.getSequelize();
     
     const [results] = await sequelize.query(
-      `SELECT r.*, 
-              u.id AS owner__id, 
-              u.first_name AS owner__firstName, 
-              u.last_name AS owner__lastName,
-              u.email AS owner__email
-       FROM risks r
-       LEFT JOIN users u ON r.owner_id = u.id
-       WHERE r.organisation_id = :orgId
-       ORDER BY r.created_at DESC`,
-      { replacements: { orgId: organisationId } }
+      `SELECT id, title, description, category, severity, likelihood, risk_score, status, department, owner_id, source, impact_description, root_cause, existing_controls, treatment_strategy, residual_severity, residual_likelihood, target_date, closed_at, tags, metadata, created_by, organisation_id, created_at, updated_at
+       FROM risks
+       WHERE organisation_id = :orgId
+       ORDER BY created_at DESC`,
+      { replacements: { orgId: organisationId }, type: QueryTypes.SELECT }
     );
 
-    // Build owner object from flattened fields
-    const formatted = (results as any[]).map(r => {
-      const owner = r.owner__id ? {
-        id: r.owner__id,
-        firstName: r.owner__firstName,
-        lastName: r.owner__lastName,
-        email: r.owner__email,
-      } : null;
-      return {
-        id: r.id,
-        title: r.title,
-        description: r.description,
-        category: r.category,
-        severity: r.severity,
-        likelihood: r.likelihood,
-        riskScore: r.risk_score,
-        status: r.status,
-        department: r.department,
-        ownerId: r.owner_id,
-        owner,
-        source: r.source,
-        impactDescription: r.impact_description,
-        rootCause: r.root_cause,
-        existingControls: r.existing_controls,
-        treatmentStrategy: r.treatment_strategy,
-        residualSeverity: r.residual_severity,
-        residualLikelihood: r.residual_likelihood,
-        targetDate: r.target_date,
-        closedAt: r.closed_at,
-        tags: r.tags,
-        metadata: r.metadata,
-        createdBy: r.created_by,
-        organisationId: r.organisation_id,
-        createdAt: r.created_at,
-        updatedAt: r.updated_at,
-      };
-    });
-
-    sendSuccess(res, formatted, 'Risks retrieved successfully');
+    sendSuccess(res, results, 'Risks retrieved successfully');
   })
 );
 

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import {
   Box,
   Typography,
@@ -36,55 +36,7 @@ import {
   ResponsiveContainer,
   Legend,
 } from 'recharts'
-
-/* ------------------------------------------------------------------ */
-/*  Mock data                                                         */
-/* ------------------------------------------------------------------ */
-
-interface AuditReport {
-  id: string
-  name: string
-  auditor: string
-  department: string
-  date: string
-  status: 'completed' | 'in_progress' | 'scheduled' | 'failed'
-  findings: number
-  actions: number
-}
-
-const mockReports: AuditReport[] = [
-  { id: 'ar-1', name: 'Q3 2025 Financial Audit - Revenue Division', auditor: 'Alice Chen', department: 'Finance', date: '2025-10-01', status: 'completed', findings: 3, actions: 5 },
-  { id: 'ar-2', name: 'IT Security Audit - Access Controls', auditor: 'Bob Martinez', department: 'IT', date: '2025-09-28', status: 'completed', findings: 7, actions: 12 },
-  { id: 'ar-3', name: 'Compliance Audit - POPIA Readiness', auditor: 'Carol Wu', department: 'Legal', date: '2025-09-20', status: 'in_progress', findings: 5, actions: 8 },
-  { id: 'ar-4', name: 'Operational Audit - Supply Chain', auditor: 'David Kim', department: 'Operations', date: '2025-09-15', status: 'in_progress', findings: 2, actions: 3 },
-  { id: 'ar-5', name: 'Procurement Audit - Vendor Compliance', auditor: 'Eve Johnson', department: 'Procurement', date: '2025-10-05', status: 'scheduled', findings: 0, actions: 0 },
-  { id: 'ar-6', name: 'Annual HR Compliance Review', auditor: 'Frank Lee', department: 'HR', date: '2025-08-28', status: 'completed', findings: 1, actions: 2 },
-  { id: 'ar-7', name: 'Data Privacy Audit - Customer Records', auditor: 'Grace Patel', department: 'IT', date: '2025-08-20', status: 'failed', findings: 12, actions: 18 },
-  { id: 'ar-8', name: 'Treasury Operations Audit', auditor: 'Henry Zhao', department: 'Finance', date: '2025-10-10', status: 'scheduled', findings: 0, actions: 0 },
-  { id: 'ar-9', name: 'Quality Management System Audit', auditor: 'Iris Chang', department: 'Operations', date: '2025-09-05', status: 'completed', findings: 4, actions: 6 },
-  { id: 'ar-10', name: 'Environmental Compliance Audit', auditor: 'Jack Daniels', department: 'Legal', date: '2025-09-12', status: 'failed', findings: 8, actions: 14 },
-]
-
-interface MonthlyAuditData {
-  month: string
-  completed: number
-  scheduled: number
-}
-
-const mockMonthlyData: MonthlyAuditData[] = [
-  { month: 'Jan', completed: 4, scheduled: 2 },
-  { month: 'Feb', completed: 3, scheduled: 3 },
-  { month: 'Mar', completed: 5, scheduled: 1 },
-  { month: 'Apr', completed: 2, scheduled: 4 },
-  { month: 'May', completed: 6, scheduled: 2 },
-  { month: 'Jun', completed: 4, scheduled: 3 },
-  { month: 'Jul', completed: 7, scheduled: 1 },
-  { month: 'Aug', completed: 5, scheduled: 3 },
-  { month: 'Sep', completed: 3, scheduled: 4 },
-  { month: 'Oct', completed: 6, scheduled: 2 },
-  { month: 'Nov', completed: 4, scheduled: 3 },
-  { month: 'Dec', completed: 2, scheduled: 5 },
-]
+import { auditService, Audit } from '../../services/auditService'
 
 /* ------------------------------------------------------------------ */
 /*  Helpers                                                           */
@@ -94,27 +46,59 @@ const getStatusColor = (status: string) => {
   switch (status) {
     case 'completed': return '#4CAF50'
     case 'in_progress': return '#2196F3'
+    case 'planned':
     case 'scheduled': return '#9E9E9E'
-    case 'failed': return '#F44336'
+    case 'failed':
+    case 'overdue':
+    case 'cancelled': return '#F44336'
     default: return '#9E9E9E'
   }
 }
 
-const totalAudits = mockReports.length
-const completedAudits = mockReports.filter(r => r.status === 'completed').length
-const inProgressAudits = mockReports.filter(r => r.status === 'in_progress').length
-const passRate = mockReports.length > 0
-  ? Math.round((completedAudits / mockReports.length) * 100)
-  : 0
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+
+const getMonthLabel = (dateStr: string): string => {
+  try {
+    const d = new Date(dateStr)
+    return MONTHS[d.getMonth()]
+  } catch {
+    return 'Unknown'
+  }
+}
+
+const formatDate = (dateStr?: string): string => {
+  if (!dateStr) return ''
+  try {
+    return new Date(dateStr).toLocaleDateString()
+  } catch {
+    return dateStr
+  }
+}
 
 /* ------------------------------------------------------------------ */
 /*  Page component                                                    */
 /* ------------------------------------------------------------------ */
 
 const AuditReports = () => {
+  const [audits, setAudits] = useState<Audit[]>([])
+  const [loading, setLoading] = useState(true)
   const [dateFrom, setDateFrom] = useState('')
   const [dateTo, setDateTo] = useState('')
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null)
+
+  useEffect(() => {
+    const fetchAudits = async () => {
+      try {
+        const data = await auditService.getAudits()
+        setAudits(data)
+      } catch {
+        setAudits([])
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchAudits()
+  }, [])
 
   const handleMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget)
@@ -127,6 +111,32 @@ const AuditReports = () => {
   const handleExport = () => {
     handleMenuClose()
   }
+
+  // Derived stats
+  const totalAudits = audits.length
+  const completedAudits = audits.filter(r => r.status === 'completed').length
+  const inProgressAudits = audits.filter(r => r.status === 'in_progress').length
+  const passRate = totalAudits > 0
+    ? Math.round((completedAudits / totalAudits) * 100)
+    : 0
+
+  // Monthly data grouped from real audits
+  const monthlyData = MONTHS.map(month => {
+    const monthIndex = MONTHS.indexOf(month)
+    const monthAudits = audits.filter(a => {
+      try {
+        const d = new Date(a.scheduledStart)
+        return d.getMonth() === monthIndex
+      } catch {
+        return false
+      }
+    })
+    return {
+      month,
+      completed: monthAudits.filter(a => a.status === 'completed').length,
+      scheduled: monthAudits.filter(a => a.status === 'planned' || a.status === 'scheduled').length,
+    }
+  })
 
   const statsCards = [
     {
@@ -154,6 +164,21 @@ const AuditReports = () => {
       icon: <WarningIcon sx={{ color: passRate >= 60 ? '#4CAF50' : '#F44336', fontSize: 16, mr: 0.5 }} />,
     },
   ]
+
+  // Filter audits by date range
+  const filteredAudits = audits.filter(a => {
+    if (dateFrom && a.scheduledStart && a.scheduledStart < dateFrom) return false
+    if (dateTo && a.scheduledStart && a.scheduledStart > dateTo) return false
+    return true
+  })
+
+  if (loading) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
+        <Typography>Loading audit reports...</Typography>
+      </Box>
+    )
+  }
 
   return (
     <Box>
@@ -228,7 +253,7 @@ const AuditReports = () => {
             Audits by Month
           </Typography>
           <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={mockMonthlyData} margin={{ top: 8, right: 16, left: 0, bottom: 8 }}>
+            <BarChart data={monthlyData} margin={{ top: 8, right: 16, left: 0, bottom: 8 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#E0E0E0" />
               <XAxis dataKey="month" tick={{ fontSize: 13 }} />
               <YAxis tick={{ fontSize: 13 }} />
@@ -278,21 +303,21 @@ const AuditReports = () => {
                 </TableRow>
               </TableHead>
               <TableBody>
-                {mockReports.map((report) => (
+                {filteredAudits.map((report) => (
                   <TableRow key={report.id} hover>
                     <TableCell>
                       <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                        {report.name}
+                        {report.title}
                       </Typography>
                     </TableCell>
                     <TableCell>
                       <Typography variant="body2">{report.auditor}</Typography>
                     </TableCell>
                     <TableCell>{report.department}</TableCell>
-                    <TableCell>{report.date}</TableCell>
+                    <TableCell>{formatDate(report.scheduledStart)}</TableCell>
                     <TableCell>
                       <Chip
-                        label={report.status.replace('_', ' ')}
+                        label={report.status.replace(/_/g, ' ')}
                         size="small"
                         sx={{
                           bgcolor: `${getStatusColor(report.status)}18`,
@@ -307,15 +332,15 @@ const AuditReports = () => {
                         variant="body2"
                         sx={{
                           fontWeight: 600,
-                          color: report.findings > 5 ? '#F44336' : report.findings > 0 ? '#FF9800' : '#4CAF50',
+                          color: (report.findings || 0) > 5 ? '#F44336' : (report.findings || 0) > 0 ? '#FF9800' : '#4CAF50',
                         }}
                       >
-                        {report.findings}
+                        {report.findings ?? 0}
                       </Typography>
                     </TableCell>
                     <TableCell>
                       <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                        {report.actions}
+                        {report.recommendations ?? 0}
                       </Typography>
                     </TableCell>
                     <TableCell align="right">
@@ -325,7 +350,7 @@ const AuditReports = () => {
                     </TableCell>
                   </TableRow>
                 ))}
-                {mockReports.length === 0 && (
+                {filteredAudits.length === 0 && (
                   <TableRow>
                     <TableCell colSpan={8} align="center">
                       <Typography variant="body2" color="text.secondary" sx={{ py: 4 }}>

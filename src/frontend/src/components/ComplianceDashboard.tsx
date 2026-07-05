@@ -199,10 +199,8 @@ const ComplianceDashboard: React.FC<ComplianceDashboardProps> = ({ data, onExpor
         fullWidth size="small" sx={{ mb: 2 }}
         value={searchQuery}
         onChange={e => setSearchQuery(e.target.value)}
-        slotProps={{
-          input: {
-            startAdornment: <InputAdornment position="start"><SearchIcon fontSize="small" /></InputAdornment>,
-          },
+        InputProps={{
+          startAdornment: <InputAdornment position="start"><SearchIcon fontSize="small" /></InputAdornment>,
         }}
       />
 
