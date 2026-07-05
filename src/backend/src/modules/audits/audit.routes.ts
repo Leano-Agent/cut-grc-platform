@@ -14,9 +14,9 @@ router.use((req, res, next) => authMiddleware.verifyToken(req, res, next));
 
 // In-memory store seeded with demo data
 let items: any[] = [
-  { id: '1', title: 'Financial Audit Q2', status: 'in_progress', priority: 'high', assignee: 'Audit Team A', dueDate: '2026-06-30', createdAt: '2026-05-01T09:00:00Z', scope: 'Financial statements and controls' },
-  { id: '2', title: 'IT Security Audit', status: 'completed', priority: 'high', assignee: 'External Auditor', dueDate: '2026-05-15', createdAt: '2026-04-01T14:00:00Z', scope: 'Network security and access controls' },
-  { id: '3', title: 'Compliance Review', status: 'planned', priority: 'medium', assignee: 'Compliance Dept', dueDate: '2026-08-01', createdAt: '2026-06-01T11:00:00Z', scope: 'Regulatory compliance assessment' },
+  { id: '1', title: 'Financial Audit Q2', type: 'financial', status: 'in_progress', priority: 'high', scope: 'Financial statements and controls', department: 'Finance', auditor: 'Audit Team A', auditee: 'Finance Dept', scheduledStart: '2026-05-01', scheduledEnd: '2026-06-30', findings: 12, recommendations: 8, dueDate: '2026-06-30', createdAt: '2026-05-01T09:00:00Z' },
+  { id: '2', title: 'IT Security Audit', type: 'external', status: 'completed', priority: 'high', scope: 'Network security and access controls', department: 'IT', auditor: 'External Auditor', auditee: 'IT Dept', scheduledStart: '2026-04-01', scheduledEnd: '2026-05-15', findings: 7, recommendations: 5, dueDate: '2026-05-15', createdAt: '2026-04-01T14:00:00Z' },
+  { id: '3', title: 'Compliance Review', type: 'compliance', status: 'planned', priority: 'medium', scope: 'Regulatory compliance assessment', department: 'Compliance', auditor: 'Compliance Dept', auditee: 'All Departments', scheduledStart: '2026-07-01', scheduledEnd: '2026-08-01', findings: 0, recommendations: 0, dueDate: '2026-08-01', createdAt: '2026-06-01T11:00:00Z' },
 ];
 let nextId = 4;
 

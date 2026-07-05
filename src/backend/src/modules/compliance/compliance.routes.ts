@@ -14,10 +14,10 @@ router.use((req, res, next) => authMiddleware.verifyToken(req, res, next));
 
 // In-memory store seeded with demo data
 let items: any[] = [
-  { id: '1', regulation: 'POPIA', status: 'compliant', score: 95, lastReviewed: '2026-05-15', nextReview: '2026-08-15' },
-  { id: '2', regulation: 'King IV', status: 'compliant', score: 88, lastReviewed: '2026-04-01', nextReview: '2026-07-01' },
-  { id: '3', regulation: 'FICA', status: 'partial', score: 65, lastReviewed: '2026-03-01', nextReview: '2026-06-15' },
-  { id: '4', regulation: 'GDPR', status: 'non_compliant', score: 40, lastReviewed: '2026-02-01', nextReview: '2026-05-15' },
+  { id: '1', title: 'POPIA Data Protection', description: 'Personal Information Protection compliance requirements', regulation: 'POPIA', status: 'compliant', department: 'Legal', owner: 'Sarah Smith', dueDate: '2026-08-15', lastReviewed: '2026-05-15', nextReview: '2026-08-15', notes: '', createdAt: '2026-01-15T09:00:00Z' },
+  { id: '2', title: 'King IV Governance', description: 'Corporate governance code compliance', regulation: 'King IV', status: 'compliant', department: 'Board', owner: 'Lisa Brown', dueDate: '2026-07-01', lastReviewed: '2026-04-01', nextReview: '2026-07-01', notes: '', createdAt: '2026-02-10T14:30:00Z' },
+  { id: '3', title: 'FICA Compliance Program', description: 'Financial Intelligence Centre Act requirements', regulation: 'FICA', status: 'partial', department: 'Finance', owner: 'Mike Johnson', dueDate: '2026-06-15', lastReviewed: '2026-03-01', nextReview: '2026-06-15', notes: 'Pending review', createdAt: '2026-01-20T11:00:00Z' },
+  { id: '4', title: 'GDPR Data Privacy', description: 'General Data Protection Regulation compliance', regulation: 'GDPR', status: 'non_compliant', department: 'IT', owner: 'IT Security', dueDate: '2026-05-15', lastReviewed: '2026-02-01', nextReview: '2026-05-15', notes: 'Requires immediate action', createdAt: '2026-01-05T08:00:00Z' },
 ];
 let nextId = 5;
 

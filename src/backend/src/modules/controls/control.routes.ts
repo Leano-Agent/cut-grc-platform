@@ -14,10 +14,10 @@ router.use((req, res, next) => authMiddleware.verifyToken(req, res, next));
 
 // In-memory store seeded with demo data
 let items: any[] = [
-  { id: '1', name: 'Access Control Policy', type: 'preventive', category: 'security', status: 'active', effectiveness: 'high', owner: 'IT Security', lastReviewed: '2026-05-01', nextReview: '2026-11-01', createdAt: '2026-01-10T09:00:00Z' },
-  { id: '2', name: 'Segregation of Duties', type: 'detective', category: 'financial', status: 'active', effectiveness: 'high', owner: 'Finance', lastReviewed: '2026-04-15', nextReview: '2026-10-15', createdAt: '2026-01-15T14:30:00Z' },
-  { id: '3', name: 'Quarterly Risk Assessment', type: 'detective', category: 'operational', status: 'active', effectiveness: 'medium', owner: 'Risk Management', lastReviewed: '2026-03-01', nextReview: '2026-06-01', createdAt: '2026-02-01T11:00:00Z' },
-  { id: '4', name: 'Incident Response Plan', type: 'corrective', category: 'security', status: 'inactive', effectiveness: 'low', owner: 'IT Security', lastReviewed: '2026-01-01', nextReview: '2026-07-01', createdAt: '2026-01-05T08:00:00Z' },
+  { id: '1', title: 'Access Control Policy', description: 'Prevent unauthorized system access', category: 'security', type: 'preventive', status: 'active', effectiveness: 'high', owner: 'IT Security', department: 'IT', lastTested: '2026-05-01', nextTestDue: '2026-11-01', notes: '', createdAt: '2026-01-10T09:00:00Z' },
+  { id: '2', title: 'Segregation of Duties', description: 'Separation of conflicting responsibilities', category: 'financial', type: 'detective', status: 'active', effectiveness: 'high', owner: 'Finance', department: 'Finance', lastTested: '2026-04-15', nextTestDue: '2026-10-15', notes: '', createdAt: '2026-01-15T14:30:00Z' },
+  { id: '3', title: 'Quarterly Risk Assessment', description: 'Regular assessment of operational risks', category: 'operational', type: 'detective', status: 'active', effectiveness: 'medium', owner: 'Risk Management', department: 'Risk', lastTested: '2026-03-01', nextTestDue: '2026-06-01', notes: '', createdAt: '2026-02-01T11:00:00Z' },
+  { id: '4', title: 'Incident Response Plan', description: 'Plan for security incident response', category: 'security', type: 'corrective', status: 'inactive', effectiveness: 'low', owner: 'IT Security', department: 'IT', lastTested: '2026-01-01', nextTestDue: '2026-07-01', notes: 'Needs update', createdAt: '2026-01-05T08:00:00Z' },
 ];
 let nextId = 5;
 
