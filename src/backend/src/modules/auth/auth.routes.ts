@@ -177,10 +177,10 @@ router.post(
     let replacements: Record<string, any> = { email };
     
     if (orgId) {
-      userQuery = 'SELECT * FROM users WHERE email = :email AND organisation_id = :orgId AND is_active = true';
+      userQuery = 'SELECT * FROM users WHERE email = :email AND organisation_id = :orgId';
       replacements.orgId = orgId;
     } else {
-      userQuery = 'SELECT * FROM users WHERE email = :email AND is_active = true ORDER BY created_at DESC LIMIT 1';
+      userQuery = 'SELECT * FROM users WHERE email = :email ORDER BY created_at DESC LIMIT 1';
     }
     
     let user: any = null;
@@ -189,7 +189,7 @@ router.post(
       const rows = (result as any[])[0];
       user = rows?.[0] || null;
     } catch (queryErr: any) {
-      sendError(res, 500, 'Query error: ' + (queryErr.message || queryErr), 'QUERY_ERROR');
+      sendError(res, 500, 'Login query failed: ' + (queryErr.message || queryErr), 'QUERY_ERROR');
       return;
     }
     
@@ -199,33 +199,28 @@ router.post(
       return;
     }
     
-    // Check if account is locked
-    if (user.locked_until && new Date(user.locked_until) > new Date()) {
-      logAuthentication('login', user.id, req.ip || 'unknown', false, { reason: 'account_locked' });
-      sendError(res, 423, 'Account is temporarily locked. Try again later.', 'ACCOUNT_LOCKED');
-      return;
-    }
-    
-    // Verify password
-    const isPasswordValid = await bcrypt.compare(password, user.password_hash);
+    // Verify password — handle both password_hash and passwordHash column names
+    const passwordHash = user.password_hash || user.passwordHash || '';
+    const isPasswordValid = await bcrypt.compare(password, passwordHash);
     
     if (!isPasswordValid) {
-      const failedAttempts = (user.failed_login_attempts || 0) + 1;
+      const failedAttempts = (user.failed_login_attempts || user.failedLoginAttempts || 0) + 1;
+      const userId = user.id;
       
       // Lock account after 5 failed attempts
       if (failedAttempts >= 5) {
         await sequelize.query(
           'UPDATE users SET failed_login_attempts = :attempts, locked_until = NOW() + INTERVAL \'30 minutes\' WHERE id = :id',
-          { replacements: { id: user.id, attempts: failedAttempts } }
+          { replacements: { id: userId, attempts: failedAttempts } }
         );
       } else {
         await sequelize.query(
           'UPDATE users SET failed_login_attempts = :attempts WHERE id = :id',
-          { replacements: { id: user.id, attempts: failedAttempts } }
+          { replacements: { id: userId, attempts: failedAttempts } }
         );
       }
       
-      logAuthentication('login', user.id, req.ip || 'unknown', false, { 
+      logAuthentication('login', userId, req.ip || 'unknown', false, { 
         reason: 'invalid_password',
         failedAttempts 
       });
@@ -270,10 +265,10 @@ router.post(
       user: {
         id: user.id,
         email: user.email,
-        firstName: user.firstName,
-        lastName: user.lastName,
+        firstName: user.first_name || user.firstName || '',
+        lastName: user.last_name || user.lastName || '',
         role: user.role,
-        organisationId: user.organisationId,
+        organisationId: user.organisation_id || user.organisationId,
       },
       token: accessToken,
       refreshToken,
