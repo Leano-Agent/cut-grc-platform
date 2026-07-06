@@ -20,7 +20,8 @@
     "moduleResolution": "node10",
     "allowSyntheticDefaultImports": true,
     "experimentalDecorators": true,
-    "emitDecoratorMetadata": true
+    "emitDecoratorMetadata": true,
+    "ignoreDeprecations": "5.0"
   },
   "include": [
     "src/**/*"
