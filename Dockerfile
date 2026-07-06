@@ -18,12 +18,8 @@ RUN mkdir -p src/shared && if [ ! -f src/shared/package.json ]; then echo '{"nam
 # Install all workspace dependencies
 RUN npm install --workspaces --include-workspace-root
 
-# Copy full source
+# Copy full source (including pre-built dist)
 COPY . .
-
-# Build backend
-WORKDIR /app/src/backend
-RUN npm run build
 
 # Stage 2: Production
 FROM node:20-alpine
@@ -41,9 +37,10 @@ RUN addgroup -g 1001 -S nodejs \
 
 WORKDIR /app
 
-# Copy workspace config and built backend
+# Copy workspace config
 COPY --from=builder --chown=nodejs:nodejs /app/package*.json ./
 COPY --from=builder --chown=nodejs:nodejs /app/src/backend/package*.json src/backend/
+# Copy pre-built dist (not from tsc build — committed directly to repo)
 COPY --from=builder --chown=nodejs:nodejs /app/src/backend/dist src/backend/dist
 COPY --from=builder --chown=nodejs:nodejs /app/src/shared src/shared
 # Copy migrations (prod-migrate.js is a raw JS file, not compiled — must be copied from source)

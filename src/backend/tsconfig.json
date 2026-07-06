@@ -38,6 +38,9 @@
     "**/municipal/**",
     "**/ad-integration/**",
     "**/documents/**",
-    "**/database-sqlite.ts"
+    "**/database-sqlite.ts",
+    "**/models/**",
+    "**/services/email.service.ts",
+    "**/utils/logger.ts"
   ]
 }
