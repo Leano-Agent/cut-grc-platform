@@ -1,10 +1,9 @@
 import { Router, Request, Response } from 'express';
-import bcrypt from 'bcryptjs';
 import { AuthMiddleware } from '../../middleware/auth.middleware';
-import { asyncHandler, sendSuccess, sendError } from '../../middleware/errorMiddleware';
-import database from '../../config/database';
+import { asyncHandler } from '../../middleware/errorMiddleware';
 
 const router = Router();
+
 let authMiddleware: AuthMiddleware;
 
 export const initializeUserRoutes = (redisClient: any) => {
@@ -14,116 +13,152 @@ export const initializeUserRoutes = (redisClient: any) => {
 const authGuard = (req: Request, res: Response, next: any) =>
   authMiddleware ? authMiddleware.verifyToken(req, res, next) : next();
 
-const ORG_ID = '00000000-0000-0000-0000-000000000001';
-const db = () => database.getSequelize();
+const adminGuard = (req: Request, res: Response, next: any) =>
+  authMiddleware ? authMiddleware.requireAnyRole(['admin'])(req, res, next) : next();
 
+// In-memory store seeded with demo data
+let users: any[] = [
+  {
+    id: 'user_1',
+    email: 'grcadmin@tyriie.com',
+    firstName: 'Admin',
+    lastName: 'User',
+    role: 'admin',
+    department: 'IT',
+    isActive: true,
+    lastLogin: '2024-01-20T10:30:00Z',
+    createdAt: '2024-01-01T08:00:00Z',
+  },
+  {
+    id: 'user_2',
+    email: 'manager@municipal.gov',
+    firstName: 'Department',
+    lastName: 'Manager',
+    role: 'manager',
+    department: 'Finance',
+    isActive: true,
+    lastLogin: '2024-01-19T14:20:00Z',
+    createdAt: '2024-01-02T09:00:00Z',
+  },
+];
+let nextId = 3;
+
+/**
+ * @route   GET /api/v1/users
+ * @desc    Get all users (admin only)
+ * @access  Private (Admin)
+ */
 router.get(
   '/',
   authGuard,
+  adminGuard,
   asyncHandler(async (req: Request, res: Response) => {
-    const orgId = (req as any).user?.organisationId || ORG_ID;
-    const [rows] = await db().query(
-      `SELECT id, email, first_name, last_name, role, department, is_active, last_login_at, created_at 
-       FROM users WHERE organisation_id = :orgId ORDER BY created_at DESC`,
-      { replacements: { orgId } }
-    );
-    sendSuccess(res, rows, 'Users retrieved successfully');
+    res.json({ data: users });
   })
 );
 
+/**
+ * @route   GET /api/v1/users/:id
+ * @desc    Get user by ID
+ * @access  Private (Admin)
+ */
 router.get(
   '/:id',
   authGuard,
+  adminGuard,
   asyncHandler(async (req: Request, res: Response) => {
-    const orgId = (req as any).user?.organisationId || ORG_ID;
-    const [rows] = await db().query(
-      `SELECT id, email, first_name, last_name, role, department, is_active, last_login_at, created_at 
-       FROM users WHERE id = :id AND organisation_id = :orgId`,
-      { replacements: { id: req.params.id, orgId } }
-    );
-    if (!(rows as any[]).length) { sendError(res, 404, 'User not found', 'USER_NOT_FOUND'); return; }
-    sendSuccess(res, (rows as any[])[0], 'User retrieved successfully');
+    const user = users.find(u => u.id === req.params.id);
+    if (!user) {
+      res.status(404).json({ message: 'User not found' });
+      return;
+    }
+    res.json({ data: user });
   })
 );
 
+/**
+ * @route   POST /api/v1/users
+ * @desc    Create a new user
+ * @access  Private (Admin)
+ */
 router.post(
   '/',
   authGuard,
+  adminGuard,
   asyncHandler(async (req: Request, res: Response) => {
-    const user = (req as any).user;
-    const orgId = user?.organisationId || ORG_ID;
-    const id = `user_${Date.now()}`;
-    const passwordHash = await bcrypt.hash(req.body.password || 'Password123!', 12);
-
-    await db().query(
-      `INSERT INTO users (id, email, password_hash, first_name, last_name, role, department, organisation_id, is_active, email_verified, failed_login_attempts, refresh_token_version, created_at, updated_at)
-       VALUES (:id, :email, :hash, :first, :last, :role, :dept, :orgId, true, false, 0, 1, NOW(), NOW())
-       ON CONFLICT (email) DO NOTHING`,
-      { replacements: { id, email: req.body.email || '', hash: passwordHash, first: req.body.firstName || '', last: req.body.lastName || '', role: req.body.role || 'staff', dept: req.body.department || null, orgId } }
-    );
-
-    const [rows] = await db().query(
-      `SELECT id, email, first_name, last_name, role, department, is_active, created_at FROM users WHERE id = :id`,
-      { replacements: { id } }
-    );
-    sendSuccess(res, (rows as any[])[0] || null, 'User created successfully', 201);
+    const newUser = {
+      id: `user_${nextId++}`,
+      email: req.body.email,
+      firstName: req.body.firstName || '',
+      lastName: req.body.lastName || '',
+      role: req.body.role || 'user',
+      department: req.body.department || '',
+      isActive: true,
+      lastLogin: null,
+      createdAt: new Date().toISOString(),
+    };
+    users.unshift(newUser);
+    res.status(201).json({ data: newUser });
   })
 );
 
+/**
+ * @route   PUT /api/v1/users/:id
+ * @desc    Update a user
+ * @access  Private (Admin)
+ */
 router.put(
   '/:id',
   authGuard,
+  adminGuard,
   asyncHandler(async (req: Request, res: Response) => {
-    const orgId = (req as any).user?.organisationId || ORG_ID;
-    const allowed = ['email', 'first_name', 'last_name', 'role', 'department', 'is_active'];
-    const updates: string[] = [];
-    const replacements: any = { id: req.params.id, orgId };
-    for (const f of allowed) {
-      const camel = f === 'first_name' ? 'firstName' : f === 'last_name' ? 'lastName' : f === 'is_active' ? 'isActive' : f;
-      if (req.body[camel] !== undefined) {
-        updates.push(`${f} = :${f}`);
-        replacements[f] = req.body[camel];
-      }
+    const index = users.findIndex(u => u.id === req.params.id);
+    if (index === -1) {
+      res.status(404).json({ message: 'User not found' });
+      return;
     }
-    if (req.body.password) {
-      const hash = await bcrypt.hash(req.body.password, 12);
-      updates.push('password_hash = :pwHash');
-      replacements.pwHash = hash;
-    }
-    if (updates.length) {
-      await db().query(`UPDATE users SET ${updates.join(', ')}, updated_at = NOW() WHERE id = :id AND organisation_id = :orgId`, { replacements });
-    }
-    const [rows] = await db().query(
-      `SELECT id, email, first_name, last_name, role, department, is_active, created_at FROM users WHERE id = :id AND organisation_id = :orgId`,
-      { replacements: { id: req.params.id, orgId } }
-    );
-    if (!(rows as any[]).length) { sendError(res, 404, 'User not found', 'USER_NOT_FOUND'); return; }
-    sendSuccess(res, (rows as any[])[0], 'User updated successfully');
+    users[index] = { ...users[index], ...req.body, id: users[index].id, createdAt: users[index].createdAt };
+    res.json({ data: users[index] });
   })
 );
 
+/**
+ * @route   DELETE /api/v1/users/:id
+ * @desc    Delete a user
+ * @access  Private (Admin)
+ */
 router.delete(
   '/:id',
   authGuard,
+  adminGuard,
   asyncHandler(async (req: Request, res: Response) => {
-    const orgId = (req as any).user?.organisationId || ORG_ID;
-    const [rows] = await db().query(`DELETE FROM users WHERE id = :id AND organisation_id = :orgId RETURNING id`, { replacements: { id: req.params.id, orgId } });
-    if (!(rows as any[]).length) { sendError(res, 404, 'User not found', 'USER_NOT_FOUND'); return; }
-    sendSuccess(res, null, 'User deleted successfully');
+    const index = users.findIndex(u => u.id === req.params.id);
+    if (index === -1) {
+      res.status(404).json({ message: 'User not found' });
+      return;
+    }
+    users.splice(index, 1);
+    res.json({ message: 'User deleted successfully' });
   })
 );
 
+/**
+ * @route   PUT /api/v1/users/:id/status
+ * @desc    Toggle user active status
+ * @access  Private (Admin)
+ */
 router.put(
   '/:id/status',
   authGuard,
+  adminGuard,
   asyncHandler(async (req: Request, res: Response) => {
-    const orgId = (req as any).user?.organisationId || ORG_ID;
-    const [rows] = await db().query(
-      `UPDATE users SET is_active = NOT is_active, updated_at = NOW() WHERE id = :id AND organisation_id = :orgId RETURNING id, email, first_name, last_name, role, department, is_active`,
-      { replacements: { id: req.params.id, orgId } }
-    );
-    if (!(rows as any[]).length) { sendError(res, 404, 'User not found', 'USER_NOT_FOUND'); return; }
-    sendSuccess(res, (rows as any[])[0], 'User status updated successfully');
+    const index = users.findIndex(u => u.id === req.params.id);
+    if (index === -1) {
+      res.status(404).json({ message: 'User not found' });
+      return;
+    }
+    users[index].isActive = !users[index].isActive;
+    res.json({ data: users[index] });
   })
 );
 

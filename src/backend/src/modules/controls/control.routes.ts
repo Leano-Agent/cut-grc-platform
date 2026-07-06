@@ -1,119 +1,76 @@
 import { Router, Request, Response } from 'express';
+import { asyncHandler } from '../../middleware/errorMiddleware';
 import { AuthMiddleware } from '../../middleware/auth.middleware';
-import { asyncHandler, sendSuccess, sendError } from '../../middleware/errorMiddleware';
-import database from '../../config/database';
 
 const router = Router();
+
 let authMiddleware: AuthMiddleware;
 
 export const initializeControlRoutes = (redisClient: any) => {
   authMiddleware = new AuthMiddleware(redisClient);
 };
 
-const authGuard = (req: Request, res: Response, next: any) =>
-  authMiddleware ? authMiddleware.verifyToken(req, res, next) : next();
+router.use((req, res, next) => authMiddleware.verifyToken(req, res, next));
 
-const ORG_ID = '00000000-0000-0000-0000-000000000001';
-const db = () => database.getSequelize();
+// In-memory store seeded with demo data
+let items: any[] = [
+  { id: '1', name: 'Access Control Policy', type: 'preventive', category: 'security', status: 'active', effectiveness: 'high', owner: 'IT Security', lastReviewed: '2026-05-01', nextReview: '2026-11-01', createdAt: '2026-01-10T09:00:00Z' },
+  { id: '2', name: 'Segregation of Duties', type: 'detective', category: 'financial', status: 'active', effectiveness: 'high', owner: 'Finance', lastReviewed: '2026-04-15', nextReview: '2026-10-15', createdAt: '2026-01-15T14:30:00Z' },
+  { id: '3', name: 'Quarterly Risk Assessment', type: 'detective', category: 'operational', status: 'active', effectiveness: 'medium', owner: 'Risk Management', lastReviewed: '2026-03-01', nextReview: '2026-06-01', createdAt: '2026-02-01T11:00:00Z' },
+  { id: '4', name: 'Incident Response Plan', type: 'corrective', category: 'security', status: 'inactive', effectiveness: 'low', owner: 'IT Security', lastReviewed: '2026-01-01', nextReview: '2026-07-01', createdAt: '2026-01-05T08:00:00Z' },
+];
+let nextId = 5;
 
 router.get(
   '/',
-  authGuard,
-  asyncHandler(async (req: Request, res: Response) => {
-    const orgId = (req as any).user?.organisationId || ORG_ID;
-    const [rows] = await db().query(
-      `SELECT * FROM internal_controls WHERE organisation_id = :orgId ORDER BY created_at DESC`,
-      { replacements: { orgId } }
-    );
-    sendSuccess(res, rows, 'Controls retrieved successfully');
+  asyncHandler(async (_req: Request, res: Response) => {
+    res.json({ data: items });
   })
 );
 
 router.get(
   '/summary',
-  authGuard,
-  asyncHandler(async (req: Request, res: Response) => {
-    const orgId = (req as any).user?.organisationId || ORG_ID;
-    const [statusRows] = await db().query(
-      `SELECT status, COUNT(*)::int as count FROM internal_controls WHERE organisation_id = :orgId GROUP BY status`,
-      { replacements: { orgId } }
-    );
-    const [effRows] = await db().query(
-      `SELECT design_effectiveness, COUNT(*)::int as count FROM internal_controls WHERE organisation_id = :orgId AND design_effectiveness IS NOT NULL GROUP BY design_effectiveness`,
-      { replacements: { orgId } }
-    );
-    const byStatus: Record<string, number> = {};
-    const byEff: Record<string, number> = {};
-    let total = 0;
-    for (const r of statusRows as any[]) { byStatus[r.status] = r.count; total += r.count; }
-    for (const r of effRows as any[]) { byEff[r.design_effectiveness] = r.count; }
-    sendSuccess(res, { total, byStatus, byDesignEffectiveness: byEff }, 'Control summary retrieved');
-  })
-);
-
-router.get(
-  '/:id',
-  authGuard,
-  asyncHandler(async (req: Request, res: Response) => {
-    const orgId = (req as any).user?.organisationId || ORG_ID;
-    const [rows] = await db().query(
-      `SELECT * FROM internal_controls WHERE id = :id AND organisation_id = :orgId`,
-      { replacements: { id: req.params.id, orgId } }
-    );
-    if (!(rows as any[]).length) { sendError(res, 404, 'Control not found', 'NOT_FOUND'); return; }
-    sendSuccess(res, (rows as any[])[0], 'Control retrieved successfully');
+  asyncHandler(async (_req: Request, res: Response) => {
+    res.json({ data: { total: 4, active: 3, inactive: 1, highEffectiveness: 2, mediumEffectiveness: 1, lowEffectiveness: 1 } });
   })
 );
 
 router.post(
   '/',
-  authGuard,
   asyncHandler(async (req: Request, res: Response) => {
-    const user = (req as any).user;
-    const orgId = user?.organisationId || ORG_ID;
-    const id = `ctrl_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-    await db().query(
-      `INSERT INTO internal_controls (id, title, description, control_type, frequency, status, department, owner_id, risk_id, design_effectiveness, operational_effectiveness, created_by, organisation_id, created_at, updated_at)
-       VALUES (:id, :title, :desc, :type, :freq, 'active', :dept, :ownerId, :riskId, :designEff, :operEff, :userId, :orgId, NOW(), NOW())`,
-      { replacements: { id, title: req.body.title || '', desc: req.body.description || null, type: req.body.controlType || 'preventive', freq: req.body.frequency || 'monthly', dept: req.body.department || null, ownerId: user?.userId || null, riskId: req.body.riskId || null, designEff: req.body.designEffectiveness || null, operEff: req.body.operationalEffectiveness || null, userId: user?.userId || null, orgId } }
-    );
-    const [rows] = await db().query(`SELECT * FROM internal_controls WHERE id = :id`, { replacements: { id } });
-    sendSuccess(res, (rows as any[])[0], 'Control created successfully', 201);
+    const newItem = {
+      id: `ctrl_${nextId++}`,
+      ...req.body,
+      createdAt: new Date().toISOString(),
+    };
+    items.unshift(newItem);
+    res.status(201).json({ data: newItem });
   })
 );
 
 router.put(
   '/:id',
-  authGuard,
   asyncHandler(async (req: Request, res: Response) => {
-    const orgId = (req as any).user?.organisationId || ORG_ID;
-    const allowed = ['title', 'description', 'control_type', 'frequency', 'status', 'department', 'owner_id', 'design_effectiveness', 'operational_effectiveness'];
-    const updates: string[] = [];
-    const replacements: any = { id: req.params.id, orgId };
-    for (const f of allowed) {
-      const camel = f.replace(/_([a-z])/g, (_, c) => c.toUpperCase());
-      if (req.body[camel] !== undefined) {
-        updates.push(`${f} = :${f}`);
-        replacements[f] = req.body[camel];
-      }
+    const index = items.findIndex(i => i.id === req.params.id);
+    if (index === -1) {
+      res.status(404).json({ message: 'Control not found' });
+      return;
     }
-    if (updates.length) {
-      await db().query(`UPDATE internal_controls SET ${updates.join(', ')}, updated_at = NOW() WHERE id = :id AND organisation_id = :orgId`, { replacements });
-    }
-    const [rows] = await db().query(`SELECT * FROM internal_controls WHERE id = :id AND organisation_id = :orgId`, { replacements: { id: req.params.id, orgId } });
-    if (!(rows as any[]).length) { sendError(res, 404, 'Control not found', 'NOT_FOUND'); return; }
-    sendSuccess(res, (rows as any[])[0], 'Control updated successfully');
+    items[index] = { ...items[index], ...req.body, id: items[index].id };
+    res.json({ data: items[index] });
   })
 );
 
 router.delete(
   '/:id',
-  authGuard,
   asyncHandler(async (req: Request, res: Response) => {
-    const orgId = (req as any).user?.organisationId || ORG_ID;
-    const [rows] = await db().query(`DELETE FROM internal_controls WHERE id = :id AND organisation_id = :orgId RETURNING id`, { replacements: { id: req.params.id, orgId } });
-    if (!(rows as any[]).length) { sendError(res, 404, 'Control not found', 'NOT_FOUND'); return; }
-    sendSuccess(res, null, 'Control deleted successfully');
+    const index = items.findIndex(i => i.id === req.params.id);
+    if (index === -1) {
+      res.status(404).json({ message: 'Control not found' });
+      return;
+    }
+    items.splice(index, 1);
+    res.json({ message: 'Control deleted successfully' });
   })
 );
 

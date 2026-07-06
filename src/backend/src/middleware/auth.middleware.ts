@@ -13,7 +13,6 @@ declare global {
         email: string;
         role: string;
         permissions: string[];
-        organisationId: string;
       };
     }
   }
@@ -81,8 +80,7 @@ export class AuthMiddleware {
         userId: payload.userId,
         email: payload.email,
         role: payload.role,
-        permissions: payload.permissions,
-        organisationId: payload.organisationId,
+        permissions: payload.permissions
       };
       
       next();
@@ -227,8 +225,7 @@ export class AuthMiddleware {
               userId: payload.userId,
               email: payload.email,
               role: payload.role,
-              permissions: payload.permissions,
-              organisationId: payload.organisationId,
+              permissions: payload.permissions
             };
           }
         }

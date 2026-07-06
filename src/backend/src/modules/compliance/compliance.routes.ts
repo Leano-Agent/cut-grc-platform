@@ -1,7 +1,6 @@
 import { Router, Request, Response } from 'express';
+import { asyncHandler } from '../../middleware/errorMiddleware';
 import { AuthMiddleware } from '../../middleware/auth.middleware';
-import { asyncHandler, sendSuccess, sendError } from '../../middleware/errorMiddleware';
-import database from '../../config/database';
 
 const router = Router();
 
@@ -11,158 +10,81 @@ export const initializeComplianceRoutes = (redisClient: any) => {
   authMiddleware = new AuthMiddleware(redisClient);
 };
 
-const authGuard = (req: Request, res: Response, next: any) =>
-  authMiddleware ? authMiddleware.verifyToken(req, res, next) : next();
+router.use((req, res, next) => authMiddleware.verifyToken(req, res, next));
 
-const ORG_ID = '00000000-0000-0000-0000-000000000001';
-const db = () => database.getSequelize();
+// In-memory store seeded with demo data
+let items: any[] = [
+  { id: '1', regulation: 'POPIA', status: 'compliant', score: 95, lastReviewed: '2026-05-15', nextReview: '2026-08-15' },
+  { id: '2', regulation: 'King IV', status: 'compliant', score: 88, lastReviewed: '2026-04-01', nextReview: '2026-07-01' },
+  { id: '3', regulation: 'FICA', status: 'partial', score: 65, lastReviewed: '2026-03-01', nextReview: '2026-06-15' },
+  { id: '4', regulation: 'GDPR', status: 'non_compliant', score: 40, lastReviewed: '2026-02-01', nextReview: '2026-05-15' },
+];
+let nextId = 5;
 
 router.get(
   '/',
-  authGuard,
-  asyncHandler(async (req: Request, res: Response) => {
-    const orgId = (req as any).user?.organisationId || ORG_ID;
-    const [rows] = await db().query(
-      `SELECT * FROM compliance_requirements WHERE organisation_id = :orgId ORDER BY created_at DESC`,
-      { replacements: { orgId } }
-    );
-    sendSuccess(res, rows, 'Compliance requirements retrieved successfully');
+  asyncHandler(async (_req: Request, res: Response) => {
+    res.json({ data: items });
   })
 );
 
 router.get(
   '/summary',
-  authGuard,
-  asyncHandler(async (req: Request, res: Response) => {
-    const orgId = (req as any).user?.organisationId || ORG_ID;
-    const [rows] = await db().query(
-      `SELECT status, COUNT(*)::int as count FROM compliance_requirements WHERE organisation_id = :orgId GROUP BY status`,
-      { replacements: { orgId } }
-    );
-    const counts: Record<string, number> = {};
-    let total = 0;
-    for (const r of rows as any[]) {
-      counts[r.status] = r.count;
-      total += r.count;
-    }
-    sendSuccess(res, {
-      total,
-      compliant: counts['compliant'] || 0,
-      nonCompliant: counts['non_compliant'] || 0,
-      partial: counts['partial'] || 0,
-      notAssessed: counts['not_assessed'] || 0,
-      underReview: counts['under_review'] || 0,
-      overallScore: total > 0 ? Math.round(((counts['compliant'] || 0) / total) * 100) : 0,
-    }, 'Compliance summary retrieved successfully');
+  asyncHandler(async (_req: Request, res: Response) => {
+    res.json({ data: { total: 4, compliant: 2, partial: 1, nonCompliant: 1, overallScore: 72 } });
   })
 );
 
 router.get(
   '/trends',
-  authGuard,
-  asyncHandler(async (req: Request, res: Response) => {
-    const orgId = (req as any).user?.organisationId || ORG_ID;
-    const [rows] = await db().query(
-      `SELECT to_char(last_reviewed_at, 'YYYY-MM') as month, status 
-       FROM compliance_requirements 
-       WHERE organisation_id = :orgId AND last_reviewed_at IS NOT NULL
-       ORDER BY last_reviewed_at`,
-      { replacements: { orgId } }
-    );
-    const buckets: Record<string, { total: number; compliant: number }> = {};
-    for (const r of rows as any[]) {
-      if (!buckets[r.month]) buckets[r.month] = { total: 0, compliant: 0 };
-      buckets[r.month].total++;
-      if (r.status === 'compliant') buckets[r.month].compliant++;
-    }
-    const trends = Object.entries(buckets)
-      .sort(([a], [b]) => a.localeCompare(b))
-      .map(([month, d]) => ({ month, score: d.total > 0 ? Math.round((d.compliant / d.total) * 100) : 0 }));
-    sendSuccess(res, trends, 'Compliance trends retrieved successfully');
-  })
-);
-
-router.get(
-  '/:id',
-  authGuard,
-  asyncHandler(async (req: Request, res: Response) => {
-    const orgId = (req as any).user?.organisationId || ORG_ID;
-    const [rows] = await db().query(
-      `SELECT * FROM compliance_requirements WHERE id = :id AND organisation_id = :orgId`,
-      { replacements: { id: req.params.id, orgId } }
-    );
-    if (!(rows as any[]).length) {
-      sendError(res, 404, 'Compliance requirement not found', 'NOT_FOUND');
-      return;
-    }
-    sendSuccess(res, (rows as any[])[0], 'Compliance requirement retrieved successfully');
+  asyncHandler(async (_req: Request, res: Response) => {
+    res.json({
+      data: [
+        { month: 'Jan', score: 68 },
+        { month: 'Feb', score: 70 },
+        { month: 'Mar', score: 69 },
+        { month: 'Apr', score: 72 },
+      ],
+    });
   })
 );
 
 router.post(
   '/',
-  authGuard,
   asyncHandler(async (req: Request, res: Response) => {
-    const user = (req as any).user;
-    const orgId = user?.organisationId || ORG_ID;
-    const id = `comp_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-    await db().query(
-      `INSERT INTO compliance_requirements (id, title, description, regulation_source, category, status, department, owner_id, created_by, organisation_id, created_at, updated_at)
-       VALUES (:id, :title, :desc, :src, :cat, :status, :dept, :ownerId, :createdBy, :orgId, NOW(), NOW())`,
-      { replacements: { id, title: req.body.title || '', desc: req.body.description || null, src: req.body.regulationSource || null, cat: req.body.category || null, status: req.body.status || 'not_assessed', dept: req.body.department || null, ownerId: user?.userId || null, createdBy: user?.userId || null, orgId } }
-    );
-    const [rows] = await db().query(`SELECT * FROM compliance_requirements WHERE id = :id`, { replacements: { id } });
-    sendSuccess(res, (rows as any[])[0], 'Compliance requirement created successfully', 201);
+    const newItem = {
+      id: `comp_${nextId++}`,
+      ...req.body,
+      createdAt: new Date().toISOString(),
+    };
+    items.unshift(newItem);
+    res.status(201).json({ data: newItem });
   })
 );
 
 router.put(
   '/:id',
-  authGuard,
   asyncHandler(async (req: Request, res: Response) => {
-    const orgId = (req as any).user?.organisationId || ORG_ID;
-    const allowed = ['title', 'description', 'regulation_source', 'category', 'status', 'department', 'owner_id'];
-    const updates: string[] = [];
-    const replacements: any = { id: req.params.id, orgId };
-    for (const f of allowed) {
-      const camel = f.replace(/_([a-z])/g, (_, c) => c.toUpperCase());
-      if (req.body[camel] !== undefined) {
-        updates.push(`${f} = :${f}`);
-        replacements[f] = req.body[camel];
-      }
-    }
-    if (updates.length) {
-      await db().query(
-        `UPDATE compliance_requirements SET ${updates.join(', ')}, updated_at = NOW() WHERE id = :id AND organisation_id = :orgId`,
-        { replacements }
-      );
-    }
-    const [rows] = await db().query(
-      `SELECT * FROM compliance_requirements WHERE id = :id AND organisation_id = :orgId`,
-      { replacements: { id: req.params.id, orgId } }
-    );
-    if (!(rows as any[]).length) {
-      sendError(res, 404, 'Compliance requirement not found', 'NOT_FOUND');
+    const index = items.findIndex(i => i.id === req.params.id);
+    if (index === -1) {
+      res.status(404).json({ message: 'Compliance item not found' });
       return;
     }
-    sendSuccess(res, (rows as any[])[0], 'Compliance requirement updated successfully');
+    items[index] = { ...items[index], ...req.body, id: items[index].id };
+    res.json({ data: items[index] });
   })
 );
 
 router.delete(
   '/:id',
-  authGuard,
   asyncHandler(async (req: Request, res: Response) => {
-    const orgId = (req as any).user?.organisationId || ORG_ID;
-    const [rows] = await db().query(
-      `DELETE FROM compliance_requirements WHERE id = :id AND organisation_id = :orgId RETURNING id`,
-      { replacements: { id: req.params.id, orgId } }
-    );
-    if (!(rows as any[]).length) {
-      sendError(res, 404, 'Compliance requirement not found', 'NOT_FOUND');
+    const index = items.findIndex(i => i.id === req.params.id);
+    if (index === -1) {
+      res.status(404).json({ message: 'Compliance item not found' });
       return;
     }
-    sendSuccess(res, null, 'Compliance requirement deleted successfully');
+    items.splice(index, 1);
+    res.json({ message: 'Compliance item deleted successfully' });
   })
 );
 
