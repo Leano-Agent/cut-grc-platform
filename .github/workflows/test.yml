@@ -53,10 +53,12 @@ jobs:
         cache-dependency-path: '**/package-lock.json'
 
     - name: Install dependencies (Backend)
-      run: npm install --legacy-peer-deps --workspace=src/backend
+      working-directory: ./src/backend
+      run: npm install --legacy-peer-deps
 
     - name: Install dependencies (Frontend)
-      run: npm install --legacy-peer-deps --workspace=src/frontend
+      working-directory: ./src/frontend
+      run: npm install --legacy-peer-deps
 
     - name: Wait for PostgreSQL
       run: |
