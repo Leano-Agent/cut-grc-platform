@@ -96,7 +96,7 @@ class SecurityMiddleware {
     };
     bruteForceProtection = () => {
         return async (req, res, next) => {
-            if (this.redis.status !== 'ready') {
+            if (!this.redis || this.redis.status !== 'ready') {
                 logger_1.default.warn('Redis not ready — skipping brute force protection');
                 next();
                 return;
@@ -145,6 +145,10 @@ class SecurityMiddleware {
     resetBruteForceCounter = () => {
         return async (req, res, next) => {
             try {
+                if (!this.redis || this.redis.status !== 'ready') {
+                    next();
+                    return;
+                }
                 const ip = req.ip || req.socket.remoteAddress || 'unknown';
                 const key = `bruteforce:${ip}:${req.path}`;
                 if (res.statusCode >= 200 && res.statusCode < 300) {
@@ -160,7 +164,14 @@ class SecurityMiddleware {
     };
     static corsConfig = () => {
         return (req, res, next) => {
-            const allowedOrigins = config_1.default.corsOrigin.split(',').map(origin => origin.trim());
+            const configuredOrigins = config_1.default.corsOrigin.split(',').map(origin => origin.trim());
+            const knownOrigins = [
+                'http://localhost:5173',
+                'http://localhost:4173',
+                'https://ngome-frontend.vercel.app',
+                'https://cut-grc-frontend.vercel.app',
+            ];
+            const allowedOrigins = [...new Set([...configuredOrigins, ...knownOrigins])];
             const origin = req.headers.origin;
             if (origin && allowedOrigins.includes(origin)) {
                 res.setHeader('Access-Control-Allow-Origin', origin);

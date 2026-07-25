@@ -110,10 +110,7 @@ const errorHandler = (error, req, res, next) => {
     const message = process.env.NODE_ENV === 'production'
         ? 'Internal server error'
         : error.message;
-    const devMsg = error.message;
-    const devStack = error.stack ? error.stack.slice(0, 250) : '';
-    console.error('[ERROR]', devMsg, devStack);
-    sendErrorResponse(res, statusCode, message, 'INTERNAL_SERVER_ERROR', { error: devMsg, stack: devStack });
+    sendErrorResponse(res, statusCode, message, 'INTERNAL_SERVER_ERROR');
 };
 exports.errorHandler = errorHandler;
 const logError = (error, req) => {

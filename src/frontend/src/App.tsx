@@ -15,6 +15,14 @@ import ComplianceTracking from './pages/compliance/ComplianceTracking'
 import InternalControls from './pages/controls/InternalControls'
 import AuditManagement from './pages/audit/AuditManagement'
 import UserAdministration from './pages/admin/UserAdministration'
+import PolicyManagement from './pages/policies/PolicyManagement'
+import IncidentManagement from './pages/incidents/IncidentManagement'
+import SurveyManagement from './pages/surveys/SurveyManagement'
+import BoardManagement from './pages/boards/BoardManagement'
+import ActionTracking from './pages/actions/ActionTracking'
+import BcpManagement from './pages/bcp/BcpManagement'
+import VendorManagement from './pages/vendors/VendorManagement'
+import TrainingManagement from './pages/training/TrainingManagement'
 
 // New pages for sidebar routes that were blank
 import RiskReports from './pages/reports/RiskReports'
@@ -72,6 +80,14 @@ function App() {
         <Route path="compliance-tracking" element={<ComplianceTracking />} />
         <Route path="internal-controls" element={<InternalControls />} />
         <Route path="audit-management" element={<AuditManagement />} />
+        <Route path="policy-management" element={<PolicyManagement />} />
+        <Route path="incident-management" element={<IncidentManagement />} />
+        <Route path="survey-management" element={<SurveyManagement />} />
+        <Route path="board-management" element={<BoardManagement />} />
+        <Route path="action-tracking" element={<ActionTracking />} />
+        <Route path="vendor-management" element={<VendorManagement />} />
+        <Route path="training-management" element={<TrainingManagement />} />
+        <Route path="bcp-management" element={<BcpManagement />} />
         <Route path="user-administration" element={<UserAdministration />} />
         
         {/* Reports */}

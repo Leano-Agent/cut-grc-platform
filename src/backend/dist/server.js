@@ -43,8 +43,6 @@ const http_1 = require("http");
 const socket_io_1 = require("socket.io");
 const ioredis_1 = __importDefault(require("ioredis"));
 const redis_adapter_1 = require("@socket.io/redis-adapter");
-const path = __importStar(require("path"));
-const fs = __importStar(require("fs"));
 dotenv_1.default.config();
 const config_1 = __importDefault(require("./config/config"));
 const logger_1 = __importDefault(require("./config/logger"));
@@ -63,6 +61,14 @@ const dashboard_routes_1 = __importStar(require("./modules/dashboard/dashboard.r
 const audit_routes_1 = __importStar(require("./modules/audits/audit.routes"));
 const compliance_routes_1 = __importStar(require("./modules/compliance/compliance.routes"));
 const control_routes_1 = __importStar(require("./modules/controls/control.routes"));
+const policy_routes_1 = __importStar(require("./modules/policies/policy.routes"));
+const incident_routes_1 = __importStar(require("./modules/incidents/incident.routes"));
+const survey_routes_1 = __importStar(require("./modules/surveys/survey.routes"));
+const board_routes_1 = __importStar(require("./modules/boards/board.routes"));
+const action_routes_1 = __importStar(require("./modules/actions/action.routes"));
+const training_routes_1 = __importStar(require("./modules/training/training.routes"));
+const bcp_routes_1 = __importStar(require("./modules/bcp/bcp.routes"));
+const vendor_routes_1 = __importStar(require("./modules/vendors/vendor.routes"));
 const executive_automation_service_1 = __importDefault(require("./services/executive-automation.service"));
 class App {
     app;
@@ -108,35 +114,6 @@ class App {
         try {
             await database_1.default.connect();
             logger_1.default.info('Database connected successfully');
-            try {
-                const { execSync } = require('child_process');
-                const migrationPath = path.join(__dirname, '../src/database/migrations/prod-migrate.js');
-                if (fs.existsSync(migrationPath)) {
-                    logger_1.default.info('Running production migrations...');
-                    execSync(`node "${migrationPath}"`, { stdio: 'inherit' });
-                    logger_1.default.info('Production migrations completed');
-                }
-                else {
-                    logger_1.default.warn('Migration script not found, trying direct execution...');
-                    const fallbackPath = path.join(__dirname, '../src/database/migrations/004-multitenant-organisations.sql');
-                    if (fs.existsSync(fallbackPath)) {
-                        const pool = new (require('pg').Pool)({
-                            connectionString: process.env.DATABASE_URL,
-                            ssl: { rejectUnauthorized: false },
-                        });
-                        const sql = fs.readFileSync(fallbackPath, 'utf8');
-                        await pool.query(sql);
-                        logger_1.default.info('004 migration applied directly');
-                        await pool.end();
-                    }
-                    else {
-                        logger_1.default.warn('Migration files not found in container — check Dockerfile COPY');
-                    }
-                }
-            }
-            catch (migrateError) {
-                logger_1.default.error('Migration failed — server will continue', { error: migrateError });
-            }
         }
         catch (error) {
             logger_1.default.error('Database connection failed, server will retry:', error);
@@ -238,6 +215,14 @@ class App {
         (0, audit_routes_1.initializeAuditRoutes)(redisClient);
         (0, compliance_routes_1.initializeComplianceRoutes)(redisClient);
         (0, control_routes_1.initializeControlRoutes)(redisClient);
+        (0, policy_routes_1.initializePolicyRoutes)(redisClient);
+        (0, incident_routes_1.initializeIncidentRoutes)(redisClient);
+        (0, survey_routes_1.initializeSurveyRoutes)(redisClient);
+        (0, board_routes_1.initializeBoardRoutes)(redisClient);
+        (0, action_routes_1.initializeActionRoutes)(redisClient);
+        (0, training_routes_1.initializeTrainingRoutes)(redisClient);
+        (0, bcp_routes_1.initializeBcpRoutes)(redisClient);
+        (0, vendor_routes_1.initializeVendorRoutes)(redisClient);
         logger_1.default.info('Route middleware initialized — auth enforcement is ACTIVE');
         this.app.get('/health', (req, res) => {
             res.status(200).json({
@@ -258,6 +243,14 @@ class App {
         this.app.use('/api/v1/audits', audit_routes_1.default);
         this.app.use('/api/v1/compliance', compliance_routes_1.default);
         this.app.use('/api/v1/controls', control_routes_1.default);
+        this.app.use('/api/v1/policies', policy_routes_1.default);
+        this.app.use('/api/v1/incidents', incident_routes_1.default);
+        this.app.use('/api/v1/surveys', survey_routes_1.default);
+        this.app.use('/api/v1/boards', board_routes_1.default);
+        this.app.use('/api/v1/actions', action_routes_1.default);
+        this.app.use('/api/v1/training', training_routes_1.default);
+        this.app.use('/api/v1/bcp', bcp_routes_1.default);
+        this.app.use('/api/v1/vendors', vendor_routes_1.default);
         try {
             const execService = executive_automation_service_1.default.getInstance();
             execService.startCronScheduler();

@@ -5,23 +5,16 @@
   "description": "Ngome — The Fortress for African Governance",
   "workspaces": [
     "src/backend",
-    "src/frontend",
-    "src/public-portal"
+    "src/frontend"
   ],
   "scripts": {
-    "install:all": "npm install --workspaces",
-    "build:backend": "npm run build --workspace=src/backend",
-    "build:frontend": "npm run build --workspace=src/frontend",
-    "build": "npm run build:backend && npm run build:frontend",
-    "test:backend": "npm test --workspace=src/backend --if-present",
-    "test:frontend": "npm test --workspace=src/frontend --if-present",
-    "test": "npm run test:backend && npm run test:frontend",
-    "lint:backend": "npm run lint --workspace=src/backend --if-present",
-    "lint:frontend": "npm run lint --workspace=src/frontend --if-present",
-    "lint": "npm run lint:backend && npm run lint:frontend",
-    "type-check:backend": "npm run type-check --workspace=src/backend --if-present",
-    "type-check:frontend": "npm run type-check --workspace=src/frontend --if-present",
-    "check": "npm run lint && npm run type-check:backend && npm run type-check:frontend && npm run test"
+    "install:backend": "npm install --workspace=src/backend",
+    "install:frontend": "npm install --workspace=src/frontend",
+    "start": "node src/backend/dist/server.js",
+    "build:backend": "cd src/backend && tsc",
+    "build": "cd src/backend && tsc",
+    "postinstall": "cd src/backend && npm install --omit=dev --legacy-peer-deps",
+    "test": "cd src/backend && npm test"
   },
   "engines": {
     "node": ">=20.0.0"

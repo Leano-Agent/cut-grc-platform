@@ -1,13 +1,13 @@
 # Railway Configuration — Ngome Platform
-# Project: https://railway.app/project/fdf323a7-5500-4c0c-827f-504c680dfb44
+# Using Nixpacks Node.js auto-detection with pre-compiled dist
 
 [build]
-  builder = "DOCKERFILE"
+  builder = "NIXPACKS"
 
 [deploy]
-  # Using Dockerfile ENTRYPOINT (entrypoint.sh) which runs migrations then server
   healthcheckPath = "/health"
   restartPolicyType = "always"
+  startCommand = "cd src/backend && node src/database/migrations/prod-migrate.js && node dist/server.js"
 
 [service]
   name = "ngome-backend"

@@ -2,8 +2,8 @@ import { Request, Response, NextFunction } from 'express';
 import { Redis } from 'ioredis';
 export declare class SecurityMiddleware {
     private redis;
-    constructor(redisClient: Redis);
-    static helmetConfig: () => (req: import("http").IncomingMessage, res: import("http").ServerResponse, next: (err?: unknown) => void) => void;
+    constructor(redisClient: Redis | null);
+    static helmetConfig: () => (req: import("node:http").IncomingMessage, res: import("node:http").ServerResponse, next: (err?: unknown) => void) => void;
     static rateLimiter: () => import("express-rate-limit").RateLimitRequestHandler;
     static speedLimiter: () => any;
     bruteForceProtection: () => (req: Request, res: Response, next: NextFunction) => Promise<void>;

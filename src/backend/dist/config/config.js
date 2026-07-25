@@ -24,7 +24,7 @@ const envSchema = zod_1.z.object({
     JWT_EXPIRES_IN: zod_1.z.string().default('24h'),
     JWT_REFRESH_SECRET: zod_1.z.string().min(32),
     JWT_REFRESH_EXPIRES_IN: zod_1.z.string().default('7d'),
-    CORS_ORIGIN: zod_1.z.string().default('http://localhost:5173'),
+    CORS_ORIGIN: zod_1.z.string().default('http://localhost:5173,https://ngome-frontend.vercel.app,https://cut-grc-frontend.vercel.app'),
     SMTP_HOST: zod_1.z.string().optional(),
     SMTP_PORT: zod_1.z.string().transform(Number).optional(),
     SMTP_USER: zod_1.z.string().optional(),

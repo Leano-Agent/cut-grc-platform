@@ -33,6 +33,14 @@ import dashboardRoutes, { initializeDashboardRoutes } from './modules/dashboard/
 import auditRoutes, { initializeAuditRoutes } from './modules/audits/audit.routes';
 import complianceRoutes, { initializeComplianceRoutes } from './modules/compliance/compliance.routes';
 import controlRoutes, { initializeControlRoutes } from './modules/controls/control.routes';
+import policyRoutes, { initializePolicyRoutes } from './modules/policies/policy.routes';
+import incidentRoutes, { initializeIncidentRoutes } from './modules/incidents/incident.routes';
+import surveyRoutes, { initializeSurveyRoutes } from './modules/surveys/survey.routes';
+import boardRoutes, { initializeBoardRoutes } from './modules/boards/board.routes';
+import actionRoutes, { initializeActionRoutes } from './modules/actions/action.routes';
+import trainingRoutes, { initializeTrainingRoutes } from './modules/training/training.routes';
+import bcpRoutes, { initializeBcpRoutes } from './modules/bcp/bcp.routes';
+import vendorRoutes, { initializeVendorRoutes } from './modules/vendors/vendor.routes';
 import ExecutiveAutomationService from './services/executive-automation.service';
 
 class App {
@@ -232,6 +240,14 @@ class App {
     initializeAuditRoutes(redisClient as any);
     initializeComplianceRoutes(redisClient as any);
     initializeControlRoutes(redisClient as any);
+    initializePolicyRoutes(redisClient as any);
+    initializeIncidentRoutes(redisClient as any);
+    initializeSurveyRoutes(redisClient as any);
+    initializeBoardRoutes(redisClient as any);
+    initializeActionRoutes(redisClient as any);
+    initializeTrainingRoutes(redisClient as any);
+    initializeBcpRoutes(redisClient as any);
+    initializeVendorRoutes(redisClient as any);
     logger.info('Route middleware initialized — auth enforcement is ACTIVE');
 
     // Health check endpoint
@@ -256,6 +272,14 @@ class App {
     this.app.use('/api/v1/audits', auditRoutes);
     this.app.use('/api/v1/compliance', complianceRoutes);
     this.app.use('/api/v1/controls', controlRoutes);
+    this.app.use('/api/v1/policies', policyRoutes);
+    this.app.use('/api/v1/incidents', incidentRoutes);
+    this.app.use('/api/v1/surveys', surveyRoutes);
+    this.app.use('/api/v1/boards', boardRoutes);
+    this.app.use('/api/v1/actions', actionRoutes);
+    this.app.use('/api/v1/vendors', vendorRoutes);
+    this.app.use('/api/v1/training', trainingRoutes);
+    this.app.use('/api/v1/bcp', bcpRoutes);
     
     // Initialize executive automation on startup
     try {

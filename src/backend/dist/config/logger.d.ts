@@ -1,6 +1,5 @@
-import winston from 'winston';
-declare const logger: winston.Logger;
-declare const securityLogger: winston.Logger;
+declare const logger: any;
+declare const securityLogger: any;
 declare const stream: {
     write: (message: string) => void;
 };

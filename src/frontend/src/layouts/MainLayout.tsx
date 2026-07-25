@@ -28,6 +28,14 @@ import {
   Assignment as AssignmentIcon,
   VerifiedUser as VerifiedUserIcon,
   People as PeopleIcon,
+  Policy as PolicyIcon,
+  BugReport as BugReportIcon,
+  Poll as PollIcon,
+  Groups as GroupsIcon,
+  TrackChanges as TrackChangesIcon,
+  GroupWork as GroupWorkIcon,
+  BusinessCenter as BcpManagementIcon,
+  School as SchoolIcon,
 } from '@mui/icons-material'
 
 import Sidebar from '../components/navigation/Sidebar'
@@ -101,6 +109,54 @@ const MainLayout = () => {
       title: 'Audit Management',
       icon: <VerifiedUserIcon />,
       path: '/audit-management',
+      roles: ['admin', 'manager'],
+    },
+    {
+      title: 'Policy Management',
+      icon: <PolicyIcon />,
+      path: '/policy-management',
+      roles: ['admin', 'manager'],
+    },
+    {
+      title: 'Incident Management',
+      icon: <BugReportIcon />,
+      path: '/incident-management',
+      roles: ['admin', 'manager', 'user'],
+    },
+    {
+      title: 'Survey & Questionnaire',
+      icon: <PollIcon />,
+      path: '/survey-management',
+      roles: ['admin', 'manager'],
+    },
+    {
+      title: 'Board & Committee',
+      icon: <GroupsIcon />,
+      path: '/board-management',
+      roles: ['admin', 'manager'],
+    },
+    {
+      title: 'Issue & Action Tracking',
+      icon: <TrackChangesIcon />,
+      path: '/action-tracking',
+      roles: ['admin', 'manager', 'user'],
+    },
+    {
+      title: 'Vendor Management',
+      icon: <GroupWorkIcon />,
+      path: '/vendor-management',
+      roles: ['admin', 'manager'],
+    },
+    {
+      title: 'Training & Awareness',
+      icon: <SchoolIcon />,
+      path: '/training-management',
+      roles: ['admin', 'manager'],
+    },
+    {
+      title: 'Business Continuity',
+      icon: <BcpManagementIcon />,
+      path: '/bcp-management',
       roles: ['admin', 'manager'],
     },
     {

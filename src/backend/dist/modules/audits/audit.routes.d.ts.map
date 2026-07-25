@@ -1,1 +1,1 @@
-{"version":3,"file":"audit.routes.d.ts","sourceRoot":"","sources":["../../../src/modules/audits/audit.routes.ts"],"names":[],"mappings":"AAIA,QAAA,MAAM,MAAM,4CAAW,CAAC;AAKxB,eAAO,MAAM,qBAAqB,GAAI,aAAa,GAAG,SAErD,CAAC;AAkCF,eAAe,MAAM,CAAC"}
+{"version":3,"file":"audit.routes.d.ts","sourceRoot":"","sources":["../../../src/modules/audits/audit.routes.ts"],"names":[],"mappings":"AAIA,QAAA,MAAM,MAAM,4CAAW,CAAC;AAKxB,eAAO,MAAM,qBAAqB,GAAI,aAAa,GAAG,SAErD,CAAC;AAiEF,eAAe,MAAM,CAAC"}
