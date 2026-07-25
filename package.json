@@ -4,8 +4,7 @@
   "private": true,
   "description": "Ngome — The Fortress for African Governance",
   "workspaces": [
-    "src/backend",
-    "src/frontend"
+    "src/backend"
   ],
   "scripts": {
     "install:backend": "npm install --workspace=src/backend",
